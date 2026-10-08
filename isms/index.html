@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ISMS内部監査問題集（仮問題）</title>
+<meta name="robots" content="noindex,nofollow">
+<script>
+(function () {
+  function make(ok, fail) {
+    return new Proxy({}, { get: function (_, name) {
+      if (name === "withSuccessHandler") return function (f) { return make(f, fail); };
+      if (name === "withFailureHandler") return function (f) { return make(ok, f); };
+      return function () {
+        var reading = /^(apiLoad|apiGet)/.test(String(name));
+        setTimeout(function () {
+          if (reading) { if (ok) ok(null); }
+          else if (fail) fail(new Error("公開版では記録・AI助言は使えません"));
+        }, 0);
+      };
+    } });
+  }
+  window.google = { script: { run: make(null, null) } };
+})();
+</script>
+  <style>
+    :root {
+      --theme-color: #3b5b2e;
+      --theme-color-dark: #21351a;
+    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: var(--theme-color-dark);
+  padding: 0;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.container {
+  background: white;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--theme-color) 0%, var(--theme-color-dark) 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-icon { font-size: 32px; }
+
+.header-text { min-width: 0; flex: 1 1 140px; }   /* ボタンに押されてタイトルが1文字幅に潰れ、縦書きのように見えるのを防ぐ */
+.header-text h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; writing-mode: horizontal-tb; }
+.header-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-btn:hover { background: rgba(255,255,255,0.3); }
+
+.quiz-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { width: 100%; max-width: 520px; margin: 0 auto; }
+
+/* --- モード選択画面 --- */
+/* カード数が増えても幅が細くなりすぎないよう、flexではなくgridで自動折り返しする
+   （4つ目の「追加問題2」追加時にスマホで窮屈にならないための変更）。 */
+.mode-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.mode-card {
+  min-width: 0;
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.mode-card:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 復習モードのカードだけ、出題元の問題集カードと見分けられるよう薄く色を敷く。 */
+.review-card {
+  background: #fffaf2;
+  border-color: #f0d9b5;
+}
+.review-card:hover { border-color: #e0a75e; }
+.mode-card:disabled { opacity: 0.6; cursor: wait; }
+
+.mode-icon { font-size: 36px; margin-bottom: 8px; }
+.mode-title { font-size: 17px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.mode-desc { font-size: 13px; color: #888; }
+
+/* --- 範囲選択画面（全部 / 章ごとにチャレンジ） --- */
+.back-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.back-link:hover { color: var(--theme-color); }
+
+.scope-select {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-all-btn {
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  margin-bottom: 8px;
+}
+
+.scope-all-btn:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.scope-all-title { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.scope-all-desc { font-size: 13px; color: #888; }
+
+.scope-chapter-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  margin: 4px 0 2px;
+}
+
+.scope-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scope-chapter-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  background: #f8f9ff;
+  border: 1.5px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scope-chapter-btn:hover { border-color: var(--theme-color); }
+
+.scope-chapter-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.scope-chapter-btn:disabled:hover { border-color: #e6e8ee; }
+
+/* 範囲選択画面の下に出す補足（復習モードの「克服」ルールの説明など） */
+.scope-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.scope-chapter-btn .name { flex: 1; padding-right: 12px; }
+.scope-chapter-btn .count { flex-shrink: 0; color: var(--theme-color); font-weight: 700; font-size: 13px; }
+
+/* --- 出題画面 --- */
+.progress {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.chapter-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--theme-color);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.question-card {
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stem {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #222;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option-btn:hover { border-color: var(--theme-color); }
+
+.option-btn.selected {
+  border-color: var(--theme-color);
+  background: #f0f0ff;
+  font-weight: 600;
+}
+
+.option-btn.tf-btn {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 回答後の表示状態 */
+.option-btn.correct {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.option-btn.incorrect {
+  border-color: #c62828;
+  background: #fdecea;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-badge {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.option-explain {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.answer-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.answer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 回答（複数選択のときだけ表示）とスキップを縦に並べる操作行。
+   mc / tf は選択した時点で判定するため、この行にはスキップだけが残る。 */
+.question-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skip-btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: white;
+  color: #888;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.skip-btn:hover { border-color: var(--theme-color); color: var(--theme-color); }
+
+.reveal-area { margin-top: 20px; }
+
+.reveal-options { margin-bottom: 16px; }
+
+.reveal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.action-btn:hover { border-color: var(--theme-color); }
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+}
+
+/* --- 終了サマリー画面 --- */
+#screenSummary { text-align: center; }
+#screenSummary h2 { font-size: 22px; color: #333; margin-bottom: 16px; }
+
+.summary-score {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--theme-color);
+  margin-bottom: 20px;
+}
+
+.summary-chapters {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.summary-chapter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.summary-chapter-row .name { color: #333; }
+.summary-chapter-row .score { color: var(--theme-color); font-weight: 700; }
+
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 間違えた問題だけを解き直すボタン。記録ボタンの次に置いて目に入るようにする。 */
+.action-btn.retry-wrong {
+  border-color: #f0d9b5;
+  background: #fffaf2;
+  color: #a1670f;
+  font-weight: 700;
+}
+.action-btn.retry-wrong:hover { border-color: #e0a75e; }
+
+.summary-note {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.record-status,
+.advice-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #888;
+  min-height: 18px;
+}
+
+.advice-area {
+  margin-top: 12px;
+  text-align: left;
+  white-space: pre-wrap;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.quiz-body::-webkit-scrollbar { width: 5px; }
+.quiz-body::-webkit-scrollbar-track { background: transparent; }
+.quiz-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+/* --- PCブラウザ（幅900px以上）: 画面幅を広く使う ---
+   以前は .screen が max-width:520px の中央寄せで、PCでは画面の中央に細い1列が出るだけだった（2026-09-20 に変更）。
+   スマホ（600px以下）の指定とは範囲が重ならない。行が長くなりすぎないよう、上限は 1120px（1400px以上は 1240px）。
+   ボタン類は横いっぱいに伸ばさず、中央に寄せた幅に留める。 */
+@media (min-width: 900px) {
+  .header { padding: 18px 40px; }
+  .header-text h1 { font-size: 20px; }
+  .header-text p { font-size: 13px; }
+  .header-btn { font-size: 12px; padding: 7px 14px; }
+
+  .quiz-body { padding: 32px 48px; }
+  .screen { max-width: 1120px; }
+
+  /* モード選択: カードを横に並べて広く使う（4枚なら1行） */
+  .mode-select { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+  .mode-card { padding: 30px 20px; }
+  .mode-icon { font-size: 40px; }
+  .mode-title { font-size: 18px; }
+  .mode-desc { font-size: 14px; }
+
+  /* 範囲選択: 章のボタンを2列に（章が多くても縦に長くなりすぎない） */
+  .scope-chapter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+  .scope-chapter-btn { font-size: 15px; }
+
+  /* 出題: 問題文・選択肢を広く、文字も一段大きく */
+  .question-card { padding: 28px 36px; }
+  .stem { font-size: 18px; line-height: 1.8; }
+  .options { gap: 12px; }
+  .option-btn { font-size: 16px; padding: 14px 20px; }
+  .answer-btn, .action-btn, .skip-btn { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .question-actions { align-items: center; }
+  .question-actions .answer-btn, .question-actions .skip-btn { width: 100%; }
+  .summary-note, .scope-note { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .reveal-actions { align-items: stretch; }
+
+  /* 終了サマリー: 章別の結果を2列に */
+  .summary-chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+  .summary-chapter-row { font-size: 14.5px; padding: 12px 16px; }
+  .summary-actions { align-items: center; }
+  .summary-actions .action-btn { width: 100%; }
+}
+
+@media (min-width: 1400px) {
+  .screen { max-width: 1240px; }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0; }
+  .container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+  .header { padding: 12px 14px; gap: 8px 10px; flex-wrap: wrap; }   /* 狭い画面ではボタン類を2行目へ折り返す */
+  .header-icon { font-size: 28px; }
+  .header-text h1 { font-size: 16px; }
+  .header-text p { display: none; }
+  .header-actions { gap: 6px; flex-wrap: wrap; flex-basis: 100%; margin-left: 0; }
+  .header-btn { font-size: 11px; padding: 6px 10px; }
+  .quiz-body { padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); }
+  .stem { font-size: 16.5px; }
+  .option-btn { font-size: 16px; }
+  .mode-select { gap: 10px; }
+  .mode-card { padding: 16px 8px; }
+  .mode-icon { font-size: 26px; margin-bottom: 4px; }
+  .mode-title { font-size: 14px; margin-bottom: 2px; }
+  .mode-desc { font-size: 11px; }
+}
+
+@media (max-height: 480px) {
+  .quiz-body { padding-top: 14px; }
+  .mode-card { padding: 12px 8px; }
+  .mode-icon { font-size: 22px; margin-bottom: 2px; }
+}
+
+/* --- 中断した問題集の再開バナー（モード選択画面の先頭） --- */
+.resume-banner {
+  border: 2px solid var(--theme-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.resume-text { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 10px; }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.resume-actions .action-btn { flex: 1 1 140px; width: auto; }
+
+  </style>
+<style>#askBtn,#adviceBtn{display:none !important}</style>
+</head>
+<body>
+<div style="background:#fff4d6;color:#5b4300;padding:10px 14px;font-size:14px;line-height:1.6;border-bottom:1px solid #e6c96b">
+<strong>非公式・個人作成の仮問題です。</strong>ISO/IEC 27001・JIS Q 27001（ISMS）の規格・認証制度の公式の試験・規格とは無関係で、公式の出題・難度とは一致しません。事実関係は公式テキストで未照合です。この公開版では成績・途中経過は保存されません。
+</div>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">🔐</div>
+    <div class="header-text">
+      <h1>ISMS内部監査問題集（仮問題）</h1>
+      <p id="headerSub">モードを選んでください</p>
+    </div>
+    <div class="header-actions">
+      
+      
+      
+      <button type="button" class="header-btn" id="soundBtn" onclick="toggleSound()">🔊 音</button>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quizBody">
+    <div class="screen" id="screenMode">
+      <div class="resume-banner" id="resumeBanner" style="display:none;">
+        <div class="resume-text" id="resumeText"></div>
+        <div class="resume-actions">
+          <button class="action-btn primary" id="resumeBtn" onclick="resumeProgress()">▶ 続きから再開</button>
+          <button class="action-btn" onclick="discardProgress()">破棄</button>
+        </div>
+      </div>
+      <div class="mode-select">
+        <button class="mode-card" onclick="chooseMode('mc')">
+          <div class="mode-icon">📝</div>
+          <div class="mode-title" id="mcTitle">模擬試験</div>
+          <div class="mode-desc"><span id="mcCount">0</span>問・<span id="mcKind">4択</span></div>
+        </button>
+        <button class="mode-card" id="tfCard" onclick="chooseMode('tf')">
+          <div class="mode-icon">⭕</div>
+          <div class="mode-title">一問一答</div>
+          <div class="mode-desc"><span id="tfCount">0</span>問・正誤判定</div>
+        </button>
+        <button class="mode-card" id="extraCard" onclick="chooseMode('extra')">
+          <div class="mode-icon">📘</div>
+          <div class="mode-title">追加問題</div>
+          <div class="mode-desc"><span id="extraCount">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra2Card" onclick="chooseMode('extra2')">
+          <div class="mode-icon">📗</div>
+          <div class="mode-title">追加問題2</div>
+          <div class="mode-desc"><span id="extra2Count">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra3Card" onclick="chooseMode('extra3')">
+          <div class="mode-icon">🆕</div>
+          <div class="mode-title">新シラバス仮問題</div>
+          <div class="mode-desc"><span id="extra3Count">0</span>問・4択（2027年2月〜の追加分）</div>
+        </button>
+        <button class="mode-card review-card" id="reviewCard" onclick="chooseMode('review')">
+          <div class="mode-icon">🔁</div>
+          <div class="mode-title">復習</div>
+          <div class="mode-desc" id="reviewCount">間違えた問題だけ</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen" id="screenScope" style="display:none;">
+      <button class="back-link" onclick="backToModeSelect()">← モード選択に戻る</button>
+      <div class="scope-select" id="scopeSelect"></div>
+    </div>
+
+    <div class="screen" id="screenQuestion" style="display:none;">
+      <div class="progress" id="progress"></div>
+      <div class="chapter-label" id="chapterLabel"></div>
+      <div class="question-card">
+        <p class="stem" id="stem"></p>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="question-actions" id="questionActions">
+        <button class="answer-btn" id="answerBtn" onclick="reveal()" disabled>回答</button>
+        <button class="skip-btn" id="skipBtn" onclick="skipQuestion()">回答せずに次へ →</button>
+      </div>
+      <div class="reveal-area" id="revealArea" style="display:none;">
+        <div class="reveal-options" id="revealOptions"></div>
+        <div class="reveal-actions">
+          <button class="action-btn" id="askBtn" style="display:none !important" onclick="askInChat()">🤖 チャットに詳しく聞く</button>
+          <button class="action-btn primary" id="nextBtn" onclick="nextQuestion()">次の問題へ →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenSummary" style="display:none;">
+      <h2>お疲れさまでした！</h2>
+      <div class="summary-score" id="summaryScore"></div>
+      <div class="summary-chapters" id="summaryChapters"></div>
+      <div class="summary-actions">
+        <button class="action-btn primary" id="recordBtn" onclick="recordResults()">この回の結果を記録</button>
+        <button class="action-btn retry-wrong" id="retryWrongBtn" onclick="retryWrongInSession()" style="display:none;">🔁 間違えた問題だけもう一度</button>
+        <button class="action-btn" id="adviceBtn" style="display:none !important" onclick="getAdvice()">🎯 学習アドバイスを見る</button>
+        <button class="action-btn" onclick="restartMode()">もう一度</button>
+        <button class="action-btn" onclick="backToScopeSelect()">別の範囲へ</button>
+        <button class="action-btn" onclick="backToModeSelect()">別のモードへ</button>
+      </div>
+      <div class="summary-note" id="summaryNote" style="display:none;"></div>
+      <div class="record-status" id="recordStatus"></div>
+      <div class="advice-status" id="adviceStatus"></div>
+      <div class="advice-area" id="adviceArea" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_WEBAPP_URL = '';
+  const EXAM_ID = 'isms';
+  const EXAM_SHORT_TITLE = 'ISMS内部監査';
+  const TRACKING_EXAM_ID = 'isms';
+  const MC_TITLE = '問題集';
+  const QUESTIONS = [{"id":"isms-1","type":"mc","chapterIndex":0,"stem":"ISMS（情報セキュリティマネジメントシステム）の説明として最も適切なものはどれか。","options":["組織の情報セキュリティリスクを方針・体制・プロセスを通じて計画的に管理し、機密性・完全性・可用性を維持・改善する仕組み。","情報システムに導入したセキュリティ製品の購入・更新・廃棄の手続を一覧で管理するための台帳を指す概念であり、担当者が交代した際の引継ぎにも用いられる文書の総称である。","障害が発生したときに現場の担当者が復旧作業を行うための手順書を指す概念。","利用者が個人情報の取扱いに同意した記録を保管するための社内システム。"],"correctIndex":0,"explanations":["○ ISMSはリスクを方針・体制・プロセスで管理し、CIAを維持・改善する仕組みを指すため正しい。","× 製品の台帳管理は資産管理の一部であり、ISMSそのものの定義ではない。","× 障害復旧手順はISMSの運用の一部になりうるが、ISMSの定義ではない。","× 同意記録の保管は個人情報保護の業務であり、ISMSの定義ではない。"]},{"id":"isms-2","type":"mc","chapterIndex":0,"stem":"情報セキュリティの「完全性」の説明として最も適切なものはどれか。","options":["認可されていない者に情報を利用させず、開示しないことを確実にするため、暗号化された通信経路のみを使用し、利用者の全員に同一の権限を与える特性であり、ネットワークの保守担当者にのみ公開される。","情報及び処理方法が正確かつ完全であることを保護する特性であり、不正な改ざんや破壊から守られている状態を指す。","認可された利用者が、必要なときに情報及び関連資産にアクセスし、使用できる特性であり、情報の正確さや完全さを保つ性質とは別のものとして扱う。","情報の作成者や送信元を、第三者が客観的に検証できる特性である。"],"correctIndex":1,"explanations":["× 認可されていない者への開示を防ぐ性質で、機密性の説明である。","○ 正確さと完全さを保つ性質で、完全性の説明として正しい。","× 必要なときに使える性質で、可用性の説明である。","× 作成者や送信元の検証に関する性質で、完全性とは別の概念（真正性など）である。"]},{"id":"isms-3","type":"mc","chapterIndex":0,"stem":"「可用性」の説明として最も適切なものはどれか。","options":["認可されていない者に情報を開示しない特性であり、可用性ではなく機密性の説明にあたる。","情報が改ざんされていない特性であり、保存された情報を全利用者が常に閲覧でき、利用履歴を業務時間内に限って記録する特性を指す。","認可された利用者が、必要なときに情報及び関連資産へアクセスし、使用できる特性。","情報の所在と利用履歴を記録し、後から追跡できるようにする特性であり、利用者が必要なときに使えることは含まない。"],"correctIndex":2,"explanations":["× 機密性の説明である。","× 完全性の説明である。","○ 必要なときに利用できる性質で、可用性の定義として正しい。","× 追跡可能性（トレーサビリティ）の説明であり、可用性ではない。"]},{"id":"isms-4","type":"mc","chapterIndex":1,"stem":"情報セキュリティリスクを表す一般的な考え方として最も適切なものはどれか。","options":["システムに存在する脆弱性の件数。","情報資産の帳簿上の評価額の総額を示す金額。","過去に発生したインシデントの件数をそのまま示す指標。","脅威の発生可能性と、その脆弱性が悪用されたときの影響の大きさの組合せ。"],"correctIndex":3,"explanations":["× 脆弱性の件数は弱点の数にすぎず、リスクの大きさを直接示さない。","× 取得価額は資産の帳簿上の金額であり、リスクの大きさとは一致しない。","× 過去の件数は参考になるが、将来の発生可能性と影響を示すものではない。","○ リスクは「起こりやすさ（発生可能性）×影響」で捉えるのが基本であり、正しい。"]},{"id":"isms-5","type":"mc","chapterIndex":1,"stem":"脅威、脆弱性、リスクの関係として最も適切なものはどれか。","options":["脅威は脆弱性を持つ資産に作用し、その結果としてリスクが生じる。","脆弱性は脅威が存在する場合にのみ生じるため、脅威が無い資産については脆弱性の評価を省略して差し支えない。","リスクは脅威を取り除けば、脆弱性に関係なく消える。","脅威と脆弱性は同じ意味である。"],"correctIndex":0,"explanations":["○ 脅威が脆弱性を突くことでリスクが顕在化するという関係で、正しい。","× 脆弱性は脅威とは独立に存在しうる弱点であり、脅威の有無に依存しない。","× 脆弱性が残れば、脅威を一部除いても別の脅威でリスクは残る。","× 脅威と脆弱性は別の概念であり、リスクは管理費用ではない。"]},{"id":"isms-6","type":"mc","chapterIndex":1,"stem":"ISMSにおける「リスク対応」の選択肢として、ISO/IEC 27001の考え方に最も合うものはどれか。","options":["リスクは必ず保険で移転しなければならず、低減は選べない。","リスクを低減、回避、移転（共有）、保有の中から、組織の判断で選択する。","リスクを対応しないことは一切認められず、全リスクに管理策を適用する必要がある。","リスクは監査で指摘された場合にのみ対応の対象となり、組織が自ら特定したリスクは対応の対象外となる。"],"correctIndex":1,"explanations":["× 保険（移転）は選択肢の1つにすぎず、必須ではない。","○ 低減・回避・移転（共有）・保有の4つから選ぶのが一般的な考え方で、正しい。","× リスク受容（保有）が正当に判断される場合もあり、全リスクへの管理策適用は要求されない。","× リスク対応は監査指摘を待たず、リスクアセスメントの結果に基づいて実施する。"]},{"id":"isms-7","type":"mc","chapterIndex":4,"stem":"PDCAサイクルの「Check（評価）」に該当する活動として最も適切なものはどれか。","options":["管理策を実際に運用し、業務の中で定期的に実施して、その結果を次の計画の入力に反映させる活動。","方針や目標、リスク対応計画を策定し、経営者の承認を得る活動であり、評価の段階ではない。","監視、測定、分析及び評価を行い、ISMSの有効性を確認する。","不適合に対する是正処置を実施し、ISMSを継続的に改善する活動であり、評価の結果を確認する活動ではない。"],"correctIndex":2,"explanations":["× 管理策の実施は「Do（実行）」に該当する。","× 計画の策定は「Plan（計画）」に該当する。","○ 監視・測定・分析・評価によって有効性を確認するのがCheckで、正しい。","× 是正・改善は「Act（改善）」に該当する。"]},{"id":"isms-8","type":"mc","chapterIndex":2,"stem":"ISO/IEC 27001:2022における「文書化された情報」の説明として最も適切なものはどれか。","options":["紙の文書に限られ、電子データは対象外とされる。","認証機関が指定した様式に従って作成された文書のみを指す。","監査で指摘された事項を記録するための文書だけを指す。","組織がISMSの有効性のために管理し、維持する必要がある情報であり、形式や媒体は問われない。"],"correctIndex":3,"explanations":["× 紙に限定されず、電子データも含まれるため誤り。","× 様式は組織が定めるもので、認証機関が指定するものではない。","× 指摘事項の記録は一部であり、文書化された情報の定義ではない。","○ ISMSに必要な情報を形式・媒体を問わず管理対象とする点で正しい。"]},{"id":"isms-9","type":"mc","chapterIndex":4,"stem":"内部監査の目的として最も適切なものはどれか。","options":["ISMSが組織自身の要求事項及びISO/IEC 27001の要求事項に適合しているか、また有効に実施・維持されているかを判断すること。","従業員の業務成績を評価し、人事上の処分を決めるとともに、その結果を賞与の算定根拠として全社に公表し、次年度の職務配置と昇進の可否を一括して決定すること。","外部の認証機関による審査を代わりに受けること。","情報システムの性能を最大化するための改善案を作成すること。"],"correctIndex":0,"explanations":["○ ISMSの適合性と有効性を独立した立場で評価する、内部監査の目的として正しい。","× 人事評価は内部監査の目的ではない。","× 内部監査は外部審査の代替ではなく、事前の確認である。","× 性能改善は内部監査の結果から生まれることがあるが、目的そのものではない。"]},{"id":"isms-10","type":"mc","chapterIndex":4,"stem":"内部監査と第三者認証審査の関係として最も適切なものはどれか。","options":["内部監査は認証審査の結果を公式に証明するため、認証審査の一部として位置づけられ、認証機関の判定に代わるものとして扱われる。","内部監査は組織自身が行うもので、認証審査の前に実施することが求められるISMSのパフォーマンス評価の要素である。","内部監査を実施して問題がなければ、認証機関による審査は省略でき、認証の維持に必要な更新審査も組織の判断で不要とできる。","内部監査は認証機関の資格を持つ者しか実施できない。"],"correctIndex":1,"explanations":["× 認証審査の結果は認証機関が判断するもので、内部監査はそれとは別の仕組みである。","○ 内部監査はISMSのパフォーマンス評価（箇条9）の一要素として組織が実施するもので、正しい。","× 内部監査は外部の認証審査を不要にするものではない。","× 内部監査の実施者に認証機関の資格は要求されず、力量と独立性が求められる。"]},{"id":"isms-11","type":"mc","chapterIndex":1,"stem":"「管理策」の説明として最も適切なものはどれか。","options":["監査人が監査の際に作成する検討事項の一覧であり、リスクを修正するための対策ではなく、監査の計画段階で用いる作業文書である。","経営者が年度ごとに定める予算配分の基準であり、リスクを修正するための管理策の選定には直接用いられない指標である。","リスクを修正するために採用される対策（方針、手順、組織的、技術的、物理的な手段など）。","情報システムの稼働時間と停止時間を毎月集計し、経営者が年間の予算配分の基準として用いる指標。"],"correctIndex":2,"explanations":["× 監査で作成するのは検討事項や監査調書であり、管理策の定義ではない。","× 予算配分は管理策の一部になりうるが、管理策の定義ではない。","○ リスクを修正する手段の総称で、ISO/IEC 27001でいう管理策の説明として正しい。","× 稼働時間は可用性の指標の一つにすぎず、管理策の説明ではない。"]},{"id":"isms-12","type":"mc","chapterIndex":0,"stem":"情報セキュリティ方針（ポリシー）の位置づけとして最も適切なものはどれか。","options":["個々の手順書の詳細を網羅的に記載する文書であり、ISMSの上位文書ではない。","情報システム部門の責任者のみが承認し、経営者は報告を受けるだけである。","一度策定すれば、組織の状況が変わっても見直す必要はない。","経営者が情報セキュリティに関する意図と方向性を示すものであり、ISMSの枠組みの基礎となる。"],"correctIndex":3,"explanations":["× 詳細な手順は下位文書であり、方針は上位の意図と方向性を示す。","× ISO/IEC 27001では、経営者が方針を承認し、トップマネジメントが関与することが求められる。","× 組織の状況や要求事項の変化に応じて見直すことが必要である。","○ 経営者の意図と方向性を示し、ISMSの基礎となるという点で正しい。"]},{"id":"isms-13","type":"mc","chapterIndex":0,"stem":"「情報資産」の説明として最も適切なものはどれか。","options":["組織にとって価値があり、保護が必要な情報及び情報を取り扱う資産（情報そのもの、ハードウェア、ソフトウェア、サービス、人的資源など）。","会計上の固定資産台帳に計上された機器と設備のみを指し、それ以外の情報、ソフトウェア、人的資源、サービスは情報資産の定義から外れるとされ、保護の対象にもならない。","外部の委託先が保有する情報のうち、組織に返却されていないもの。","インターネット上に公開されているすべての情報。"],"correctIndex":0,"explanations":["○ 価値があり保護が必要な情報・関連資産を指すため正しい。","× 固定資産計上の有無は情報資産の定義を決めない。","× 委託先の保有分も、組織の情報資産として管理対象になりうる。","× 公開情報も含まれうるが、すべての公開情報が情報資産の定義に当てはまるわけではない。"]},{"id":"isms-14","type":"mc","chapterIndex":6,"stem":"インシデントとイベント（事象）の違いとして最も適切なものはどれか。","options":["イベントは必ず被害を伴い、インシデントは被害を伴わないが、対応の要否は事象の発生元が内部か外部かによって一律に決まり、社内の報告対象にはならない。","イベントは観測された事象であり、インシデントは情報セキュリティを損なう、または損なうおそれのある単独又は一連の事象である。","インシデントは内部の人だけが引き起こし、イベントは外部からの攻撃だけを指す。","イベントとインシデントは同じ意味で、区別する必要はなく、どちらも必ず社内の報告対象として扱い、個別の対応の判断も要しないとされている。"],"correctIndex":1,"explanations":["× イベントに被害が必ず伴うわけではなく、この説明は逆である。","○ 観測された事象（イベント）と、セキュリティを損なう事象（インシデント）の区別として正しい。","× 発生源が内部か外部かで定義が決まるわけではない。","× 両者は区別して扱い、インシデントは対応の判断対象となる。"]},{"id":"isms-15","type":"mc","chapterIndex":5,"stem":"「継続的改善」の説明として最も適切なものはどれか。","options":["問題が起きたときだけ対応するという方針であり、改善のための計画的な見直しは行わず、結果が良ければ変更しない方針である。","改善案は経営者だけが決め、現場には共有せず、監査やマネジメントレビューの結果も判断材料として使わず、担当部門の裁量にも委ねない運用とする。","ISMSの適切性、妥当性及び有効性を継続的に高める活動であり、監査やマネジメントレビューの結果も入力になる。","一度決めた管理策は、組織の状況や要求事項が変わっても改善の対象外とし、見直しは認証更新の時期にまとめて一括で行い、それ以外の期間は変更しない。"],"correctIndex":2,"explanations":["× 事後対応だけでは継続的改善にならない。","× 改善には現場の情報も必要であり、非共有は適切でない。","○ ISMSの適切性・妥当性・有効性を継続的に高める活動として正しい。","× 管理策も改善対象であり、固定化は誤り。"]},{"id":"isms-16","type":"mc","chapterIndex":0,"stem":"情報セキュリティにおける「利害関係者（interested party）」の例として最も適切なものはどれか。","options":["組織と関わりがなく、影響も受けない第三者の個人的なブログの管理者。","組織のシステムを利用したことがない一般の人々。","組織の業務に関係のないウェブサイトの運営者。","組織の情報セキュリティに影響を与える、または影響を受ける顧客、株主、従業員、規制当局など。"],"correctIndex":3,"explanations":["× 組織と関わりがなく影響も受けないため、利害関係者には当たらない。","× 利用実績がない人でも、情報セキュリティの影響を受ける立場なら利害関係者になりうる。","× 業務に関係のない者は、通常は利害関係者として扱わない。","○ 影響を与える・受ける関係者を広く含むため正しい。"]},{"id":"isms-17","type":"mc","chapterIndex":1,"stem":"機密性を損なう事故の例として最も適切なものはどれか。","options":["顧客の個人情報が誤って外部に送信され、本人以外が閲覧できる状態になった。","サーバが停止し、業務システムが長時間利用できなくなり、取引先への納品にも影響が出た。","重要なデータが停電で消失し、復旧に時間がかかった。","社内のメールが届くまで数時間かかった。"],"correctIndex":0,"explanations":["○ 本人以外が閲覧できる状態は、認可されていない者への開示であり、機密性の侵害として正しい。","× サーバ停止は可用性を損なう事例である。","× データ消失は可用性（および完全性）の問題として扱われる。","× 配送遅延は可用性や業務効率に関わり、機密性の事例ではない。"]},{"id":"isms-18","type":"mc","chapterIndex":0,"stem":"「ISMSの適用範囲」を明確にする理由として最も適切なものはどれか。","options":["適用範囲を広げるほど認証審査の費用が下がり、組織内の管理対象も減るため、審査の時間を短縮できると判断されたから。","ISMSが対象とする情報・組織・物理的な境界を定め、管理すべき対象とその限界を明確にするため。","適用範囲の外にある業務に対しては、リスク評価を省略でき、管理策の選定と文書化も不要になるため、そう定められている。","適用範囲は毎年ランダムに変更するべきであるため。"],"correctIndex":1,"explanations":["× 費用の多寡を理由に適用範囲を決めるのは誤りである。","○ 管理対象の境界を明確にするためであり、正しい。","× 範囲外でも、組織が影響を受ける場合は別途考慮が必要であり、評価を省略する理由にはならない。","× 範囲は組織の状況に基づいて定め、恣意的に変えるものではない。"]},{"id":"isms-19","type":"mc","chapterIndex":1,"stem":"情報セキュリティの「脆弱性」の説明として最も適切なものはどれか。","options":["資産の価値を金額で評価した結果であり、帳簿上の取得価額と市場価格の差額を毎年記録して経営者に報告する指標のこと。","組織の方針に違反した従業員の人数であり、脅威が悪用しうる資産や管理策の弱点そのものを指すものではない。","一つ以上の脅威によって悪用されうる、資産または管理策の弱点。","外部の攻撃者が実際に行った攻撃の回数であり、資産や管理策に存在する弱点の有無を示す指標ではない。"],"correctIndex":2,"explanations":["× 資産価値は情報資産の評価であり、脆弱性とは異なる。","× 方針違反の人数は指標の一つになりうるが、脆弱性の定義ではない。","○ 脅威に悪用されうる弱点を指すため正しい。","× 攻撃回数は脅威の発生状況で、脆弱性そのものではない。"]},{"id":"isms-20","type":"mc","chapterIndex":1,"stem":"「残留リスク」の説明として最も適切なものはどれか。","options":["管理策導入前の、最も大きいリスクの値。","評価を行う前から存在するリスク。","保険で完全に移転されたリスク。","リスク対応の後にも残る、受容されたリスクの程度。"],"correctIndex":3,"explanations":["× 導入前のリスクは「固有リスク」等と呼ばれ、残留リスクではない。","× リスク評価をしていない段階は、リスクが把握されていない状態であり、残留リスクの定義ではない。","× 保険で移転されたリスクは残留リスクとは限らず、定義としても一致しない。","○ 対応後に残るリスクで、正しい。"]},{"id":"isms-21","type":"mc","chapterIndex":0,"stem":"ISO/IEC 27001:2022 の箇条4.1「組織及びその状況の理解」で求められていることとして最も適切なものはどれか。","options":["組織の目的及びISMSの目的に関連する、外部及び内部の課題を決定すること。","経営者の年間の報酬額を決定すること。","全従業員の住所、家族構成、及び自宅の見取り図を収集して管理し、緊急時の連絡網として利用すること。","情報システムの導入費用をすべて承認すること。"],"correctIndex":0,"explanations":["○ 外部・内部の課題を決定することが、箇条4.1の要求である。","× 報酬の決定は要求事項ではない。","× 住所の収集は要求事項ではない。","× 費用の承認は要求事項ではない。"]},{"id":"isms-22","type":"mc","chapterIndex":0,"stem":"箇条4.2「利害関係者のニーズ及び期待の理解」において、組織が決定することが求められているものとして最も適切なものはどれか。","options":["利害関係者への配当金の額であり、ISMSの要求事項や利害関係者の範囲の決定とは関係のない財務上の数値である。","利害関係者のうち、ISMSに関連するものと、その要求事項。","取引先が保有する未公開の決算書の全項目。","競合他社の従業員数や組織図、及び公開されていない内部の人事情報の全体を収集し、自社の監査計画に反映させること。"],"correctIndex":1,"explanations":["× 配当金は要求事項の対象ではない。","○ ISMSに関連する利害関係者と、その要求事項を決定するのが箇条4.2である。","× 未公開の決算書は、利害関係者のニーズとして組織が決定する要求事項の対象ではない。","× 競合他社の従業員数は要求事項の対象ではない。"]},{"id":"isms-23","type":"mc","chapterIndex":0,"stem":"箇条4.3 でISMSの適用範囲を決定する際、考慮すべきこととして最も適切なものはどれか。","options":["適用範囲は経営者の好みと前年度の決定をそのまま踏襲すればよく、外部の要求や4.1・4.2の結果を改めて考慮する必要はない。","適用範囲は組織全体ではなく、最も古い設備のみに限定し、外部の要求や利害関係者の期待は検討せずに、担当者の判断で決定する。","4.1 の課題、4.2 の利害関係者の要求事項、情報セキュリティの役割・インターフェース・依存関係を考慮する。","適用範囲は一度決めたら変更してはならず、他の箇条との整合は確認せず、利害関係者の要求事項との関係も確認しなくてよく、見直しも不要とする。"],"correctIndex":2,"explanations":["× 外部の要求を無視してよいわけではない。","× 範囲を最も古い設備に限定する根拠はない。","○ 4.1・4.2の結果や役割、依存関係などを考慮して適用範囲を決めるため正しい。","× 範囲は必要に応じて見直しうるもので、他の箇条との整合も求められる。"]},{"id":"isms-24","type":"mc","chapterIndex":0,"stem":"箇条4.3 の適用範囲の文書化について、最も適切なものはどれか。","options":["適用範囲は口頭で共有すれば足り、文書化は不要である。","認証審査の直前にのみ文書化し、更新は不要。","社内の一部の者が知っていれば足りるとし、共有は不要とする。","適用範囲は文書化された情報として利用可能な状態にしておく必要がある。"],"correctIndex":3,"explanations":["× 口頭のみでは要求を満たさない。","× 審査直前だけの文書化は、継続的な維持の要求に合わない。","× 適用範囲は関係者に理解される必要があり、共有が前提となる。","○ 適用範囲は文書化された情報として維持し、利用可能にすることが求められる。"]},{"id":"isms-25","type":"mc","chapterIndex":0,"stem":"箇条4.4「ISMS」において、組織が求められることとして最も適切なものはどれか。","options":["ISMSを確立し、実施し、維持し、継続的に改善すること。","ISMSを認証取得時のみに一時的に整備すること。","ISMSの運用は情報部門だけが担当する。","ISMSの見直しは5年に一度だけ行い、それ以外の期間は運用担当者の判断で必要に応じて内容を変更してよいとすること。"],"correctIndex":0,"explanations":["○ 確立・実施・維持・継続的改善が箇条4.4の要求で、正しい。","× 一時的な整備では要求を満たさない。","× 運用の担当を1部門に限定することは要求されず、全体で取り組む必要がある。","× 見直しの周期は一律に定められておらず、必要に応じて行う。"]},{"id":"isms-26","type":"mc","chapterIndex":0,"stem":"箇条5.1「リーダーシップ及びコミットメント」で、トップマネジメントに求められることとして最も適切なものはどれか。","options":["情報セキュリティの業務の詳細手順を、経営者自らが毎日すべて実施し、その結果を担当者に逐一報告させて判断すること。","ISMSの有効性に対する責任を負い、ISMSの目標・方針と両立する戦略的方向性を確保すること。","情報セキュリティ部門の予算を、年度内に一切変えないこと。","情報セキュリティの問題が起きた際、担当者に任せきりにして、経営者は関与せず、方針や資源配分の見直しも行わず、結果の報告も求めないこととする。"],"correctIndex":1,"explanations":["× 詳細手順を毎日実施することは要求されていない。","○ ISMSの有効性への責任と、戦略的方向性の確保が求められるため、正しい。","× 予算の固定は要求事項ではない。","× 関与しないことは、リーダーシップの要求に反する。"]},{"id":"isms-27","type":"mc","chapterIndex":0,"stem":"箇条5.2「方針」において、情報セキュリティ方針に含めるべき要素として最も適切なものはどれか。","options":["従業員の給与水準や人事評価の詳細であり、情報セキュリティ方針の要素として、組織の目的や要求事項への遵守の約束とは無関係である。","特定の取引先との契約金額と支払条件、及び取引先の担当者の個人的な連絡先と社内の承認経路をすべて方針の本文に記載し、全従業員に配布すること。","組織の目的に適した方針であること、目標の設定の枠組みを含むこと、及び適用される要求事項への遵守を約束すること。","過去数年のインシデントの詳細な一覧であり、方針に含めるべき目標の設定の枠組みや遵守の約束は含まれないとする運用とする。"],"correctIndex":2,"explanations":["× 給与や人事評価は方針の要素として要求されていない。","× 契約金額は方針の要素として要求されていない。","○ 目的への適合、目標の枠組み、要求事項の遵守の約束が方針に含まれるべき要素として正しい。","× インシデントの詳細な一覧は方針に含める必要はなく、記録として別に管理すべきである。"]},{"id":"isms-28","type":"mc","chapterIndex":0,"stem":"箇条5.2 で、情報セキュリティ方針について求められていることとして最も適切なものはどれか。","options":["方針は経営者のみが閲覧し、従業員には公開しないこと。","方針は一度作成すれば、以後は見直さなくてよい。","方針は認証機関にのみ提出し、組織内では使用しないこと。","方針を文書化された情報として維持し、組織内に伝達し、利害関係者が入手可能にすること。"],"correctIndex":3,"explanations":["× 従業員への非公開は、伝達の要求に反する。","× 定期的な見直しが求められており、一度作成して終わりではない。","× 組織内での使用が前提であり、認証機関だけに提出するのは要求に合わない。","○ 文書化・伝達・利害関係者への入手可能性が求められるため、正しい。"]},{"id":"isms-29","type":"mc","chapterIndex":0,"stem":"箇条5.3「組織の役割、責任及び権限」について、トップマネジメントが求められていることとして最も適切なものはどれか。","options":["情報セキュリティに関する役割・責任・権限を割り当て、組織内に伝達すること。","すべての役割を経営者自身が兼務し、他の者には割り当てないこと。","役割は文書化せず、部門ごとの慣習と担当者の経験に任せ、新たに配属された者にも口頭で伝えるだけでよいとすること。","役割は外部の委託先にのみ割り当てること。"],"correctIndex":0,"explanations":["○ 割り当てと伝達が求められており、正しい。","× 兼務を強制する要求ではない。","× 役割の文書化が求められ、慣習に任せるのは誤り。","× 委託先のみに割り当てるのは要求されていない。"]},{"id":"isms-30","type":"mc","chapterIndex":1,"stem":"箇条6.1.1「リスク及び機会への取組み」の一般的な要求として最も適切なものはどれか。","options":["リスクは発生した時にのみ対応し、事前の計画は不要であること。","ISMSが意図した成果を達成できるように、リスク及び機会を決定し、取り組む計画を立てること。","機会は考慮せず、リスクだけを対象とし、リスクが発生した後に、その時点で対応策を決めればよいとすること。","リスクの計画は、管理責任者ひとりの判断だけで決め、利害関係者の意見や機会の検討を行わず、経営者への報告も不要とすること。"],"correctIndex":1,"explanations":["× 事前計画は要求されており、事後対応のみは誤り。","○ 意図した成果を達成するために、リスクと機会を決定して計画することが要求されるため、正しい。","× 箇条6.1.1では機会も対象に含まれており、リスクだけに限定するのは誤り。","× 計画の決定は組織として行うもので、一人の判断に限定されない。"]},{"id":"isms-31","type":"mc","chapterIndex":1,"stem":"箇条6.1.2「情報セキュリティリスクアセスメント」で組織が定めることとして最も適切なものはどれか。","options":["リスク評価の基準は、業界の平均値を無条件に採用すること。自社のリスク受容基準や評価の目的とは照らし合わせずに決めること。","リスク評価は過去のインシデントの件数だけで行い、資産の価値や脅威・脆弱性の分析は行わないこと。","リスク基準（リスク受容基準やリスク評価の基準）を確立し、維持すること。","リスク評価の結果は評価者本人のみが保持し、評価に用いた基準や前提条件は、評価の終了後に破棄してよいとすること。"],"correctIndex":2,"explanations":["× 業界平均の無条件採用は要求されない。","× 件数だけで評価するのは不十分で、影響と起こりやすさを考慮する必要がある。","○ リスク基準の確立と維持は箇条6.1.2の要求で、正しい。","× 結果は文書化された情報として保持し、関係者が利用できることが求められる。"]},{"id":"isms-32","type":"mc","chapterIndex":1,"stem":"箇条6.1.2 で、情報セキュリティリスクを特定する段階で行うことに関して、最も適切なものはどれか。","options":["適用範囲の外にある資産を優先的に特定すること。","リスクは経営者の判断で後から追加し、資産台帳とは関係付けないこと。","リスクを特定した後に、その原因を調査しないこと。","ISMSの適用範囲内で、情報の機密性・完全性・可用性の喪失に関連するリスクを特定すること。"],"correctIndex":3,"explanations":["× 適用範囲外の資産を優先する根拠はない。","× リスクは資産や情報の流れに結び付けて特定されるべきで、後追いの追加を前提とするのは誤り。","× リスクの原因を調べることは、分析の一部として必要である。","○ 適用範囲内で、CIA喪失に関連するリスクを特定するのが要求に沿うため、正しい。"]},{"id":"isms-33","type":"mc","chapterIndex":1,"stem":"箇条6.1.2 のリスク分析・評価の説明として最も適切なものはどれか。","options":["リスクの起こりやすさと影響を評価し、リスク基準と比較してリスクレベルを決定する。","リスクの評価は、資産の取得価額と減価償却後の帳簿価額だけで決め、起こりやすさや影響の程度は考慮しないこと。","リスクレベルは、管理策を導入した後に限って決める。","リスク分析は、リスク基準の決定の前に行うのが必須である。"],"correctIndex":0,"explanations":["○ 起こりやすさと影響を評価し、基準と比較してレベルを決めるのが分析・評価の基本で、正しい。","× 取得価額だけでは影響の評価として不十分である。","× リスクレベルは管理策の導入前（固有リスク）にも決定される。","× リスク基準は分析の前に確立しておく必要があり、順序はこの逆である。"]},{"id":"isms-34","type":"mc","chapterIndex":1,"stem":"箇条6.1.3「情報セキュリティリスク対応」で、組織が行うことに関して最も適切なものはどれか。","options":["管理策は、附属書Aの全管理策を無条件に採用し、リスク評価の結果や自組織の適用範囲との整合は確認しないこと。","リスク対応の選択肢を選定し、必要な管理策を決定し、適用宣言書（SoA）を作成すること。","リスク対応の結果は、組織の外部の利害関係者すべてに公開し、対応計画の詳細もあわせて公表することが求められる。","リスク対応は、管理策の導入後にのみ選定すること。"],"correctIndex":1,"explanations":["× 附属書Aの管理策は必要なものを決定して採用するもので、全採用は要求されない。","○ 対応の選定、管理策の決定、SoAの作成が箇条6.1.3の要求で、正しい。","× 結果の公開は要求されておらず、内部の文書化が主である。","× 管理策の選定は導入前の段階で行う必要がある。"]},{"id":"isms-35","type":"mc","chapterIndex":1,"stem":"適用宣言書（SoA）の説明として最も適切なものはどれか。","options":["組織の全従業員の給与を記載した文書であり、管理策の採用・不採用の理由や実施状況を示すものではない。","認証機関の審査結果と指摘事項、及び審査員の所見をまとめた報告書で、組織の経営判断に用いられる文書のこと。","必要な管理策、その採用・不採用の正当化、及び現在の実施状況を示す文書。","外部委託先との契約条項の全文を集めた文書であり、管理策の採用理由と現在の実施状況を示す目的では作成されない。"],"correctIndex":2,"explanations":["× 給与情報は含まれない。","× 審査結果は認証機関の報告書であり、SoAではない。","○ 管理策の採用・不採用と正当化、実施状況を示すもので、SoAの説明として正しい。","× 契約条項の集約はSoAの対象ではない。"]},{"id":"isms-36","type":"mc","chapterIndex":1,"stem":"箇条6.1.3 で、附属書Aの管理策を採用しない場合に求められることとして最も適切なものはどれか。","options":["理由を書かずに省略する。","全管理策の採用が必須。","評価対象から外す。","採用しない理由を正当化すること。"],"correctIndex":3,"explanations":["× 理由を記載しない省略は要求事項を満たさない。","× 全採用は要求されていない。","× 採用しない管理策に関係するリスクは、評価の対象から外すべきではない。","○ 採用しない理由の正当化が求められ、正しい。"]},{"id":"isms-37","type":"mc","chapterIndex":1,"stem":"箇条6.1.3 の「リスク対応計画」として、組織が準備すべき要素に関して最も適切なものはどれか。","options":["責任者、対応の時期、必要な資源、及び有効性を評価する方法などを含める。","計画は作成者本人だけが理解できるように、専門用語を多用して記載し、関係者への説明は計画の実施後に行うこと。","計画には期限を設けず、いつ実施してもよいとする。","計画は経営者にのみ提出し、実施部門には共有しない。"],"correctIndex":0,"explanations":["○ 責任者・時期・資源・有効性の評価方法などを含めることが、計画の要素として適切である。","× 計画は関係者に理解可能であるべきで、本人だけの理解では不十分である。","× 期限を設けない計画は実行可能性を欠く。","× 実施部門に共有しないのは、計画の実行を妨げる。"]},{"id":"isms-38","type":"mc","chapterIndex":1,"stem":"箇条6.2「情報セキュリティ目標及びそれを達成するための計画策定」の要求として最も適切なものはどれか。","options":["目標は測定できない抽象的な表現にとどめ、達成の判断は担当者の感覚と経験に基づいて行い、記録は残さないこと。","目標は測定可能であり、方針と整合し、監視・伝達・必要に応じて更新されること。","目標は部門ごとに異なる基準を設け、全社で統一せず、達成状況の測定方法も部門の判断に任せること。","目標は達成したら削除し、以後は監視しないこと。"],"correctIndex":1,"explanations":["× 抽象的な目標は、達成度を判断できず要求に合わない。","○ 測定可能・方針と整合・監視・伝達・更新が求められるため、正しい。","× 全社で整合させることが求められており、部門の基準を統一しない運用は誤り。","× 目標の監視は達成後も必要で、削除を前提とするのは誤り。"]},{"id":"isms-39","type":"mc","chapterIndex":1,"stem":"箇条6.2 の目標の計画策定で、組織が決定すべき事項として最も適切なものはどれか。","options":["目標を達成する日時を、経営者の個人的な判断にだけ委ね、計画の記録や関係者への伝達は行わない。","目標の達成に必要な資源は、後から考えればよく、事前の計画や責任者の割当ても不要である。","何を行うか、必要な資源、責任者、完了時期、及び結果の評価方法。","評価方法は、目標とは無関係に別途決め、目標の達成状況は年度末にまとめて一括で評価すればよいとすること。"],"correctIndex":2,"explanations":["× 期限の決定を個人の判断だけに委ねるのは、組織的な計画と言えない。","× 資源は計画の段階で検討すべき事項であり、後回しは適切でない。","○ 実施事項・資源・責任者・時期・評価方法の決定が、目標の計画策定の要素として妥当である。","× 評価方法は目標と結び付けて決める必要がある。"]},{"id":"isms-40","type":"mc","chapterIndex":1,"stem":"箇条6.3「変更の計画策定」の説明として最も適切なものはどれか。","options":["変更は担当者が気づいた時に、その場で行えばよいこと。","変更の影響は、変更後に確認すればよく事前の検討は不要であること。","変更は禁止し、いかなる場合も行わない。","ISMSに変更が必要な場合、その変更を計画的に行い、目的や結果への影響を考慮すること。"],"correctIndex":3,"explanations":["× 場当たり的な変更は計画的とは言えない。","× 事前検討は要求されており、事後の確認のみでは不十分である。","× 変更を禁止する要求は存在しない。","○ 計画的な変更と影響の考慮が箇条6.3の要求で、正しい。"]},{"id":"isms-41","type":"mc","chapterIndex":0,"stem":"内部監査員が、ISMSの箇条4の確認で、組織の課題の決定が形式だけになっていることに気づいた。最も適切な対応はどれか。","options":["課題が組織の目的やISMSの目的にどう結び付くかを、根拠とともに経営者や担当者へ確認し、必要なら是正を求める。","形式は問題ないとして、報告せずに次の確認に進む。","課題の決定は自分の裁量で書き換え、その結果を経営者へは伝えない。","監査の対象外として、以後の確認で一切触れず、同様の決定が他の箇条の課題についても行われていないかを確認しない運用とする。"],"correctIndex":0,"explanations":["○ 根拠を確認し、必要に応じて是正を求めるのが内部監査員として適切。","× 形式的な決定を見逃すと、箇条4.1の要求を満たさない。","× 監査員が一方的に書き換えるのは、被監査側の責任を侵すもので不適切。","× 監査の対象外にするのは、監査の目的と矛盾する。"]},{"id":"isms-42","type":"mc","chapterIndex":0,"stem":"内部監査員が、利害関係者の要求事項が決定されているが、その要求事項がISMSにどう反映されたかが記録されていないことを発見した。最も適切な指摘はどれか。","options":["利害関係者の要求事項は、外部の監査人が確認すべき事項であり、内部監査では扱わない。","決定された利害関係者の要求事項について、ISMSへの反映の根拠を示す記録が確認できないため、箇条4.2の要求に対する証拠が不足している。","利害関係者が満足していれば記録は不要とし、ISMSへの反映の根拠を示す証拠も残す必要はないと判断してよく、確認も省略してよいとし、監査での指摘も不要とする。","記録が無いことは、箇条4.2とは無関係の軽微な事項として扱い、次回以降の監査で改めて確認する必要もなく、そのまま報告書から除外し、被監査部門の判断に委ねてよい。"],"correctIndex":1,"explanations":["× 内部監査は、ISMSの要求事項への適合を確認するもので、外部監査人の専管ではない。","○ 反映の根拠の記録が無いことは、4.2の要求に対する証拠の不足として指摘すべき事項である。","× 満足度があっても、記録による証拠が求められる。","× 要求事項の反映は箇条4.2の中心的な確認事項であり、軽微とは言えない。"]},{"id":"isms-43","type":"mc","chapterIndex":0,"stem":"内部監査で、適用範囲（箇条4.3）の確認の際に最も重視すべき観点はどれか。","options":["適用範囲の境界が、認証機関の希望と一致しているかだけを確認し、組織の実態との整合や委託関係は確認しない。","適用範囲の文書の体裁（フォントや罫線）を確認し、事業や拠点、情報の流れとの整合は確認対象に含めない。","適用範囲が組織の実態（事業、拠点、情報の流れ、委託関係）と整合しているかを確認する。","適用範囲の変更履歴は、古いものだけを確認して終わり、直近一年の変更については経営者への報告がなかったかどうかを確認しない。"],"correctIndex":2,"explanations":["× 認証機関の希望との一致は、ISMSの適用範囲の妥当性の判断基準ではない。","× 体裁は評価の本質ではない。","○ 実態と整合しているかの確認が、適用範囲の妥当性を見るうえで中心になる。","× 変更履歴は直近の変更も含めて確認する必要がある。"]},{"id":"isms-44","type":"mc","chapterIndex":0,"stem":"箇条5.1 で、トップマネジメントのコミットメントが不十分な兆候として、内部監査員が最も重視すべきものはどれか。","options":["経営者が毎年の方針に署名するが、内容は一度も読まない。","経営者が情報セキュリティ教育の受講状況を定期的に確認している。","経営者が重大なインシデントの報告を受け、対応を指示している。","経営者が情報セキュリティの目標・方針の見直し会議に出席せず、資源配分の決定を担当者に一任している。"],"correctIndex":3,"explanations":["× 署名による承認は、コミットメントの表れであり、不十分の兆候ではない。","× 教育の確認は、関与の表れであり兆候ではない。","× インシデント対応の指示は、関与の表れである。","○ 会議への不参加と資源配分の一任は、リーダーシップの欠如の兆候として重要である。"]},{"id":"isms-45","type":"mc","chapterIndex":0,"stem":"箇条5.2 の方針について、内部監査員が確認すべきこととして最も適切なものはどれか。","options":["方針が文書化され、組織内に伝達され、必要な利害関係者が入手できる状態になっているか。","方針の文字数が、同業他社より多いか少ないか。","方針の作成日が認証取得の日と一致し、その後の改訂履歴が一切残っていないことを、継続的な維持の証拠として確認するか。","方針の承認者が、ISMSの担当者の上司であるか。"],"correctIndex":0,"explanations":["○ 文書化・伝達・入手可能性が要求の中心で、これを確認するのが適切。","× 文字数の比較は、要求事項の確認にならない。","× 作成日の一致は、要求との直接の関係がない。","× 承認者の立場は、経営者の承認の確認として重要であり、上司かどうかを基準にはしない。"]},{"id":"isms-46","type":"mc","chapterIndex":1,"stem":"箇条6.1.2 のリスクアセスメントの記録について、内部監査員が確認すべきこととして最も適切なものはどれか。","options":["リスク評価の結果が、経営者の好みに合致しているか。","リスク基準、特定したリスク、分析・評価の結果、及びリスク所有者が文書化されているか。","リスクの数が、前年より増えているか減っているかだけを確認し、リスク基準や評価の根拠は確認しない。","リスク評価は、担当者が口頭で行えば記録は不要とし、評価者の交代時にも引継ぎの文書を残す必要がないとして扱うか。"],"correctIndex":1,"explanations":["× 経営者の好みへの合致は、要求事項の確認基準ではない。","○ 基準・特定・分析評価・所有者の文書化が、リスクアセスメントの記録として妥当な確認事項である。","× 件数の増減は、リスクアセスメントの妥当性を直接示さない。","× 口頭のみで記録が無い場合は、要求を満たす証拠として不十分である。"]},{"id":"isms-47","type":"mc","chapterIndex":1,"stem":"箇条6.1.3 のリスク対応計画について、内部監査員が指摘すべき事項として最も適切なものはどれか。","options":["計画が1ページに収まっておらず、複数の部門にまたがる記述が重複しているため、内容の整合を確認できない状態にある。","計画に記載された管理策の番号が、前年度と異なるが、責任者や時期、資源の記載は整っている。","計画に責任者、時期、必要な資源が定められておらず、実施の確認ができない。","計画の作成者が、情報セキュリティ部門の担当者でなく、計画の内容が部門の業務の実態に即しているかは確認対象に含めない。"],"correctIndex":2,"explanations":["× ページ数は要求事項の判断基準ではない。","× 番号の変更は、必ずしも不適合を示さない。","○ 責任者・時期・資源が無いと実施の確認ができず、指摘すべき事項として妥当。","× 作成者の所属は、要求の適合性を直接示さない。"]},{"id":"isms-48","type":"mc","chapterIndex":1,"stem":"適用宣言書（SoA）の確認で、内部監査員が最も重視すべき点はどれか。","options":["管理策の数が、同業他社の平均と一致しているか。","SoAの文字の色や罫線が統一されているかを確認する。","SoAの承認日が、監査の当日と一致するか。","管理策を採用しない理由が正当化され、採用する管理策がリスク対応の結果と対応しているか。"],"correctIndex":3,"explanations":["× 管理策の数の比較は、要求事項の適合性の判断基準ではない。","× 体裁は評価の本質ではない。","× 監査当日との一致は、要求事項との関係がない。","○ 理由の正当化と、リスク対応との対応関係が、SoAの妥当性の中心である。"]},{"id":"isms-49","type":"mc","chapterIndex":1,"stem":"箇条6.2 の目標について、内部監査員が指摘すべき事項として最も適切なものはどれか。","options":["目標が測定できる形になっておらず、達成の判定ができない。","目標の文字数が、他の組織の目標より少ない。","目標の番号が連番になっておらず、目標の文言も部門ごとに異なる書式で記載されているため、全社的な比較ができない。","目標の作成者が経営者ではなく、部門の担当者である。"],"correctIndex":0,"explanations":["○ 測定可能性が無いと達成の判定ができず、要求に反する。","× 文字数は、要求事項の判断基準ではない。","× 番号の連続性は、要求事項の適合性と直接関係しない。","× 作成者が担当者であることは、必ずしも要求に反しない。"]},{"id":"isms-50","type":"mc","chapterIndex":1,"stem":"箇条6.3 の変更について、内部監査員が確認すべき事項として最も適切なものはどれか。","options":["変更は、担当者が行った日時の記録が残っているかを確認し、計画や影響の検討の有無は問わないこととする。","ISMSの変更が、事前に計画され、目的と影響（資源、責任、管理策への影響）が検討されているか。","変更の結果が、経営者に好ましいものか。","変更の理由が一行で書かれているかを確認し、理由が簡潔であるほど、計画が適切に策定されていると判断してよいかを確認する。"],"correctIndex":1,"explanations":["× 日時の記録は重要だが、計画性の確認が本質である。","○ 計画・目的・影響の検討が、箇条6.3の確認の中心である。","× 好ましさは要求事項の判断基準ではない。","× 理由の記載量は、計画性の判断基準ではない。"]},{"id":"isms-51","type":"mc","chapterIndex":1,"stem":"内部監査で、管理策の採用理由が記録されていない例を見つけた。最も適切な扱いはどれか。","options":["理由は担当者の記憶に基づくものとして、監査の記録には残さず、口頭での説明が得られた時点で指摘を取り下げてよいとする。","理由がなくても管理策を採用していれば問題としない。採用の判断は担当者の裁量に任せ、記録は必要ないとする運用とする。","理由が記録されていないことを、SoAの要求（採用・不採用の正当化）に対する不適合として記録し、是正を求める。","監査人が後から理由を推測して記入して問題を解消し、その推測の根拠は記録に残さず、担当者には確認しないこととし、必要に応じて事後の追記も認める。"],"correctIndex":2,"explanations":["× 記憶に基づくものは証拠にならず、監査の記録から外すのは不適切。","× 採用していれば足りるとするのは、理由の要求を満たさない。","○ 正当化が要求事項であり、記録の欠如は不適合として扱うのが適切。","× 監査人が推測で記入するのは、監査の独立性と証拠の原則に反する。"]},{"id":"isms-52","type":"mc","chapterIndex":0,"stem":"利害関係者の要求事項（箇条4.2）について、内部監査員が注目すべき兆候として最も適切なものはどれか。","options":["顧客からの問い合わせが多く、担当者が忙しそうである。","取引先の数と契約書が増えていれば、要求事項は反映済みとみなす。","利害関係者との会議の参加者が、いつも同じである。","顧客との契約書に情報セキュリティの要求があるが、ISMSの計画に反映されていない。"],"correctIndex":3,"explanations":["× 問い合わせの量は、直接の要求事項の不充足を示さない。","× 取引先の増加は、要求事項の適合性を直接示さない。","× 参加者の固定は、必ずしも問題を示さない。","○ 契約上の要求がISMSに反映されていないことは、4.2の要求の未充足を示す兆候として重要。"]},{"id":"isms-53","type":"mc","chapterIndex":0,"stem":"箇条5.3 の役割・責任・権限について、内部監査員が確認すべきこととして最も適切なものはどれか。","options":["情報セキュリティの役割・責任・権限が割り当てられ、関係者に伝達され、理解されているか。","役割の名称が、会社の創業者の名前と関係しているか。","役割の人数が、前年と完全に同じか。","役割の割り当てが委託先に全部任されているかを確認し、組織内の役割は割り当てず、委託先の担当者に記録を一任しているかを確認する。"],"correctIndex":0,"explanations":["○ 割り当て・伝達・理解の確認が、箇条5.3の中心になる。","× 名称の由来は、要求事項の確認と関係がない。","× 人数の一致は、要求事項の適合性と関係がない。","× 委託先に全部任せることは、組織の責任の放棄になりうる。"]},{"id":"isms-54","type":"mc","chapterIndex":1,"stem":"箇条6.1.2 のリスク基準の設定で、組織が考慮すべき事項として最も適切なものはどれか。","options":["リスク基準は、競合の基準をそのまま採用し、自社の状況や過去の評価結果とは照らし合わせずに設定してよいものとする。","リスク受容基準や、リスクの起こりやすさと影響をどう判断するかを定める。","リスク基準は、評価ごとに担当者が自由に決める。","リスク基準は、経営者が公表しないと決めた場合、設定しなくてよく、自社の状況やリスク受容の判断を記録に残す必要もない。"],"correctIndex":1,"explanations":["× 競合の基準をそのまま使うのは、組織の状況に合わない。","○ 受容基準と起こりやすさ・影響の判断方法を定めることが、リスク基準の要素として妥当。","× 評価ごとに自由に決めると、一貫性が失われる。","× 公表の有無にかかわらず、基準の設定は要求される。"]},{"id":"isms-55","type":"mc","chapterIndex":0,"stem":"箇条4.4 の ISMS の確立・実施・維持について、内部監査員が確認すべきこととして最も適切なものはどれか。","options":["ISMSの文書が、一度も改訂されていないか。改訂の要否を判断した記録が残っているかは確認しない。","ISMSの担当者が、すべて同じ部門に属しており、他部門の担当者とは一切連携していないことを、適切な体制の証拠として確認する。","ISMSのプロセスが計画どおりに運用され、その証拠（記録）が維持されているか。","ISMSのプロセスが、認証機関の要求と完全に同じ形式か。認証機関の書式に合わせることだけを目的として確認する。"],"correctIndex":2,"explanations":["× 改訂がないことは、維持の証拠としては不十分である。","× 所属の一致は、要求事項の適合性と関係がない。","○ 計画どおりの運用と、維持のための記録が確認の中心になる。","× 認証機関の形式と一致する必要は、要求事項にない。"]},{"id":"isms-56","type":"mc","chapterIndex":0,"stem":"箇条5.2 の方針の見直しについて、内部監査員が確認すべき事項として最も適切なものはどれか。","options":["方針が一度も見直されていないことは、安定の証拠として評価されるか。","方針の見直しは、認証審査の直前だけに行うか。","方針の見直しは、経営者の判断がなくても担当者が行ってよいか。","方針が、組織の状況や要求事項の変化に応じて、必要な時点で見直されているか。"],"correctIndex":3,"explanations":["× 一度も見直されないことは、維持の要求に反する可能性が高い。","× 審査直前だけの見直しは、継続的な維持の要求に合わない。","× 方針の見直しには、経営者の関与が必要である。","○ 状況や要求事項の変化に応じた見直しが、方針の維持の要求に沿う。"]},{"id":"isms-57","type":"mc","chapterIndex":1,"stem":"箇条6.2 の目標の伝達について、内部監査員が確認すべき事項として最も適切なものはどれか。","options":["目標が、関係する部門や担当者に伝達され、理解されているか。","目標が、経営者の個人的な手帳にだけ記載されているか。","目標が、認証機関のみに提出されているか。","目標が、外部の委託先にだけ伝達され、組織内の部門や担当者には一切共有されていないかを、伝達の確認として判断する。"],"correctIndex":0,"explanations":["○ 関係者への伝達と理解の確認が、目標の伝達の要求として妥当。","× 個人の手帳への記載だけでは、組織内での伝達とは言えない。","× 認証機関への提出だけでは、組織内の伝達を満たさない。","× 委託先だけへの伝達は、組織内の関係者を含まないため不十分。"]},{"id":"isms-58","type":"mc","chapterIndex":1,"stem":"箇条6.1.1 の「機会」の考え方として、最も適切なものはどれか。","options":["機会はリスクの裏返しであり、常に考慮しなくてよく、組織の改善につながる状況は計画の対象から外してよいと判断される運用とする。","情報セキュリティの改善につながる好ましい状況（例：新技術の活用による対策の強化）も、計画の対象として考慮する。","機会は、ISMSの目標とは無関係な業務の拡大だけを指し、情報セキュリティの改善や目標の達成には影響しないものとして扱う。","機会は、経営者の判断だけで決める。"],"correctIndex":1,"explanations":["× 機会をリスクの裏返しに限ると、改善の機会を見落とす。","○ 好ましい状況も、計画の対象として考慮する点で正しい。","× 業務拡大だけに限定するのは誤り。","× 計画に含めないのは、6.1.1の要求に反する。"]},{"id":"isms-59","type":"mc","chapterIndex":0,"stem":"箇条4.3 で適用範囲を定めた後、組織がその変更を行った場合に、内部監査員が確認すべきこととして最も適切なものはどれか。","options":["変更は担当者の判断で行われたため、事後の確認も記録も不要とみなしてよいとする運用とし、監査での確認対象からも外すとする。","変更は認証審査の後でまとめて文書化すればよく、審査までは口頭で共有するだけで足りるとする。","変更が適用範囲の文書に反映され、変更がリスクや管理策に与える影響が検討されているか。","変更は文書の作成者だけが知っていればよく、関係者への周知や管理策への影響の検討は作成者以外の判断に委ねてよいとする。"],"correctIndex":2,"explanations":["× 担当者の判断だけで変更するのは、統制の観点から確認が必要。","× 審査後のまとめての文書化は、適時性の要求に反する。","○ 文書への反映と、リスク・管理策への影響の検討が、変更の確認として妥当。","× 作成者だけが知るのは、関係者への伝達の要求に反する。"]},{"id":"isms-60","type":"mc","chapterIndex":1,"stem":"内部監査員が、ISMSの箇条6（計画）の全体を確認する際、最も適切なアプローチはどれか。","options":["箇条6の文書を一つずつ単独で確認し、相互の関係は確認しない。","箇条6の内容を、前年の監査報告書の文言と比べるだけで完了とする。","箇条6は計画の文書であるため、実運用の確認は不要とする。","リスク及び機会の決定、リスク評価・対応、目標の設定、変更の計画が相互に整合しているかを、記録と関係者への確認で追跡する。"],"correctIndex":3,"explanations":["× 単独の確認では、計画相互の整合が確認できない。","× 前年の文言との比較だけでは、現状の計画の妥当性を確認できない。","× 計画は運用と結び付いて初めて有効性が評価できるため、運用の確認は必要。","○ 相互の整合を、記録と関係者への確認でたどるのが、計画の妥当性の確認として適切。"]},{"id":"isms-61","type":"mc","chapterIndex":2,"stem":"ISO/IEC 27001:2022 の箇条7.1（資源）の要求事項として、最も適切なものはどれか。","options":["ISMSに必要な資源は、情報セキュリティ部門が自部門の予算の範囲で確保すれば足り、経営層が配分を決める必要はない。","組織は、ISMSの確立、実施、維持及び継続的改善に必要な資源を決定し、提供する。","ISMSに必要な資源は、事故が起きてから被害に応じて確保すればよい。","必要な資源は委託先が用意するため、確認は不要である。"],"correctIndex":1,"explanations":["× 資源の決定と提供は組織（経営層を含む）の責任であり、部門の予算だけで判断する要求ではない。","○ 箇条7.1は、ISMSの確立・実施・維持・継続的改善に必要な資源を組織が決定し、提供することを求める。","× 資源は事故の後ではなく、ISMSの計画の段階から決定して提供しておく必要がある。","× 外部委託しても、委託したプロセスの管理責任は組織に残り、確認を省くことはできない。"]},{"id":"isms-62","type":"mc","chapterIndex":2,"stem":"箇条7.2（力量）に関する記述として、最も適切なものはどれか。","options":["ISMSのパフォーマンスに影響を与える業務を行う人に必要な力量を明確にし、教育・訓練・経験等に基づき力量があることを確実にする。","資格を保有している者は、ISMSに関する力量が十分にあるとみなしてよく、個別の確認記録を残す必要はなく、更新の要否も資格の有効期間内は判断しなくてよい。","力量の確認は入社時に一度行えば足り、その後に担当業務が変わっても改めて確認する必要はない。","力量は役職ごとに一律に定めればよく、担当する個々の業務内容や、業務に必要な知識・技能の違い、さらに経験年数や資格の有無によって変える必要はない。"],"correctIndex":0,"explanations":["○ 箇条7.2は、必要な力量の決定、力量の確保のための処置、力量の証拠となる文書化した情報の保持を求める。","× 資格は力量の一つの証拠になりうるが、それだけで力量があるとみなすことは規格の要求に合わない。","× 担当業務が変われば、必要な力量も変わるため、再確認が必要である。","× 力量は担当する業務ごとに決める必要があり、役職だけで一律に定めるものではない。"]},{"id":"isms-63","type":"mc","chapterIndex":2,"stem":"箇条7.3（認識）において、従業員が認識すべき事項として規格が挙げていないものはどれか。","options":["情報セキュリティ方針の内容、及びISMSに関連する事項（具体的な責任分担や報告の仕組みを含む）","ISMSの有効性への自らの貢献と、改善による利点を、従業員が自らの業務と結び付けて理解し、日々の行動に反映させること","従業員が個人的に利用している趣味の情報発信サービスの内容","ISMSの要求事項に適合しない場合の影響を、従業員が個々の業務に当てはめて理解し、自分の役割を確認すること"],"correctIndex":2,"explanations":["× 規格が挙げている。箇条7.3 a) は情報セキュリティ方針の認識を求める。","× 規格が挙げている。箇条7.3 b) は有効性への貢献と改善の利点を挙げる。","○ 規格が挙げていない。個人的な趣味の情報発信は、認識の対象として規格が挙げる項目ではない。","× 規格が挙げている。箇条7.3 c) は要求事項に適合しない場合の影響を挙げる。"]},{"id":"isms-64","type":"mc","chapterIndex":2,"stem":"箇条7.4（コミュニケーション）の要求事項として、最も適切なものはどれか。","options":["コミュニケーションは内容や時期を定めず、必要な時に都度判断すればよく、記録は残さなくてもよい。","外部へのコミュニケーションは法令の定めに限り、顧客や委託先には実施しなくてよい。","内部のコミュニケーションは管理職だけを対象とする。","ISMSに関係する内部及び外部のコミュニケーションについて、何を、いつ、誰に、どのように行うかを決める。"],"correctIndex":3,"explanations":["× 規格の要求に合わない。箇条7.4は、何を・いつ・誰と・どのように行うかを決めることを求める。","× 規格の要求に合わない。外部コミュニケーションは法令の範囲に限定されない。","× 規格の要求に合わない。対象は関係者全般であり、管理職に限定されない。","○ 規格の要求に合う。箇条7.4は内部・外部のコミュニケーションについて、何を・いつ・誰と・どのように行うかを決めることを求める。"]},{"id":"isms-65","type":"mc","chapterIndex":2,"stem":"箇条7.5.2（文書化した情報の作成及び更新）の要求事項として、最も適切なものはどれか。","options":["文書化した情報の作成・更新にあたり、識別と記述、形式（言語・ソフトウェア版・媒体等）、レビューと承認を確実にする。","文書化した情報は紙媒体で作成すれば、形式やレビューの方法を決める必要はない。","更新履歴は作成者の記憶に任せ、文書上には版数を記載しなくてもよい。","承認は文書を作成した担当者本人が行うものとし、第三者による確認や上位者による承認は、業務の効率を理由に求められず、必要と判断された場合にのみ行う。"],"correctIndex":0,"explanations":["○ 箇条7.5.2は、識別と記述、形式と媒体、適切性と妥当性のレビュー・承認を求める。","× 形式・媒体の決定は箇条7.5.2で求められている。","× 版数や更新の記録は、文書の状態を管理するために必要とされる。","× 承認は文書の適切性を第三者の目で確認するためのものであり、作成者本人だけに任せるものではない。"]},{"id":"isms-66","type":"mc","chapterIndex":2,"stem":"文書化した情報の管理（箇条7.5.3）において、外部由来の文書の扱いとして最も適切なものはどれか。","options":["外部由来の文書は、組織がISMSの計画及び運用に必要と判断したときでも、版管理や配布の対象として扱う必要はない。","外部由来の文書は、入手した時点で組織の文書となるため、内容を確認せず、そのまま社内に配布してよい。","外部由来の文書は、ISMSの計画及び運用に必要と判断したものを識別し、適切に管理する。","外部由来の文書は、作成元が管理していれば自組織では管理不要である。"],"correctIndex":2,"explanations":["× 必要と判断した外部文書は、管理（配布・版管理）の対象とする必要がある。","× 入手しただけでは組織の文書にはならず、内容の確認と管理が必要である。","○ 箇条7.5.3は、外部由来の文書で必要と判断したものを識別し、管理することを求める。","× 作成元の管理に任せることは、自組織の管理義務を免除しない。"]},{"id":"isms-67","type":"mc","chapterIndex":3,"stem":"箇条8.1（運用の計画及び管理）において、計画した変更の扱いとして最も適切なものはどれか。","options":["計画した変更は、変更の影響を評価せずにそのまま実施し、意図しない結果が生じた場合にのみ後から対応すればよい。","計画した変更を管理し、意図しない変更の結果をレビューして、必要に応じて有害な影響を軽減する措置をとる。","変更は担当者の判断で随時行い、記録は変更後の一定期間が過ぎた後にまとめて残す運用とし、影響の評価や承認は個別には行わない。","ISMSに関する変更は、経営層の承認を得れば実施でき、事前の影響の評価や結果のレビューは、担当部門の判断で省略してよい。"],"correctIndex":1,"explanations":["× 変更の影響を評価せずに実施することは、箇条8.1の変更管理の要求に反する。","○ 箇条8.1は計画した変更の管理、意図しない変更のレビュー、有害な影響の軽減を求める。","× 変更は計画的に管理し、その時点で記録することが求められる。","× 承認だけでは足りず、影響評価や結果のレビューも必要とされる。"]},{"id":"isms-68","type":"mc","chapterIndex":3,"stem":"箇条8.1における外部委託されたプロセスの管理として、最も適切なものはどれか。","options":["外部委託されたプロセスは、委託先の選定後に一度評価すれば足りる。","委託先の管理は、契約書に要求事項を記載するだけで足り、履行は確認しない。","外部委託されたプロセスは、ISMSの対象外として扱い、管理責任から除外してよい。","外部委託されたプロセスを識別し、その管理が確実に行われるよう、必要な管理を定めて実施する。"],"correctIndex":3,"explanations":["× 委託後も継続的に管理する必要がある。","× 契約だけでは足りず、履行状況の確認も必要である。","× 委託しても管理責任は組織に残り、ISMSの対象から外れない。","○ 箇条8.1は、外部委託されるプロセスを識別し、管理を確実にすることを求める。"]},{"id":"isms-69","type":"mc","chapterIndex":3,"stem":"箇条8.2（情報セキュリティリスクアセスメント）の実施時期として、最も適切なものはどれか。","options":["計画した間隔で実施し、重大な変更が提案された場合や発生した場合にも実施する。","ISMSの導入時に一度実施すれば、以後は業務内容や環境が変わっても改めて実施する必要はない。","重大な情報セキュリティインシデントが発生した後にのみ実施すればよい。","導入時に一度実施すれば、以後は見直し不要。"],"correctIndex":0,"explanations":["○ 箇条8.2は、計画した間隔での実施、及び重大な変更の提案・発生時の実施を求める。","× 業務や環境の変更があれば、リスクアセスメントの再実施が必要になる。","× インシデントの後だけでなく、計画的に実施する必要がある。","× 変更が生じても翌年度まで見直さない運用は、重大な変更時の要求を満たさない。"]},{"id":"isms-70","type":"mc","chapterIndex":3,"stem":"リスクアセスメントの結果の扱いとして、箇条8.2の要求事項に最も適合するものはどれか。","options":["リスクアセスメントの結果は、担当者が判断に使った後に破棄し、文書化した情報として残す必要はない。","リスクアセスメントの結果を文書化した情報として保持する。","結果は口頭で経営層に報告すれば足り、文書化した情報は作成しない。","結果は外部委託先が保管していれば足りる。"],"correctIndex":1,"explanations":["× 結果は文書化した情報として保持する必要がある。","○ 箇条8.2は、リスクアセスメントの結果を文書化した情報として保持することを求める。","× 口頭報告だけでは、文書化した情報の要求を満たさない。","× 外部に保管を任せても、組織が結果を保持する要求は免除されない。"]},{"id":"isms-71","type":"mc","chapterIndex":1,"stem":"リスク対応計画の成果物である適用宣言書（SoA）に含めるべき内容として、最も適切なものはどれか。","options":["適用しない管理策は一覧にし、除外の理由は記載せず、適用するものだけを記載すればよく、理由の記録は運用の負担になるため省略する。","全ての管理策を一律に適用することを宣言し、適用しない管理策の有無や個別の除外理由は、社内で別に管理すればよい。","必要な管理策と、その採用理由、実施状況、及び附属書Aから除外した管理策とその理由を含める。","リスク評価の詳細な計算過程を記載し、管理策の実施状況や除外理由の記録は、別途担当部門ごとに管理すればよい。"],"correctIndex":2,"explanations":["× 除外理由を含める必要があり、理由を示さずに除外してはならない。","× 全管理策の一律適用を宣言すること自体は、規格の要求ではない。","○ 箇条6.1.3 d) は、必要な管理策、採用理由、実施状況、除外した附属書A管理策とその理由を含めることを求める。","× 適用宣言書の要求は計算過程ではなく、管理策の採否と理由等に関するものである。"]},{"id":"isms-72","type":"mc","chapterIndex":1,"stem":"リスク対応計画の承認と残留リスクの受容に関して、最も適切なものはどれか。","options":["リスク対応計画は、リスク所有者が承認し、残留リスクを受容する場合も、リスク所有者がその受容を承認する。","情報セキュリティ部門長が単独で承認し、残留リスクの受容も同部門長の判断で行ってよい。","リスク対応計画は承認を要さず、実施担当者が必要と判断した時点で着手してよい。","残留リスクは受容せず、すべてのリスクを低減するまで対応を継続しなければならない。"],"correctIndex":0,"explanations":["○ 箇条8.3は、リスク所有者によるリスク対応計画の承認と、残留リスクの受容の承認を求める。","× 部門長の単独判断では、リスク所有者の承認という要求を満たさない。","× リスク対応計画は承認を経て実施する必要がある。","× 残留リスクの受容は、規格の中で認められている考え方である。"]},{"id":"isms-73","type":"mc","chapterIndex":1,"stem":"リスク対応の一般的な選択肢（ISO/IEC 27005 の考え方）として、含まれないものはどれか。","options":["リスク低減（管理策の導入によるリスクの引下げ）","リスク回避（リスクを伴う活動の中止）","リスク共有（保険や外部委託によるリスクの移転、又は委託先との責任分担の取決め）","リスクの過小評価（リスクを低く見積もって対応を省くこと）"],"correctIndex":3,"explanations":["× 含まれる。管理策の導入によりリスクを低減する選択肢である。","× 含まれる。活動を中止してリスクを回避する選択肢である。","× 含まれる。保険や外部委託により、リスクを共有・移転する選択肢である。","○ 含まれない。リスクを過小評価して対応を省くことは、リスク対応の選択肢ではない。"]},{"id":"isms-74","type":"mc","chapterIndex":1,"stem":"リスクアセスメントにおいて、リスク分析の結果を用いた次の段階として、最も適切なものはどれか。","options":["リスク分析の結果は、そのまま最終的なリスク対応とみなし、評価基準との比較は行わない。","リスク分析の結果をリスク基準と比較し、対応の優先順位を決める。","リスク分析の結果は、リスクの発生頻度を調べるだけに用い、影響の大きさは評価しない。","担当者が個別に判断し、基準を定めずに対応を決めてよい。"],"correctIndex":1,"explanations":["× リスク分析の結果は、評価基準と比較してはじめて対応の判断に使える。","○ リスク分析の結果をリスク基準と比較し、対応の優先順位を決めることが、リスク評価の次の段階である。","× 影響の大きさを評価しなければ、リスクの重大性を判断できない。","× 基準を定めずに個別に判断すると、結果の一貫性と比較可能性が保てない。"]},{"id":"isms-75","type":"mc","chapterIndex":2,"stem":"文書化した情報の管理活動として、箇条7.5.3が挙げるものに含まれるものはどれか。","options":["配布、アクセス、検索及び利用、保管及び保存（可読性の維持を含む）、変更管理、保持及び廃棄","作成のみを行い、保管・配布・廃棄は各担当者の判断に任せ、記録の管理は個人の裁量に委ねる運用とする","紙媒体は管理対象外とし、電子データのみを管理対象とするため、その他の文書は保管の記録を残さなくてよい。","承認済みの文書は、変更されないよう、その後の変更は一切認めず、必要な場合も例外を設けない運用とする。"],"correctIndex":0,"explanations":["○ 箇条7.5.3は、配布・アクセス・検索・利用・保管・保存（可読性の維持を含む）・変更管理・保持・廃棄の活動を挙げる。","× 保管・配布・変更管理などは、担当者任せにせず管理する必要がある。","× 紙媒体も管理対象であり、電子データだけに限定されない。","× 承認後も、管理された変更は必要に応じて認められる。"]},{"id":"isms-76","type":"mc","chapterIndex":3,"stem":"適用範囲や組織の状況が変わった場合のリスクアセスメントの扱いとして、最も適切なものはどれか。","options":["適用範囲が変わっても、評価結果は元のまま維持し、見直しは行わない。","適用範囲の変更は内部事情なので、評価への影響は検討しなくてよい。","重大な変更が生じた場合は、リスクアセスメントを見直し、必要に応じて再実施する。","変更後のリスクは、前の評価をそのまま使えるとみなす。"],"correctIndex":2,"explanations":["× 適用範囲が変われば、リスクの前提も変わるため、元の結果をそのまま維持することはできない。","× 適用範囲の変更は、リスクアセスメントへの影響を検討する対象である。","○ 重大な変更が生じた場合は、リスクアセスメントを見直し、必要に応じて再実施する必要がある。","× 変更後の業務には新たなリスクが生じうるため、変更前の評価をそのまま適用できるとはいえない。"]},{"id":"isms-77","type":"mc","chapterIndex":2,"stem":"力量の証拠として保持する文書化した情報として、最も適切なものはどれか。","options":["担当者の自己申告のみを記録し、教育・訓練の実施記録は保持しない。","研修の参加者名簿を、研修後すぐに廃棄する。","力量の証拠は、担当者が口頭で説明した内容を記録した議事メモのみとし、教育の受講記録や評価結果は別途保持しない","実施した教育、訓練、経験の記録など、力量の証拠となる文書化した情報を保持する。"],"correctIndex":3,"explanations":["× 自己申告だけでは、力量の客観的な証拠とならず、教育・訓練の記録も必要である。","× 研修記録は、力量の証拠として一定期間保持する必要がある。","× 口頭の説明だけでは、力量の証拠として不十分である。","○ 箇条7.2は、力量の証拠として適切な文書化した情報を保持することを求める。"]},{"id":"isms-78","type":"mc","chapterIndex":3,"stem":"運用の管理において、計画どおりに実施されたことを示す証拠として、最も適切なものはどれか。","options":["計画どおりに実施されたという、文書化した情報を保持する。","担当者の記憶に基づく口頭の説明を、必要な時に行い、文書としては残さない。","作業完了後、関連の記録を速やかに廃棄する。","計画どおりに実施された場合にのみ、結果を社内の掲示板で周知する。"],"correctIndex":0,"explanations":["○ 箇条8.1は、計画どおりに実施されたことを確信するための文書化した情報の保持を求める。","× 口頭の説明だけでは、文書化した情報の要求を満たさない。","× 証拠となる記録を廃棄すると、実施した事実を示せなくなる。","× 周知は、証拠の保持の代わりにはならない。"]},{"id":"isms-79","type":"mc","chapterIndex":2,"stem":"文書化した情報の保護について、箇条7.5.3の要求事項として最も適切なものはどれか。","options":["文書化した情報は、機密性を確保しなくてもよく、可用性（利用可能性）だけを確保すればよい。","文書化した情報は、必要に応じて機密性、完全性、可用性を適切に確保する。","文書化した情報は、アクセス制限を設けずに全社員に公開することで、完全性を確保する。","文書化した情報は、バックアップを取らず、変更履歴も保存せず、最新版のみを保持し、古い版は直ちに廃棄する。"],"correctIndex":1,"explanations":["× 機密性が必要な文書を含め、必要な特性を確保する必要がある。","○ 箇条7.5.3は、必要に応じて文書化した情報の機密性、完全性、可用性を適切に確保することを求める。","× アクセス制限を設けずに公開することは、機密性の確保とは両立しない。","× バックアップや変更履歴を保存しないと、完全性と可用性を確保できない。"]},{"id":"isms-80","type":"mc","chapterIndex":3,"stem":"委託先に対する情報セキュリティの管理として、最も適切なものはどれか。","options":["委託先の選定は価格のみで行い、要求事項は契約に含めない。","契約後の作業は、組織が確認せず委託先に任せる。","委託先が認証を取得していれば、組織側の確認は不要とみなす。","委託先の情報セキュリティ要求事項を契約に定め、履行状況を確認する。"],"correctIndex":3,"explanations":["× 価格だけで選定し、要求事項を契約に含めなければ、委託先の管理ができない。","× 一度の契約で以後の確認を省くことは、外部委託プロセスの管理の要求に反する。","× 認証の取得は一つの根拠になりうるが、組織側の管理や確認を免除するものではない。","○ 箇条8.1は、外部委託されたプロセスを管理し、委託先の要求事項を明確にすることを求める。"]},{"id":"isms-81","type":"mc","chapterIndex":3,"stem":"組織の内外の状況が大きく変わり、既存のリスクアセスメントの前提が崩れた。監査人の指摘として最も適切なものはどれか。","options":["前提の変化を踏まえてリスクアセスメントを見直し、必要に応じて再実施すべきである。","前提が変わっても、従来のリスク評価を維持すればよく、見直しは次回監査まで保留してよい。","リスクの変化は担当者の判断で吸収できるため、文書には残す必要がない。","前提の変化は経営層が決めるもので、担当者は関与しなくてよい。"],"correctIndex":0,"explanations":["○ 前提が崩れた状態で評価を続けると、リスクの把握が実態に合わなくなる。","× 次回の監査まで見直しを保留すると、重大な変更時の要求を満たさない。","× 変化を文書に残さなければ、リスク評価の根拠を検証できない。","× 経営層の判断に加え、リスクアセスメントの担当者も見直しに関与する必要がある。"]},{"id":"isms-82","type":"mc","chapterIndex":3,"stem":"運用の計画及び管理において、プロセスを管理するための基準の設定として最も適切なものはどれか。","options":["プロセスの基準は、担当者ごとに自由に設定させ、組織全体での統一は求めず、各部門の判断に任せて運用する","プロセスの基準は、規格の要求に一致させる必要はなく、業務の都合だけで決める。","プロセスの基準を定め、その基準に従ってプロセスを管理し、結果を確認できるようにする。","プロセスの基準は、結果が出た後に事後的に決め、それに合うように記録を整える運用とし、基準の事前の設定は行わない。"],"correctIndex":2,"explanations":["× 基準を担当者ごとに設定すると、組織としてプロセスを統一的に管理できない。","× 規格の要求事項と一致しない基準では、ISMSの要求を満たせない。","○ 箇条8.1は、プロセスの基準を定め、それに従って管理し、結果を確認できるようにすることを求める。","× 結果の後に基準を決めて記録を整えると、管理の実態を示す証拠にならない。"]},{"id":"isms-83","type":"mc","chapterIndex":2,"stem":"ISMSに関する外部コミュニケーションの対象として、規格の考え方に照らして適切な例はどれか。","options":["競合他社への、社内の未公開の情報セキュリティ上の弱点や、対策の詳細を含む内部資料の公表","顧客や委託先など、ISMSに関係する外部の利害関係者への必要な情報の伝達","従業員の私的なSNSのアカウント情報を、社内の全員に公開して共有し、業務の連絡に用いること","報道機関に対し、個別の従業員の評価情報や人事上の判断の内容を、本人の同意なく提供すること"],"correctIndex":1,"explanations":["× 社内の未公開の弱点を競合他社に公表することは、情報セキュリティ上の問題を生じさせ、規格の考え方に合わない。","○ 箇条7.4は、ISMSに関係する外部の利害関係者とのコミュニケーションを、何を・いつ・誰と行うかを決めて実施することを求める。","× 従業員の私的なアカウント情報の共有は、コミュニケーションの対象として適切ではなく、個人情報の保護にも反する。","× 個別の従業員の評価情報を外部に提供することは、人事情報の保護の観点から適切ではない。"]},{"id":"isms-84","type":"mc","chapterIndex":1,"stem":"リスク所有者の役割として、最も適切なものはどれか。","options":["リスクの特定から対応まで単独で行い、他部門の確認は不要とする。","リスク評価の結果に責任を負わず、対応は技術部門に任せる。","リスク分析ツールの開発だけを担い、承認は行わない。","リスクに責任を負う立場から、リスク対応計画と残留リスクの受容を承認する。"],"correctIndex":3,"explanations":["× リスクの特定から対応までを単独で行うと、客観性や網羅性が損なわれる。","× リスク評価の結果は、リスクに責任を負う者が受け止めるべきものであり、技術部門だけに任せる性格のものではない。","× ツールの開発や運用は支援の役割であり、リスク所有者が承認の役割を担う点とは別である。","○ リスク所有者は、リスク対応計画と残留リスクの受容を承認する立場である。"]},{"id":"isms-85","type":"mc","chapterIndex":1,"stem":"箇条6.3（変更の計画）で検討すべき事項として、最も適切なものはどれか。","options":["変更の目的と潜在的な結果、ISMSの完全性、資源の利用可能性、責任と権限の割当てを検討する。","変更は影響を検討せずに実施し、問題が起きた場合にのみ検討する。","変更は担当者が随時行い、計画として文書化する必要はない。","変更の影響は、変更を行う部門だけで検討すれば足り、他部門や外部委託先は関与させず、必要な記録も残さなくてよい"],"correctIndex":0,"explanations":["○ 箇条6.3は、変更の目的と潜在的な結果、ISMSの完全性、資源、責任と権限の割当てを検討することを求める。","× 影響を検討せずに変更を行うことは、計画的な変更の要求に反する。","× 変更は計画的に行い、文書化する必要がある。","× 変更の影響は、関係する他部門も含めて検討する必要がある。"]},{"id":"isms-86","type":"mc","chapterIndex":1,"stem":"リスクアセスメントにおけるリスク特定の考え方として、最も適切なものはどれか。","options":["既に発生したインシデントだけを特定の対象とし、将来のリスクは対象外とする。","情報資産の重要性を無視し、脅威の発生可能性のみを基準としてリスクを特定し、影響の大きさは検討しない。","情報の機密性、完全性、可用性の喪失につながるリスクを、資産・脅威・脆弱性の観点から特定する。","リスクは経営層が決めたものだけを特定し、現場の業務プロセスや外部委託先に関わるリスクは対象とせず、対応も決めない"],"correctIndex":2,"explanations":["× 将来のリスクを対象外とすると、リスクアセスメントの目的を果たせない。","× 資産の重要性を無視すると、リスクの大きさを適切に判断できない。","○ 機密性・完全性・可用性の喪失と、資産・脅威・脆弱性の観点から特定することは、リスク特定の基本的な考え方に合う。","× 現場の業務プロセスを対象外とすると、実際のリスクを網羅的に特定できない。"]},{"id":"isms-87","type":"mc","chapterIndex":1,"stem":"管理策の選択で、附属書A以外の管理策を採用する場合の扱いとして、最も適切なものはどれか。","options":["附属書Aにない管理策は採用できないため、業務上必要な対策があっても、規格の範囲内の管理策だけで運用する。","附属書Aにない管理策を採用してもよいが、必要な管理策として適用宣言書に含め、その内容を文書化する。","附属書Aにない管理策を採用する場合は、適用宣言書に記載する必要はなく、担当部門の内部だけで管理し、経営層への報告も省略してよい","附属書Aにない管理策は、リスク対応の計画に含めず、個別の判断で実施してよく、記録や承認は不要とし、担当者の裁量に任せる。"],"correctIndex":1,"explanations":["× 附属書Aは管理策の参照であり、必要な他の管理策を組織が採用することは可能である。","○ 組織はリスクに応じて必要な管理策を決められ、それらを適用宣言書に含めて文書化する。","× 採用した管理策は、適用宣言書に含めて管理する必要がある。","× リスク対応計画の一部として扱い、管理対象にする必要がある。"]},{"id":"isms-88","type":"mc","chapterIndex":1,"stem":"リスク受容基準の扱いとして、最も適切なものはどれか。","options":["組織は、リスク受容基準を定め、その基準に照らして残留リスクを受容するかを判断する。","リスク受容基準は、経営層の意向に関係なく、担当者が個別の案件ごとに決める。","リスク受容基準は、リスクがゼロになるまで設定しないことが望ましい。","リスク受容基準は、顧客の要求に合わせて最も低く設定する。"],"correctIndex":0,"explanations":["○ 受容基準は、残留リスクを受容するかどうかを判断する基準として定める。","× 受容基準は組織として統一的に定め、経営層の判断とも整合させる必要がある。","× リスクをゼロにすることは通常現実的でなく、受容基準を設定しない前提にはならない。","× 最も低い基準を常に採用することは、組織の状況やリスクの実態に合わない。"]},{"id":"isms-89","type":"mc","chapterIndex":2,"stem":"文書化した情報の保持期間及び廃棄について、規格の考え方として最も適切なものはどれか。","options":["保持期間は設定せず、全ての記録を無期限に保存し、保存先や管理者も特に定めず、必要な時に検索できればよいものとする","保持期間や廃棄の方法は、担当者が任意に決めて差し支えない。","廃棄は、一定期間後にすべて一律に行う。","保持期間と廃棄の方法を定め、それに従って保持及び廃棄を管理する。"],"correctIndex":3,"explanations":["× 保持期間を定めず無期限に残す方針は、管理された保持とは言えない。","× 任意に決める方法では、組織として統制された管理にならない。","× 廃棄は記録の性質や要求事項に応じて行う必要があり、一律に行うものではない。","○ 箇条7.5.3は、文書化した情報の保持と廃棄を管理することを求める。"]},{"id":"isms-90","type":"mc","chapterIndex":3,"stem":"組織が外部の委託先で情報セキュリティ事故が発生した。組織の対応として最も適切なものはどれか。","options":["委託先の事故であるため、組織は対応せず、委託先の判断と責任において必要な対応を任せ、その結果も確認しない。","委託先と連携して事故の影響を把握し、委託契約の要求事項に照らして必要な措置をとる。","事故は組織の責任範囲外として扱い、記録は残さない。","委託先を直ちに変更し、影響の評価や関係者への連絡は行わず、委託先の事故対応の結果は組織の記録に残さない運用とする"],"correctIndex":1,"explanations":["× 外部委託しても、委託したプロセスの管理責任は組織に残るため、対応を任せきりにできない。","○ 委託先と連携して影響を把握し、契約の要求事項に照らして措置をとることは、外部委託プロセスの管理の考え方に合う。","× 責任範囲外として扱い、記録を残さないことは、文書化した情報の要求に反する。","× 影響の評価や関係者への連絡を行わないまま委託先を変更すると、被害の把握や是正ができない。"]},{"id":"isms-91","type":"mc","chapterIndex":4,"stem":"箇条9.1（監視、測定、分析及び評価）において、組織が決定すべき事項として規格が挙げるものはどれか。","options":["監視・測定の結果が出た後に、対象と方法を後から決め、その時点の担当者の判断で記録の要否を決める。","監視・測定の対象は、担当者の判断で随時決め、結果の記録は必要と感じた場合にのみ残す運用とする。","監視・測定の対象、方法、実施時期、結果の分析・評価の時期を決める。","監視・測定は、外部の監査人が行う場合にのみ実施し、組織は対象を決めない。"],"correctIndex":2,"explanations":["× 対象と方法は結果の前に決めておく必要があり、後から決めると評価の根拠にならない。","× 記録を残さず担当者の判断に任せると、ISMSの有効性を評価できない。","○ 箇条9.1は、監視・測定の対象、方法、実施時期、分析・評価の時期を決めることを求める。","× 組織は外部の監査人任せにせず、自ら監視・測定の対象を決める必要がある。"]},{"id":"isms-92","type":"mc","chapterIndex":4,"stem":"監視、測定、分析及び評価の結果の扱いとして、最も適切なものはどれか。","options":["担当者が必要なものだけを残す。","口頭報告のみで、記録は残さない。","良好な結果ばかりを選んで保持する。","結果を証拠として文書化した情報を保持する。"],"correctIndex":3,"explanations":["× 判断で破棄すると、ISMSの有効性を示す証拠が残らない。","× 口頭の報告だけでは、結果の証拠として不十分である。","× 良好な結果だけを残すと、不良な結果が隠れ、評価の客観性を損なう。","○ 箇条9.1は、監視・測定の結果を証拠として文書化した情報を保持することを求める。"]},{"id":"isms-93","type":"mc","chapterIndex":4,"stem":"監視・測定の方法について、規格の要求として最も適切なものはどれか。","options":["有効な結果を確実にする方法を選択し、結果が比較可能で信頼できるものになるようにする。","方法は、過去に使ったものをそのまま続けるだけでよく、結果の妥当性や有効性は問わず、担当者の慣れに従って運用する","方法は、測定しやすい項目だけを選び、重要な項目は除外する。","方法は、経営層が見ない指標のみで組み立てる。"],"correctIndex":0,"explanations":["○ 箇条9.1は、有効な結果を確実にする監視・測定の方法を選ぶことを求める。","× 過去の方法を有効性の確認なしに続けると、結果の妥当性を保証できない。","× 重要な項目を除外すると、ISMSの有効性を適切に評価できない。","× 経営層が見ない指標だけでは、組織としての評価と改善につながらない。"]},{"id":"isms-94","type":"mc","chapterIndex":4,"stem":"内部監査（箇条9.2.1）の目的として、最も適切なものはどれか。","options":["被監査部門の業務の効率を評価し、人事評価の材料とする。","ISMSが組織の要求事項と規格の要求事項に適合しているか、有効に実施・維持されているかに関する情報を提供する。","外部監査機関の認証審査に合格するために、事前に指摘事項を隠し、監査で見つかりそうな不適合は報告書に記載しない運用を行う","情報セキュリティ部門の予算配分を決めるための財務監査を行い、その結果を事業計画の策定と投資の判断に反映させ、監査の範囲も予算に応じて決める。"],"correctIndex":1,"explanations":["× 人事評価は内部監査の目的ではなく、業務効率の評価は規格の要求する目的に含まれない。","○ 箇条9.2.1は、ISMSの適合性と有効な実施・維持について情報を提供することを内部監査の目的とする。","× 指摘事項を隠すことは、内部監査の目的に反し、監査の信頼性を損なう。","× 財務監査は内部監査の目的ではなく、予算配分の判断とは別の枠組みで扱うものである。"]},{"id":"isms-95","type":"mc","chapterIndex":4,"stem":"内部監査プログラムに含めるべき事項として、箇条9.2.2が挙げるものはどれか。","options":["監査員の個人的な評価結果のみを、監査の計画や報告の内容から切り離して扱う","監査の実施時期は随時とし、頻度は定めず、その時々の状況で決める","監査の頻度、方法、責任、計画の要求事項及び報告","被監査部門の承認を得るまで、監査の結果は公表せず、経営層にも報告しない"],"correctIndex":2,"explanations":["× 監査員の個人的な評価は、監査プログラムに含めるべき事項として規格が挙げるものではない。","× 頻度を定めず随時とすると、計画的な監査プログラムにならない。","○ 箇条9.2.2は、頻度、方法、責任、計画の要求事項、報告を監査プログラムに含めることを求める。","× 被監査部門の承認を得るまで結果を公表しない運用は、報告の要求に合わない。"]},{"id":"isms-96","type":"mc","chapterIndex":10,"stem":"内部監査員の割当てに関して、客観性及び公平性の観点から最も適切なものはどれか。","options":["監査員は、自らが責任を持つ業務や、直接関わった業務の監査を担当しないようにする。","自部門の業務を最もよく知っているため、自部門の監査を担当させる。","監査員の割当ては、被監査部門の希望に従い、監査の公平性は問わない。","監査員は、同じ業務を毎年担当させ、経験を蓄積させる。"],"correctIndex":0,"explanations":["○ 箇条9.2.2は、監査員の客観性と公平性を確保するため、自らの業務の監査を避けることを求める。","× 自部門の内部監査を担当させると、客観性と公平性が損なわれる。","× 被監査部門の希望に従うと、公平な監査を確保できない。","× 同じ業務を毎年担当させると、慣れによる判断の偏りが生じやすい。"]},{"id":"isms-97","type":"mc","chapterIndex":4,"stem":"内部監査の結果は、どこに報告するべきか。最も適切なものはどれか。","options":["被監査部門の担当者だけへ報告。","評価資料として保管する。","外部の関係者に先に公表し、組織内への報告は後回しにする。","関連する経営層（管理層）に報告する。"],"correctIndex":3,"explanations":["× 被監査部門の担当者だけに報告し経営層に伝えないと、経営層がISMSの状況を把握できない。","× 監査員個人の資料として保管するだけでは、組織としての報告の要求を満たさない。","× 外部に先に公表すると、組織内での是正の機会を失い、報告の要求にも反する。","○ 内部監査の結果は、関連する経営層に報告し、ISMSの見直しに役立てる。"]},{"id":"isms-98","type":"mc","chapterIndex":10,"stem":"個々の内部監査について監査基準と監査範囲を定める目的として、最も適切なものはどれか。","options":["監査の結果を事前に決めておき、その結果に合わせて監査の範囲や証拠の収集方法を調整し、監査を省略するため","被監査部門の作業量を増やすため。","監査の対象、判断の根拠、監査の境界を明確にし、監査結果を客観的に判断するため。","監査員の人数や必要な予算を決めるとともに、監査の日程を被監査部門の都合に合わせて決めるため。"],"correctIndex":2,"explanations":["× 結果を事前に決めると、監査の意味がなくなり、客観性が失われる。","× 作業量を増やすことは、監査基準と範囲を定める目的ではない。","○ 監査基準と範囲は、監査の対象と判断の根拠を明確にし、結果を客観的に判断するために定める。","× 監査員の人数は、基準と範囲を定めた後に決めるものであり、その目的ではない。"]},{"id":"isms-99","type":"mc","chapterIndex":10,"stem":"情報システム部門の内部監査員が、自部門のISMS運用を監査することになった。最も適切な対応はどれか。","options":["自部門の監査を担当させることを避け、独立性を確保できる監査員に割り当てる。","当該監査員が知識を持っているため、そのまま担当させ、独立性の確認や利害関係の確認は省略する。","部門長が監査結果を確認し、必要な場合には修正を加えれば独立性は確保されるため、監査員の担当を変えず、そのまま進める","監査は書面確認のみとし、担当者は変えないが、監査の記録は残さず、結果も報告しない。"],"correctIndex":0,"explanations":["○ 自部門の監査は独立性と客観性を損なうため、担当を変えて独立性を確保する必要がある。","× 知識があることは利点になりうるが、自部門の監査では客観性が損なわれる。","× 部門長の確認では、監査員の独立性の欠如は解消されない。","× 書面確認のみでも、担当者が自部門の業務を監査する独立性の問題は解消されない。"]},{"id":"isms-100","type":"mc","chapterIndex":5,"stem":"内部監査で不適合が検出された。被監査部門は「影響がないので是正は不要」と主張している。監査員の対応として最も適切なものはどれか。","options":["被監査部門の主張を受け入れ、記録しない。","是正処置は不要と判断し、報告書から不適合の記載を削除する。","被監査部門の判断を優先し、是正の要否は協議で決める。","不適合として記録し、箇条10.1に従い是正処置を求めて、その有効性を確認する。"],"correctIndex":3,"explanations":["× 不適合として記録しないことは、監査結果の信頼性を損ない、規格の要求に反する。","× 是正処置の要否を被監査部門の判断で削除すると、監査結果が歪められる。","× 被監査部門の判断を優先し付記するだけでは、不適合への是正が行われない。","○ 不適合として記録し、箇条10.1に従って是正処置を求め、有効性を確認することが規格に沿う対応である。"]},{"id":"isms-101","type":"mc","chapterIndex":4,"stem":"マネジメントレビューの実施について、箇条9.3.1の要求として最も適切なものはどれか。","options":["マネジメントレビューは、問題が発生したときのみ、担当者の判断で実施する。","マネジメントレビューは、計画した間隔で、トップマネジメントがISMSの適切性・妥当性・有効性を確認するために実施する。","マネジメントレビューは、監査人が毎年外部から実施し、結果は担当部門に通知するのみで、トップマネジメントへの報告は不要とする運用とする。","マネジメントレビューは、ISMSの運用担当者だけが行い、トップマネジメントは関与しない。"],"correctIndex":1,"explanations":["× 問題発生時だけの実施は、計画した間隔でのレビューという要求に反する。","○ 箇条9.3.1は、トップマネジメントが計画した間隔でISMSをレビューすることを求める。","× 外部の監査人任せにすると、トップマネジメントによるレビューという要求を満たさない。","× トップマネジメントが関与しないレビューは、規格の要求に合わない。"]},{"id":"isms-102","type":"mc","chapterIndex":4,"stem":"マネジメントレビューのインプットとして、箇条9.3.2が挙げる事項はどれか。","options":["従業員の個人的な勤務評価の記録、人事異動の希望、及び各従業員の休暇取得状況に関する詳細な一覧表の内容","予算計画の詳細な内訳と、その見直し状況のみ。","予算の執行状況に関する詳細な報告書、関連部門の人事評価の内容、及び外部の取引先との契約更新の履歴を、レビューの場で個別に確認すること","前回までのレビューの措置状況、内外の課題の変化、監査結果、不適合と是正処置、監視・測定の結果"],"correctIndex":3,"explanations":["× 個人の勤務評価は、マネジメントレビューのインプットとして規格が挙げる事項ではない。","× 予算計画の内訳だけでは、ISMSのレビューに必要な情報として十分ではない。","× 予算の執行状況、人事評価、契約更新の履歴は、マネジメントレビューのインプットとして規格が挙げる事項ではない。","○ 箇条9.3.2は、前回の措置、課題の変化、監査結果、不適合と是正処置、監視・測定の結果などをインプットとして挙げる。"]},{"id":"isms-103","type":"mc","chapterIndex":4,"stem":"マネジメントレビューのアウトプットとして、箇条9.3.3が求める事項はどれか。","options":["担当者ごとの業務量の見直し計画と、個人の業務分担表の更新、及び各担当者の業務に関する詳細な記録の作成のみ","次年度の全社の人事異動計画を立て、各部門の要員配置と役割分担を見直し、必要な採用計画を決めること","継続的改善の機会に関する決定、及びISMSの変更の必要性に関する決定","監査員の資格取得の計画を立て、資格保有者の人数を増やすための費用を計上すること"],"correctIndex":2,"explanations":["× 業務量の見直しだけでは、マネジメントレビューのアウトプットとして規格が求める事項を満たさない。","× 人事異動計画は、ISMSのレビューのアウトプットとして規格が求める事項ではない。","○ 箇条9.3.3は、継続的改善の機会に関する決定と、ISMSの変更の必要性に関する決定を求める。","× 監査員の資格取得の計画は、マネジメントレビューのアウトプットとして規格が挙げる事項ではない。"]},{"id":"isms-104","type":"mc","chapterIndex":4,"stem":"マネジメントレビューの結果の記録について、規格の考え方として最も適切なものはどれか。","options":["マネジメントレビューの結果を、文書化した情報として保持する。","結果は会議の参加者の記憶に任せ、文書に残さない。","結果は、必要な時に作成すればよく、保持は不要。","結果は外部の監査人が保管すればよい。"],"correctIndex":0,"explanations":["○ 箇条9.3は、マネジメントレビューの結果の証拠として文書化した情報を保持することを求める。","× 記憶に任せると、結果の証拠を示せなくなる。","× 必要になった時点で作成すると、レビュー時点の結果が正確に残らない。","× 外部の監査人に保管を任せても、組織が結果を保持する義務は免除されない。"]},{"id":"isms-105","type":"mc","chapterIndex":5,"stem":"不適合への対応（箇条10.1）として、規格が求める事項に最も合うものはどれか。","options":["不適合の結果に対処するだけで、その原因の調査は行わない。","不適合の原因は、担当者の個人的な責任として処理し、再発防止の仕組みは組織として見直さず、担当者への注意と指導で対応する","不適合の原因を調査し、同じ不適合が再発しないよう、原因を除去するための処置の必要性を評価する。","不適合は、発生した時点で記録を消去し、報告は行わない。"],"correctIndex":2,"explanations":["× 結果への対処だけでは、再発を防止できず、規格の要求を満たさない。","× 原因を個人の責任として処理すると、組織としての是正の仕組みが働かない。","○ 箇条10.1は、不適合の原因を除去するための処置の必要性を評価し、再発を防止することを求める。","× 記録を消去して報告しないことは、文書化した情報と報告の要求に反する。"]},{"id":"isms-106","type":"mc","chapterIndex":5,"stem":"是正処置の有効性について、規格の要求として最も適切なものはどれか。","options":["とった是正処置の有効性をレビューし、必要な場合にはISMSの変更を行う。","是正処置は実施した時点で完了とみなし、有効性は確認しない。","是正処置の有効性は担当者の自己申告で足り、その内容は文書化せず、次の監査まで確認を保留する。","是正処置は、有効性を評価せず、次回のマネジメントレビューまで保留し、結果の確認は次年度の内部監査で行うこととする"],"correctIndex":0,"explanations":["○ 箇条10.1は、とった是正処置の有効性をレビューすることを求め、必要に応じてISMSを変更することを含む。","× 実施しただけで完了とすると、是正処置が有効であったかを確認できない。","× 自己申告だけでは、有効性の客観的な証拠とならない。","× 有効性を評価せず保留することは、是正処置の有効性の確認という要求に反する。"]},{"id":"isms-107","type":"mc","chapterIndex":5,"stem":"不適合が発生したとき、最初に行うべき対応として、最も適切なものはどれか。","options":["原因の分析をせず、不適合の是正のみを行って完了とし、再発の有無は記録せず、同様の事例が生じた場合は個別に対応する","経営層の承認が得られるまで、関係者への連絡や対応を行わずに待ち、承認を受けた後に必要な処置を検討する。","不適合の影響を評価せず、影響が小さいと思われるものは、経過観察のまま対応を行わない運用とする。","不適合を管理し、直ちにその影響を抑える処置をとるとともに、その内容を記録する。"],"correctIndex":3,"explanations":["× 原因の分析をせずに是正だけを行うと、同じ不適合が再発しやすい。","× 対応を待つと、不適合の影響が拡大するおそれがある。","× 影響を評価せずに対応を省くことは、不適合への対応という要求に反する。","○ 箇条10.1は、不適合への対応と、影響を抑える処置、その内容の記録を求める。"]},{"id":"isms-108","type":"mc","chapterIndex":5,"stem":"是正処置を検討する際、同様の不適合が他にも存在しないかを調べる目的として、最も適切なものはどれか。","options":["個別事象として処理し、他部門への影響は確認しない。","同様の不適合が他に存在する、又は発生する可能性を確認し、必要な処置をとるため。","是正処置の件数を増やして、監査の実績を高く見せるため。","監査員の評価を決めるための材料とするため。"],"correctIndex":1,"explanations":["× 個別事象として処理すると、同じ原因の不適合が他で再発するおそれがある。","○ 箇条10.1は、同様の不適合の有無を確認し、発生の可能性を確かめることを求める。","× 件数を増やすこと自体は、是正処置の目的ではなく、有効性の評価にもならない。","× 監査員の評価は、是正処置の検討の目的とは別のものである。"]},{"id":"isms-109","type":"mc","chapterIndex":5,"stem":"箇条10.2（継続的改善）の要求事項として、最も適切なものはどれか。","options":["ISMSは一度確立すれば、以後は変更せず、現状を維持することが望ましい。","重大な不適合の発生時だけ継続的改善を行う。","経営層の指示した項目だけを対象とする。","ISMSの適切性、妥当性及び有効性を継続的に改善する。"],"correctIndex":3,"explanations":["× 現状維持では、変化する環境に対してISMSの適切性を保てない。","× 重大な不適合に限定すると、継続的な改善という要求を満たさない。","× 経営層の指示だけに限定すると、現場の改善の機会を取り込めない。","○ 箇条10.2は、ISMSの適切性、妥当性及び有効性を継続的に改善することを求める。"]},{"id":"isms-110","type":"mc","chapterIndex":5,"stem":"改善の機会を検討する情報源として、マネジメントレビューとの関係で適切なものはどれか。","options":["マネジメントレビューの決定事項は、継続的改善の機会の検討に用いる。","マネジメントレビューの結果は、改善の機会とは無関係のため、検討に用いない。","改善の機会は、外部の認証機関からの指摘のみを対象とし、社内の監査結果は除外する。","改善の機会は、経営層の決定後に限り、現場では検討しない。"],"correctIndex":0,"explanations":["○ 箇条9.3.3のアウトプットには、継続的改善の機会に関する決定が含まれ、改善の検討に用いられる。","× マネジメントレビューの結果は、改善の機会と直接関係しており、検討に用いるべきものである。","× 社内の監査結果を除外すると、改善の機会を網羅的に把握できない。","× 現場を検討から外すと、実態に合った改善の機会を見逃すおそれがある。"]},{"id":"isms-111","type":"mc","chapterIndex":4,"stem":"内部監査の結果について、文書化した情報として保持すべき内容として、最も適切なものはどれか。","options":["監査員の個人的な感想や私的な評価、及び監査とは関係のない個人的な業務上の雑感を記録したメモのみ","監査プログラムの実施と監査結果の証拠となる文書化した情報","被監査部門が作成した、監査前の自己評価シートや、その評価の根拠資料のみ","監査後に破棄するため、保持する必要のない情報であり、記録は残さなくてよい"],"correctIndex":1,"explanations":["× 個人的な感想や私的な評価は、組織としての監査結果の証拠にならない。","○ 箇条9.2.2は、監査プログラムの実施と監査結果の証拠として文書化した情報を保持することを求める。","× 被監査部門の自己評価だけでは、監査プログラムの実施と監査結果の証拠として不十分である。","× 監査結果は、後の是正やフォローアップに必要なため、破棄すべきものではない。"]},{"id":"isms-112","type":"mc","chapterIndex":4,"stem":"ISMSの有効性を評価するための指標（KPI）の扱いとして、最も適切なものはどれか。","options":["指標は、ISMSの目的や管理策の有効性と結び付けて定め、測定結果を評価する。","測定しやすい指標だけを選び、目的との関係は考えない。","指標は、達成しやすい値に設定し、目標が常に達成されるようにする。","指標は、一度定めたら、結果が悪くても変更しない。"],"correctIndex":0,"explanations":["○ 箇条9.1は、ISMSの目的や管理策の有効性と結び付けて、監視・測定の対象と方法を定めることを求める。","× 目的との関係を考えない指標では、ISMSの有効性を評価できない。","× 達成しやすい値だけに設定すると、有効性の評価が実態を反映しない。","× 結果が悪くても変更しない運用は、指標の見直しと改善の要求に合わない。"]},{"id":"isms-113","type":"mc","chapterIndex":4,"stem":"内部監査の頻度について、規格の考え方として最も適切なものはどれか。","options":["ISMSの運用開始後、1回だけ実施すればよい。","監査は、問題が発生した後にのみ実施する。","監査は、担当者の判断で不定期に行えばよく、頻度や対象の選定は、その時々の業務状況と担当者の都合に応じて柔軟に決めてよい","監査は計画した間隔で実施し、その頻度はISMSの重要性や変更、過去の結果を考慮して決める。"],"correctIndex":3,"explanations":["× 1回の実施では、継続的なISMSの有効性を確認できない。","× 問題発生後のみの監査は、計画した間隔での内部監査という要求に反する。","× 不定期の判断任せでは、計画的な監査プログラムにならない。","○ 箇条9.2は、計画した間隔での内部監査と、その頻度の決定にあたって重要性・変更・過去の結果を考慮することを求めている。"]},{"id":"isms-114","type":"mc","chapterIndex":4,"stem":"ISMSの運用が組織の方針と目的に整合しているかを判断する主体として、規格が求めるものはどれか。","options":["監査員のみが、内部監査の結果に基づいてISMSの方針と目的への整合性を判断し、経営層への報告は行わない","トップマネジメント（経営層）によるマネジメントレビュー","外部の認証機関のみが、審査の結果に基づき組織の方針と目的への整合性を判断し、組織内部での判断や報告は行わない","担当者が個別に判断し、報告は不要とする。"],"correctIndex":1,"explanations":["× 監査員は内部監査で情報を提供するが、ISMSの方針と目的への整合を判断する主体ではない。","○ 箇条9.3は、トップマネジメントがマネジメントレビューによってISMSの適切性・妥当性・有効性を判断することを求める。","× 外部の認証機関は適合性を審査するが、組織の方針と目的への整合を判断する主体ではない。","× 個々の担当者は運用を行うが、マネジメントレビューによる判断の主体ではない。"]},{"id":"isms-115","type":"mc","chapterIndex":1,"stem":"予防処置に関する規格の扱いとして、最も適切なものはどれか。","options":["独立した予防処置の箇条は規格にはなく、この説明は規格の構成と合わないため、予防処置は不適合の後に行う処置として文書化を要しない","予防処置は、2013年版以降、規格では一切扱われず、組織の裁量で、必要に応じて個別の判断により実施し、記録は残さなくてよい","独立した予防処置の要求はないが、リスクアセスメントやリスク対応の中で、潜在的な問題への対応を扱う。","予防処置は、不適合が発生した後にのみ実施し、潜在的な問題への事前の対応は、規格の要求として扱わず、記録も残さない。"],"correctIndex":2,"explanations":["× 独立した予防処置の箇条は規格にはなく、この説明は規格の構成と合わない。","× 規格はリスクに基づく考え方の中で潜在的な問題を扱っており、予防処置の考え方を一切扱わないわけではない。","○ 独立した予防処置の要求はないが、リスクアセスメントとリスク対応の中で潜在的な問題を扱うという説明が規格の構成に合う。","× 予防処置を不適合の後にのみ行うとの考え方は、リスクに基づく考え方と合わない。"]},{"id":"isms-116","type":"mc","chapterIndex":4,"stem":"マネジメントレビューに内部監査の結果が報告されなかった。規格の観点から、最も問題となる点はどれか。","options":["マネジメントレビューのインプットとして求められる監査結果が欠けており、要求事項を満たさない。","監査結果は、マネジメントレビューの議題として任意であるため、問題はない。","監査結果は、担当部門の内部で処理されていれば、レビューに含める必要はない。","監査結果は、翌年度のレビューにまとめて扱えばよい。"],"correctIndex":0,"explanations":["○ 箇条9.3.2は、監査結果をマネジメントレビューのインプットとして求めており、欠けると要求事項を満たさない。","× 監査結果は任意の議題ではなく、インプットとして必須である。","× 担当部門の内部処理では、トップマネジメントによるレビューの要求を満たさない。","× 翌年度への先送りは、計画した間隔でのレビューにおける要求に反する。"]},{"id":"isms-117","type":"mc","chapterIndex":5,"stem":"継続的改善の取組の証拠として、最も適切なものはどれか。","options":["改善の提案を口頭で行ったという担当者の証言のみで、議論の経緯は残さず、担当者の記憶を基に改善を実施したとみなす","改善の会議を開いたものの議事録は残さないこと。","改善案を作成したが、実施の記録を残さないこと","改善の実施内容と、その効果の確認を記録した文書化した情報"],"correctIndex":3,"explanations":["× 口頭の証言だけでは、継続的改善の実施と効果を示す証拠として不十分である。","× 議事録がなければ、改善の検討の経緯と結論を示す証拠が残らない。","× 実施の記録がなければ、改善が行われたことを示せない。","○ 箇条10.2の取組は、実施内容と効果の確認を文書化した情報として示すことが、証拠として適切である。"]},{"id":"isms-118","type":"mc","chapterIndex":10,"stem":"内部監査で運用の実態を確認する方法として、最も適切なものはどれか。","options":["文書の確認だけで、現場の運用の実態は確認しない。","文書の確認に加え、現場での観察や記録の検証、関係者へのインタビューを組み合わせる。","関係者への質問のみで、記録の確認や現場の観察は行わず、関係者の説明をそのまま採用し、裏付けを取らない。","推測により判断し、証拠は集めず、担当者の経験と勘に基づいて運用が問題ないとみなしてよく、記録の確認は必要としない"],"correctIndex":1,"explanations":["× 文書だけでは、規定が実際に運用されているかを確認できない。","○ 運用の実態は、文書、観察、記録の検証、インタビューを組み合わせて確認するのが適切である。","× 質問だけでは、運用の客観的な証拠が得られず、記録の確認が欠けてしまう。","× 推測による判断は、監査証拠に基づく結論の要件を満たさない。"]},{"id":"isms-119","type":"mc","chapterIndex":10,"stem":"前回の内部監査で指摘された不適合について、今回の監査で確認すべき観点として、最も適切なものはどれか。","options":["前回の指摘事項は今回の監査範囲とは切り離し、是正の状況は確認せず、新たな観点で改めて監査対象を選定して実施する","是正処置を新たな不適合として扱い、前回の指摘を今回の監査で改めて指摘する観点を中心に、是正の状況を確認する。","是正処置が計画どおりに実施され、有効性が確認できているかを見るフォローアップの観点","前回の監査員の評価を見直し、監査員の交代や配置の変更を検討する観点で、今回の監査の担当を決め直す。"],"correctIndex":2,"explanations":["× 前回の指摘を無視すると、是正が行われたかを確認できず、監査の連続性が失われる。","× 是正処置そのものを新たな不適合とするのは、観点として適切ではない。","○ 是正処置の実施と有効性の確認は、フォローアップとして監査で確認すべき観点である。","× 前回の監査員の評価は、今回の監査で是正の状況を確認する観点とは別のものである。"]},{"id":"isms-120","type":"mc","chapterIndex":10,"stem":"個々の内部監査で最初に行うべき事項として、最も適切なものはどれか。","options":["被監査部門の是正措置を先に実施させる。","監査報告書の結論を先に決めておく。","監査員の人数を監査対象の人数に合わせて決める。","監査の目的、範囲、基準を確認し、それに基づき監査計画を立てる。"],"correctIndex":3,"explanations":["× 是正は監査の結果に基づいて行うものであり、監査の前に実施させるものではない。","× 結論を先に決めると、監査証拠に基づく客観的な判断にならない。","× 人数は監査の目的、範囲、基準を確認した後に決めるもので、最初に行うべき事項ではない。","○ 監査の目的、範囲、基準を確認し、それに基づいて監査計画を立てることが、最初に行うべき事項である。"]},{"id":"isms-121","type":"mc","chapterIndex":6,"stem":"ISO/IEC 27001:2022 の附属書Aに含まれる管理策の総数として、正しいものはどれか。","options":["93個であり、組織的・人的・物理的・技術的の4分類で構成される。","78個で、2013年版と同じ数である。","114個であり、組織的・人的・物理的・技術的・クラウド・AIの6分類で構成される。","104個で、2013年版から変わっていない。"],"correctIndex":0,"explanations":["○ 正しい。2022年版の附属書Aは93の管理策で、組織的（37）・人的（8）・物理的（14）・技術的（34）の4分類からなる。","× 誤り。78は附属書Aの管理策の総数ではない。","× 誤り。6分類という構成は附属書Aにない。","× 誤り。2022年版は2013年版から構成が再編されている。"]},{"id":"isms-122","type":"mc","chapterIndex":6,"stem":"2022年版で新たに追加された管理策の例として、最も適切なものはどれか。","options":["5.1 情報セキュリティのための方針群（2022年版で新設）","5.7 脅威インテリジェンス","6.5 雇用の終了又は変更後の責任（2022年版で新設）","8.7 マルウェア対策"],"correctIndex":1,"explanations":["× 誤り。5.1は2013年版にも存在する管理策である。","○ 正しい。5.7（脅威インテリジェンス）は2022年版で新設された管理策である。","× 誤り。6.5は2013年版から存在する管理策で、新設ではない。","× 誤り。8.7は2013年版の12.2.1に相当し、新設ではない。"]},{"id":"isms-123","type":"mc","chapterIndex":9,"stem":"管理策8.16「監視活動」の趣旨として、最も適切なものはどれか。","options":["監視結果を外部の取引先へ定期的に公開し、取引先との信頼関係を示すとともに、検知ルールと設定内容も共有し、社外からも変更できるようにすること。","従業員の業務日報を定期的に収集し、勤務時間と業務成果を細かく管理して、人事評価と処遇決定の根拠として利用するとともに、結果を全社に公表すること。","ネットワーク、システム、アプリケーションの異常な挙動を監視し、情報セキュリティインシデントの兆候を早期に検知すること。","監視対象のシステムを定期的に停止させ、脆弱性の有無を確認するとともに、停止中に業務データを削除し、利用者へ通知せずに再度復旧させること。"],"correctIndex":2,"explanations":["× 誤り。監視結果を外部に公開することは管理策の趣旨ではない。","× 誤り。監視の趣旨は、従業員の評価ではなく情報セキュリティ上の異常の検知にある。","○ 正しい。8.16は、システム等の挙動を監視して異常を検知し、インシデントにつなげるための管理策である。","× 誤り。監視は運用を止めるものではなく、挙動を継続的に観察するための管理策である。"]},{"id":"isms-124","type":"mc","chapterIndex":9,"stem":"管理策8.34「監査テスト中の情報システムの保護」に関する記述として、最も適切なものはどれか。","options":["監査テストは運用中のシステムで行うことを原則とし、監査人には管理者権限を付与する。","事前に知らせず、本番環境で抜き打ちに実施する。","監査テストのためにシステムのデータを変更し、結果を確認することを優先する。","監査テストの範囲とアクセス方法を事前に合意し、可能な限り読み取り専用のアクセスで行い、運用への影響を抑える。"],"correctIndex":3,"explanations":["× 誤り。運用中のシステムで管理者権限を付与することは、影響とリスクを増やすため趣旨に反する。","× 誤り。事前の合意なしに本番環境で実施すると、業務への影響を管理できないため趣旨に反する。","× 誤り。データを変更するテストは運用への影響が大きく、読み取り中心とする趣旨に反する。","○ 正しい。8.34は、監査テストが運用へ与える影響を事前に合意して管理し、読み取り専用アクセスなどで保護することを求める。"]},{"id":"isms-125","type":"mc","chapterIndex":6,"stem":"管理策5.35「情報セキュリティの独立したレビュー」の趣旨として、最も適切なものはどれか。","options":["計画された間隔、又は重大な変化が生じた場合に、情報セキュリティへの取組みを独立した立場から見直す。","情報セキュリティ担当者が毎日、自分の業務を自ら点検して報告書を作成する。","外部の監査人を常に任用し、組織内部の監査は行わないようにする。監査の費用や時期は外部監査人の判断だけで決める。","レビューの結果を経営層に報告せず、担当部門の内部だけで改善を進める。"],"correctIndex":0,"explanations":["○ 正しい。5.35は、取組みの適切性と有効性を独立した立場から定期的又は変化時にレビューすることを求める。","× 誤り。担当者が自らの業務を点検するだけでは、独立したレビューとは言えない。","× 誤り。外部監査だけに限る趣旨はなく、独立性を確保できる方法を選ぶことが求められる。","× 誤り。レビュー結果は、経営層が判断できるように報告される必要がある。"]},{"id":"isms-126","type":"mc","chapterIndex":6,"stem":"管理策5.36「情報セキュリティのための方針、規則及び標準の順守」に関する記述として、最も適切なものはどれか。","options":["違反した場合は、本人の判断で是正の要否を決める。","管理者は、自分の担当範囲で情報処理が方針・規則・標準に従っているかを定期的にレビューする。","方針や規則は作成した時点で完了とし、その後の業務で遵守されているかは、情報処理の結果を含めて一切確認しない。","遵守状況のレビューは、情報セキュリティ部門だけが実施し、各管理者の確認や報告は、必要とされる場合であっても一切求めない。"],"correctIndex":1,"explanations":["× 誤り。違反への対応は、本人の判断ではなく組織が定めた手順に従って行う。","○ 正しい。5.36は、管理者が担当範囲の遵守状況を定期的にレビューすることを求める。","× 誤り。方針や規則は、作成後も遵守状況を確認し続ける必要がある。","× 誤り。遵守のレビューは、各管理者の責任範囲で行うことが求められる。"]},{"id":"isms-127","type":"mc","chapterIndex":6,"stem":"管理策5.37「文書化された操作手順」に関する記述として、最も適切なものはどれか。","options":["操作手順は担当者の経験に委ね、文書化は不要であり、変更が生じた場合も口頭での周知だけで十分とする。","操作手順は担当者だけが保持し、組織内では共有せず、必要とする要員が問い合わせた場合にだけ個別に口頭で伝える。","情報処理設備の操作手順は文書化し、必要とする要員が利用できるようにする。","操作手順は、業務の変更が発生するまで一度も見直さず、初版を長期間そのまま運用し続けることが望ましい。"],"correctIndex":2,"explanations":["× 誤り。経験だけに頼ると、手順の一貫性と再現性を確保できない。","× 誤り。必要な要員が利用できない手順は、運用の統制として機能しない。","○ 正しい。5.37は、情報処理設備の操作手順を文書化し、必要な要員が利用できるようにすることを求める。","× 誤り。手順は、変化に応じて見直し、更新する必要がある。"]},{"id":"isms-128","type":"mc","chapterIndex":6,"stem":"管理策5.15「アクセス制御」の要求の趣旨として、最も適切なものはどれか。","options":["全利用者に業務を問わず同じ権限を一律に付与し、申請も見直しも不要とみなされる。","アクセス制御の方針は、情報の重要度に関わらず、利用者の希望に従って定める。","アクセス制御は、システム管理者だけが行い、利用者には一切の説明をしない。","情報へのアクセスは、業務上及び情報セキュリティ上の要求事項に基づき、物理的・論理的に制限する方針を確立する。"],"correctIndex":3,"explanations":["× 誤り。一律の権限付与は、業務上の必要性を反映せず、最小権限の原則に反する。","× 誤り。アクセス制御は、利用者の希望ではなく、情報の重要度と業務要求に基づいて定める必要がある。","× 誤り。利用者への説明や理解の確保も、アクセス制御の運用上重要である。","○ 正しい。5.15は、業務要求と情報セキュリティ要求に基づき、物理的・論理的なアクセスを制限する方針の確立を求める。"]},{"id":"isms-129","type":"mc","chapterIndex":6,"stem":"管理策5.18「アクセス権」に関する記述として、最も適切なものはどれか。","options":["利用者のアクセス権は、定められた手順に従って付与・レビュー・削除する。","アクセス権は、一度付与すれば変更しない。","申請だけで付与し、承認は不要である。","アクセス権は、システムごとに異なる方法で管理し、統一された手順を設けず、各担当者の判断で付与と削除を行う。"],"correctIndex":0,"explanations":["○ 正しい。5.18は、アクセス権のライフサイクル（付与・変更・レビュー・削除）を、定められた手順で管理することを求める。","× 誤り。異動や退職があれば、アクセス権は見直し、必要に応じて変更又は削除する必要がある。","× 誤り。申請だけで付与し承認を省くと、権限の妥当性を統制できない。","× 誤り。統一された手順を持たないと、アクセス権の管理にばらつきと抜けが生じる。"]},{"id":"isms-130","type":"mc","chapterIndex":6,"stem":"管理策5.3「職務の分離」の目的として、最も適切なものはどれか。","options":["職務を一人に集中させ、承認と実行を同じ担当者が行うことで業務の効率を最大化し、確認の手間を省く。","相反する職務や責任を分離し、不正や誤りのリスクを低減する。","担当者ごとに業務を属人化させる。","職務の分離は、役職の上下関係を明確にし、指示系統を一本化するためだけに行う。"],"correctIndex":1,"explanations":["× 誤り。職務を一人に集中させると、不正や誤りを防ぐ統制が効かなくなる。","○ 正しい。職務の分離は、一人が相反する作業を単独で行えないようにし、不正や誤りの発生を抑えるための統制である。","× 誤り。担当者ごとの属人化は、統制の観点からは望ましくない。","× 誤り。職務の分離の目的は、上下関係の明確化ではなく、不正や誤りのリスク低減にある。"]},{"id":"isms-131","type":"mc","chapterIndex":6,"stem":"管理策5.19「供給者関係における情報セキュリティ」に関する記述として、最も適切なものはどれか。","options":["供給者には情報セキュリティの要求を伝えず、委託先の裁量に任せ、契約書にも情報の取扱いに関する条項は記載しない。","供給者の選定は価格だけで決め、情報セキュリティの確認や契約上の要求事項の設定は、取引開始後にまとめて行う。","供給者が取り扱う情報に関するセキュリティ要求事項を契約等で定め、管理する。","供給者の管理は、委託を開始する時点で一度行えば足り、その後の遵守状況の確認や契約内容の見直しは一切行わない。"],"correctIndex":2,"explanations":["× 誤り。要求事項を伝えないまま委託すると、供給者の管理はできない。","× 誤り。価格だけで選定すると、情報セキュリティの要件を満たさない供給者を選ぶおそれがある。","○ 正しい。5.19は、供給者関係において情報セキュリティ要求事項を定め、契約等を通じて管理することを求める。","× 誤り。委託後も、供給者の遵守状況を継続的に確認する必要がある。"]},{"id":"isms-132","type":"mc","chapterIndex":6,"stem":"管理策5.23「クラウドサービスの利用における情報セキュリティ」の要点として、最も適切なものはどれか。","options":["クラウドサービスは提供者に任せ、利用者側の設定や責任は一切考慮しない。","クラウドサービスの情報セキュリティ要求事項を定め、責任共有モデルを踏まえて、利用者と提供者の責任範囲を明確にして管理する。","クラウドサービスを利用する場合は、必ずオンプレミスと同じ設定を施すことを要求する。","クラウドサービスの利用状況は把握せず、部門ごとの判断で自由に利用させる。"],"correctIndex":1,"explanations":["× 誤り。クラウドサービスでも、利用者側の設定や管理の責任は残る。","○ 正しい。5.23は、利用するクラウドサービスの要求事項を定め、責任共有を前提として管理することを求める。","× 誤り。オンプレミスと同一の設定を求めるわけではなく、サービスの特性に応じた管理が必要である。","× 誤り。クラウドサービスの利用状況を把握せず、部門の判断で自由に利用させることは、管理策の趣旨に反する。"]},{"id":"isms-133","type":"mc","chapterIndex":6,"stem":"管理策5.30「事業継続のためのICTの備え」に関する記述として、最も適切なものはどれか。","options":["事業継続のためのICTの要求事項を計画し、実施し、評価する。","ICTの継続性は、障害が起きてから対応する方針とし、事前の準備は行わない。","継続性の計画は、情報システム部門だけで決める。","要求事項は一度定めれば、見直さない。"],"correctIndex":0,"explanations":["○ 正しい。5.30は、事業継続の目的に基づき、ICTの継続性要求事項を計画・実施・評価することを求める。","× 誤り。障害発生後の対応だけでは、事業継続の目標を満たせない。","× 誤り。事業継続の要件は、事業部門と合わせて決める必要がある。","× 誤り。事業環境の変化に応じて、要求事項は見直す必要がある。"]},{"id":"isms-134","type":"mc","chapterIndex":6,"stem":"管理策5.34「PII（個人を特定できる情報）のプライバシー及び保護」に関する記述として、最も適切なものはどれか。","options":["PIIの取扱いは、担当者の判断で決め、法令や契約上の要求事項は考慮しない。","PIIのプライバシーと保護について、適用される法令・規制・契約上の要求事項を満たすことを求める。","PIIは、保護の対象外とし、事業上必要と判断した場合は、本人への通知や同意を得ることなく自由に利用し、第三者へ提供する。","PIIの保護は、情報セキュリティの管理策とは別に扱い、ISMSの範囲外として、各部門の判断で個別に管理させる。"],"correctIndex":1,"explanations":["× 誤り。PIIの取扱いは、法令や契約上の要求事項を前提に定める必要がある。","○ 正しい。5.34は、PIIのプライバシーと保護について、法令・規制・契約上の要求事項を満たすことを求める。","× 誤り。PIIは保護の対象であり、自由に利用してよいものではない。","× 誤り。PIIの保護は、ISMSの中で扱うべき重要な要素である。"]},{"id":"isms-135","type":"mc","chapterIndex":7,"stem":"管理策6.3「情報セキュリティの意識向上、教育及び訓練」に関する記述として、最も適切なものはどれか。","options":["教育や訓練は、入社時に一度だけ実施すれば十分であり、その後の周知や見直しは行わなくてもよい。","役職員や関係する委託先に対し、役割に応じた教育・訓練を行い、定期的に周知する。","教育や訓練は、管理職だけを対象とし、一般の従業員や委託先は対象としないが、その理由は文書化しなくてもよい。","教育や訓練の効果は確認せず、参加者の出席記録のみを残し、内容の改善や見直しは行わない。"],"correctIndex":1,"explanations":["× 誤り。一度の教育では、継続的な意識向上の要求を満たさない。","○ 正しい。6.3は、役割に応じた教育・訓練と周知を、関係者に対して継続的に行うことを求める。","× 誤り。管理職だけを対象とすると、一般の従業員や委託先への周知が欠ける。","× 誤り。効果の確認も含めて管理する必要がある。"]},{"id":"isms-136","type":"mc","chapterIndex":7,"stem":"管理策6.5「雇用の終了又は変更後の責任」に関する記述として、最も適切なものはどれか。","options":["雇用が終了した後は、情報セキュリティ上の責任もすべて消滅する。","雇用の終了や変更に関わらず、情報セキュリティの責任を定め、本人に通知し、必要に応じて秘密保持義務を継続させる。","雇用の変更時は、アクセス権を見直す必要はなく、従来の権限を維持する。","雇用の終了に関する責任は、人事部門だけが管理し、情報セキュリティ部門は関与しない。"],"correctIndex":1,"explanations":["× 誤り。雇用の終了後も、秘密保持義務などの責任が残る場合がある。","○ 正しい。6.5は、雇用の終了又は変更に伴う情報セキュリティ上の責任を定め、継続的な義務を含めて管理することを求める。","× 誤り。雇用の変更時には、業務の変化に合わせてアクセス権を見直す必要がある。","× 誤り。雇用の終了に関する責任は、人事部門だけでなく、情報セキュリティ部門も関与して管理する必要がある。"]},{"id":"isms-137","type":"mc","chapterIndex":7,"stem":"管理策6.6「秘密保持契約又は守秘義務契約」に関する記述として、最も適切なものはどれか。","options":["秘密保持契約は、要員の情報保護の要求事項を反映し、定期的にレビューする。","秘密保持契約は、締結後に内容を変更することを禁止し、どのような状況でも見直さない。","一部の役職者とだけ締結すれば足りる。","秘密保持契約の内容は、締結時の条件で固定する。"],"correctIndex":0,"explanations":["○ 正しい。6.6は、秘密保持契約が要員の情報保護要求を反映し、必要に応じて見直されることを求める。","× 誤り。要求事項の変化に応じて、内容を見直すことが求められる。","× 誤り。秘密保持の要求は、関係する要員の範囲に応じて適用する必要がある。","× 誤り。事業や要求事項の変化に応じて、契約内容は見直す必要がある。"]},{"id":"isms-138","type":"mc","chapterIndex":7,"stem":"管理策6.8「情報セキュリティ事象の報告」に関する記述として、最も適切なものはどれか。","options":["本人が問題ないと判断した場合にだけ報告する。","要員は、情報セキュリティ事象を適切な窓口へ速やかに報告する仕組みを利用する。","情報セキュリティ事象は、被害が確定し、影響範囲の全容が判明するまで、上司にも報告しない。","情報セキュリティ事象の報告は、同僚の間で共有すれば十分であり、窓口へは不要である。"],"correctIndex":1,"explanations":["× 誤り。本人の判断で報告を省くと、事象の把握が遅れるおそれがある。","○ 正しい。6.8は、要員が情報セキュリティ事象を速やかに報告できる仕組みを確立し、利用できるようにすることを求める。","× 誤り。被害の確定を待つと、対応が遅れるため趣旨に反する。","× 誤り。同僚への共有だけでは、組織として対応できない。"]},{"id":"isms-139","type":"mc","chapterIndex":8,"stem":"管理策7.1「物理的セキュリティ境界」に関する記述として、最も適切なものはどれか。","options":["施設の境界は設けず、どの区域でも誰もが自由に出入りできるようにし、来訪者の記録も残さない。","保護すべき区域の境界を、運用上の都合で定期的に移動させ、対象となる情報資産の所在を文書化しないようにする。","保護すべき情報や資産がある区域について物理的な境界を定め、それを守る。","物理的な境界は、セキュリティ担当者が口頭で指示する範囲に限り、施設の全体で統一した基準は設けないようにする。"],"correctIndex":2,"explanations":["× 誤り。境界を設けず自由に出入りできるようにすると、区域の保護ができない。","× 誤り。境界を運用上の都合で移動させ、資産の所在を文書化しないことは、区域の保護の趣旨に反する。","○ 正しい。保護すべき情報や資産がある区域に物理的な境界を定め、それを守ることが物理的セキュリティ境界の基本である。","× 誤り。統一した基準を設けずに口頭指示だけに頼ると、境界の管理が一貫しない。"]},{"id":"isms-140","type":"mc","chapterIndex":8,"stem":"管理策7.2「物理的入退」に関する記述として、最も適切なものはどれか。","options":["来訪者は区域内で自由に行動してよく、記録は不要である。","入退の記録は、担当者の判断で残すかどうかを決める。","安全な区域の鍵は、全員が共有して自由に使えるようにする。","安全な区域には、権限を持つ者だけが入退できるように管理し、入退を記録する。"],"correctIndex":3,"explanations":["× 誤り。無制限の立入りと記録の省略は、入退の管理の趣旨に反する。","× 誤り。記録の要否を担当者の判断に任せると、入退の管理が一貫しない。","× 誤り。鍵を全員で共有すると、権限を持つ者だけの入退という要求を満たせない。","○ 正しい。7.2は、安全な区域への入退を権限のある者に限定し、適切に管理することを求める。"]},{"id":"isms-141","type":"mc","chapterIndex":8,"stem":"管理策7.4「物理的セキュリティの監視」の目的として、最も適切なものはどれか。","options":["施設内の監視カメラや侵入検知などで、不正な立入りを検知し、対応につなげる。","施設内の監視カメラや侵入検知を導入するが、記録は担当者の判断で残さず、映像の保存期間も定めない。","監視は夜間の施錠確認だけで十分であり、日中は行わない。","監視カメラは映像を見る必要がなく、設置するだけでよいとされる。"],"correctIndex":0,"explanations":["○ 正しい。7.4は、施設への不正な立入りを監視し、検知して対応することを求める。","× 誤り。記録や保存期間を定めない監視では、不正な立入りを検知し対応することができない。","× 誤り。夜間だけの確認では、日中の不正な立入りを検知できない。","× 誤り。映像を確認しない監視では、不正な立入りを検知し対応につなげられない。"]},{"id":"isms-142","type":"mc","chapterIndex":8,"stem":"管理策7.7「クリアデスク及びクリアスクリーン」に関する記述として、最も適切なものはどれか。","options":["離席時でも、机上の機密情報はそのままにしてよく、画面は離席後しばらく経ってからロックする。","離席時には、機密情報を机上に放置せず、画面を見られないようロックする。","書類は机上に置いたままにし、画面のロックは行わない。","離席時には、機密情報を机上に放置せず、画面はロックせずに、同じ部署の者が見られる状態にしておく。"],"correctIndex":1,"explanations":["× 誤り。離席中の機密情報の放置は、情報の漏えいを招く。","○ 正しい。7.7は、離席時の机上の情報や、画面表示の保護を求める。","× 誤り。画面のロックを省くと、第三者による閲覧を防げない。","× 誤り。同じ部署でも不要な閲覧を許すことは、機密の保護の趣旨に反する。"]},{"id":"isms-143","type":"mc","chapterIndex":8,"stem":"管理策7.9「組織の施設外にある資産のセキュリティ」に関する記述として、最も適切なものはどれか。","options":["施設外に持ち出した機器や記録媒体は、保護の対象外とし、利用者の判断で自由に扱ってよい。","施設外の機器は、持ち出しの記録を残さず、紛失や盗難が起きた場合にも、組織への報告は必要としない。","施設外に持ち出した機器や記録媒体も、組織の方針に従って保護する。","施設外の作業は、保護の方針を定めず、各自の判断で情報を持ち出し、必要に応じて外部の端末で処理する。"],"correctIndex":2,"explanations":["× 誤り。施設外の資産を保護の対象外とすると、情報の漏えいを防げない。","× 誤り。持ち出しの記録や報告を省くと、紛失時の対応ができない。","○ 正しい。7.9は、施設外の資産についても、組織の方針に従って保護することを求める。","× 誤り。方針なしに情報を持ち出すことは、組織の方針に従った保護の趣旨に反する。"]},{"id":"isms-144","type":"mc","chapterIndex":8,"stem":"管理策7.14「装置のセキュリティを保った処分又は再利用」に関する記述として、最も適切なものはどれか。","options":["装置は、処分の前に特に何もせず、そのまま廃棄してよい。","記憶媒体は、再利用の前に初期化しなくてもよい。","機密データは、消去せずに保管し、再利用の際にだけ確認する。","記憶媒体を含む装置は、処分や再利用の前に、機密データを消去又は物理的に破壊する。"],"correctIndex":3,"explanations":["× 誤り。機密データを消去せず廃棄すると、情報が外部に残るおそれがある。","× 誤り。初期化を省くと、前の利用者の情報が残るおそれがある。","× 誤り。消去しないまま保管すると、漏えいの危険が残る。","○ 正しい。7.14は、装置の処分や再利用の前に、記憶媒体の機密データを確実に消去又は破壊することを求める。"]},{"id":"isms-145","type":"mc","chapterIndex":9,"stem":"管理策8.2「特権的アクセス権」の管理として、最も適切なものはどれか。","options":["特権的アクセス権は、必要最小限に限定し、割当てと利用を記録・監視する。","特権的アクセス権は、業務の効率化のため、多くの利用者に付与し、利用記録は必要に応じて残すだけとする。","特権的アクセス権は、一度付与すれば見直さない。","システム管理者の判断だけで割り当て、記録は残さない。"],"correctIndex":0,"explanations":["○ 正しい。特権的アクセス権は、必要最小限に限定し、割当てと利用を記録・監視することで管理する。","× 誤り。多くの利用者に付与すると、不正や誤操作のリスクが高まる。","× 誤り。見直しを行わないと、不要になった特権が残り続ける。","× 誤り。割当てと利用の記録を残さないと、事後の検証ができない。"]},{"id":"isms-146","type":"mc","chapterIndex":9,"stem":"管理策8.5「セキュリティに配慮した認証」に関する記述として、最も適切なものはどれか。","options":["認証は、パスワードだけで行い、方式は全社で一律にする。","認証は、利用者の情報の重要度に応じた方式（パスワードや多要素認証など）で確実に行う。","認証は、利用者の情報の重要度に関わらず、同じ方式で行い、多要素認証は必要な場合にだけ、利用者の申告に基づいて使う。","認証は、利用者の利便性を最優先し、重要な情報を扱う場合でも、認証の強度を下げて、ログインの手間を減らす。"],"correctIndex":1,"explanations":["× 誤り。パスワードだけの一律の認証では、重要な情報を守る強度が足りない場合がある。","○ 正しい。8.5は、情報の重要度に応じた安全な認証の方式を用いることを求める。","× 誤り。重要度に関わらず同じ方式にすると、重要な情報を適切に保護できない。","× 誤り。認証の強度を下げることは、情報の重要度に応じた確実な認証という趣旨に反する。"]},{"id":"isms-147","type":"mc","chapterIndex":9,"stem":"管理策8.8「技術的脆弱性の管理」に関する記述として、最も適切なものはどれか。","options":["利用中のシステムの脆弱性情報は、入手せず、問題が顕在化してから、その時点で対応を検討すれば十分とする。","脆弱性への対応は、システムの管理者だけが行い、リスクの評価や関係者への共有は、必要と判断した場合にだけ行う。","利用中のシステムの技術的脆弱性に関する情報を入手し、リスクを評価して適切に対応する。","脆弱性に関する情報は、外部の公開情報を一切確認せず、更新プログラムの適用は、毎年一度だけまとめて行うこととする。"],"correctIndex":2,"explanations":["× 誤り。脆弱性情報を入手せず対応を後回しにすると、攻撃の機会を放置することになる。","× 誤り。リスクの評価と関係者への共有を省くと、組織として適切に対応できない。","○ 正しい。8.8は、利用中のシステムの脆弱性情報を入手し、リスクを評価して適切に対処することを求める。","× 誤り。年一回のまとめ適用では、重大な脆弱性に速やかに対応できない。"]},{"id":"isms-148","type":"mc","chapterIndex":9,"stem":"管理策8.9「構成管理」に関する記述として、最も適切なものはどれか。","options":["構成は、担当者が作業のたびに自由に変更し、記録や文書化は行わない。","構成の設定は、初期値のまま運用し、見直しは行わない。","ハードウェアの構成は、記録せずに、障害が起きたときだけ確認する。","ハードウェア・ソフトウェア・サービスのセキュリティ構成を定め、文書化し、監視する。"],"correctIndex":3,"explanations":["× 誤り。構成を無秩序に変え記録しないと、セキュリティ上の設定の一貫性が保てない。","× 誤り。初期値のまま見直さないと、脆弱な設定が残る。","× 誤り。構成を記録せず障害時だけ確認すると、管理と監視が行えない。","○ 正しい。8.9は、セキュリティ構成を定めて文書化し、その状態を監視することを求める。"]},{"id":"isms-149","type":"mc","chapterIndex":9,"stem":"管理策8.15「ログ取得」に関する記述として、最も適切なものはどれか。","options":["ログは、活動・例外・障害・情報セキュリティ事象を記録し、保護して保存する。","ログは、個人情報を含む場合でも、保護せずに誰でも閲覧できる場所に、無期限に保存しておく。","ログは、障害が起きたときだけ取得する。","ログは、必要と判断した場合にだけ、短期間保存する。"],"correctIndex":0,"explanations":["○ 正しい。8.15は、活動・例外・障害・情報セキュリティ事象のログを取得し、保護して保存することを求める。","× 誤り。ログを保護せず閲覧可能な場所に置くと、改ざんや情報漏えいのおそれがある。","× 誤り。障害時だけの取得では、事象の経緯を追跡できない。","× 誤り。必要時だけの取得と短期保存では、事後の検証に必要な記録が残らない。"]},{"id":"isms-150","type":"mc","chapterIndex":9,"stem":"管理策8.24「暗号の使用」に関する記述として、最も適切なものはどれか。","options":["暗号の使用は、担当者の判断に任せ、ルールは定めず、鍵は利用者が個人で保管する。","暗号の使用に関するルールを定め、鍵管理を含めて管理する。","暗号化は行わず、通信の安全性は確認しない。","暗号は、強度の確認をせずに古い方式を使い続け、鍵の管理は担当者ごとに個別に行い、記録を残さない。"],"correctIndex":1,"explanations":["× 誤り。ルールを定めず鍵を個人保管にすると、暗号を組織として管理できない。","○ 正しい。8.24は、暗号の使用ルールを定め、鍵の管理を含めて適切に運用することを求める。","× 誤り。暗号を使わないと、通信内容の保護ができない。","× 誤り。強度の確認なしに古い方式を使うことは、暗号の趣旨に反する。"]},{"id":"isms-151","type":"mc","chapterIndex":10,"stem":"ISO 19011 の監査原則のうち「独立性」に関する記述として、最も適切なものはどれか。","options":["監査対象の業務に責任を持たない立場で監査し、客観性と公平性を保つ。","監査人は、監査対象部門の業務を自ら担当し、その結果を自分で評価して報告する立場を取る。","監査人は、監査対象部門の上司の指示に従い、評価の基準や対象の選び方を部門の判断に委ね、その結果を報告する。","監査人は、監査の結論を被監査部門と事前に合意し、その合意内容に沿って証拠を選び、報告書を作成する。"],"correctIndex":0,"explanations":["○ 正しい。独立性は、監査対象の業務に責任を持たない立場で監査し、客観性と公平性を保つことを指す。","× 誤り。業務を担当する者が自ら評価すると、客観性が損なわれる。","× 誤り。評価の基準や対象を被監査部門に委ねると、独立性が保てない。","× 誤り。結論を事前に合意すると、監査の客観性と公平性が損なわれる。"]},{"id":"isms-152","type":"mc","chapterIndex":10,"stem":"ISO 19011 が定める監査原則に含まれないものはどれか。","options":["独立性を保ち、利害関係から離れること。","誠実性を保ち、正直に行動すること。","証拠に基づくアプローチを採って結論を導く。","監査対象部門の業務改善を監査人が直接実施すること"],"correctIndex":3,"explanations":["× 誤り。独立性は、ISO 19011 の監査原則に含まれる。","× 誤り。誠実性は、ISO 19011 の監査原則に含まれる。","× 誤り。証拠に基づくアプローチは、監査原則に含まれる。","○ 正しい。監査対象部門の業務改善を監査人が直接実施することは、ISO 19011 の監査原則に含まれない。"]},{"id":"isms-153","type":"mc","chapterIndex":10,"stem":"監査証拠の定義として、ISO 19011 の考え方に最も合うものはどれか。","options":["監査基準に関連し、検証可能な記録、事実の記述又はその他の情報。","監査人の個人的な感想や推測のみを指し、監査対象部門への聞き取りで得た内容や、記録の写しとは区別して扱うべきものである。","監査対象部門が作成した、都合のよい説明資料のみを指す。","監査の最終報告書に記載された結論そのものを指す。"],"correctIndex":0,"explanations":["○ 正しい。監査証拠は、監査基準に関連し、検証可能な記録・事実の記述・その他の情報である。","× 誤り。監査証拠は、個人的な感想や推測ではなく、検証可能な記録や事実の記述である。","× 誤り。被監査部門の説明資料だけでは、検証可能な証拠の要件を満たさない場合がある。","× 誤り。結論は監査証拠を評価した後に導かれるものであり、証拠そのものではない。"]},{"id":"isms-154","type":"mc","chapterIndex":10,"stem":"監査所見（audit findings）の説明として、最も適切なものはどれか。","options":["監査人が監査の初期に立てた仮説を、経営層へ提示する文書。","収集した監査証拠を監査基準に照らして評価した結果。","監査人が被監査部門の承認を得て、監査の範囲を一方的に変更した記録の写し。","監査人が個人的に抱いた印象や推測。"],"correctIndex":1,"explanations":["× 誤り。仮説は監査所見ではなく、監査証拠の評価の結果として所見が導かれる。","○ 正しい。監査所見は、監査証拠を監査基準に照らして評価した結果である。","× 誤り。範囲の一方的な変更は、監査計画の趣旨に反する。","× 誤り。個人的な印象や推測は、監査所見の根拠となる監査証拠ではない。"]},{"id":"isms-155","type":"mc","chapterIndex":10,"stem":"監査プログラムの管理に関する記述として、最も適切なものはどれか。","options":["監査プログラムは、担当者の経験だけに基づき、毎年同じ内容で策定し、目的やリスクの変化は考慮せず、結果のレビューも行わない。","監査プログラムは、監査の結果に関係なく、全ての部門を毎回同じ範囲で監査し、資源の配分は担当者の判断に任せる。","監査プログラムは、目的・範囲・リスク・資源を考慮して策定し、結果をレビューして改善する。","監査プログラムは、監査の実施後に作成し、目的や範囲の定義を省いて、実施結果を次年度の計画に反映させない。"],"correctIndex":2,"explanations":["× 誤り。経験だけに基づき毎年同じ内容とすると、リスクの変化に対応できない。","× 誤り。全部門を毎回同じ範囲で監査すると、リスクに応じた資源配分ができない。","○ 正しい。監査プログラムは、目的・範囲・リスク・資源を考慮して策定し、結果を踏まえて見直すものである。","× 誤り。実施後に作成し目的を省くと、監査の計画としての役割を果たせない。"]},{"id":"isms-156","type":"mc","chapterIndex":10,"stem":"内部監査の範囲（scope）の決定に関する記述として、最も適切なものはどれか。","options":["範囲は、担当者が思いついた部門だけに限定する。","範囲は、監査の目的を考えずに、前年の範囲をそのまま使う。","範囲は、監査人の裁量で決め、被監査部門には伝えない。","範囲は、監査の目的、監査基準、リスクを踏まえて、明確に定める。"],"correctIndex":3,"explanations":["× 誤り。担当者の思いつきで範囲を限定すると、重要なリスクの領域を見落とす。","× 誤り。目的を考えず前年を踏襲すると、リスクの変化に対応できない。","× 誤り。被監査部門に伝えない範囲では、監査の準備と協力が得られない。","○ 正しい。範囲は、監査の目的・基準・リスクを踏まえ、明確に定めるべきものである。"]},{"id":"isms-157","type":"mc","chapterIndex":10,"stem":"内部監査員の選定に関する記述として、最も適切なものはどれか。","options":["監査員は、監査対象との利害関係がなく、客観性を確保できる者を選ぶ。","監査員は、監査対象の業務を長年担当してきた者を優先して選び、その業務の経験を生かして、評価の客観性を確保する。","監査員は、誰でもよく、資格は問わない。","監査員は、被監査部門の管理者が指名する者に限る。"],"correctIndex":0,"explanations":["○ 正しい。内部監査員は、監査対象との利害関係がなく、客観性を確保できる者を選ぶことが求められる。","× 誤り。担当業務を長く担った者は利害関係を持ちやすく、客観性を損なうおそれがある。","× 誤り。資格や適性を問わなければ、監査の品質を確保できない。","× 誤り。被監査部門の指名に限ると、独立性を損なう。"]},{"id":"isms-158","type":"mc","chapterIndex":10,"stem":"リスクに基づく監査計画の考え方として、最も適切なものはどれか。","options":["重要性とリスクの高い領域に、監査資源を優先的に配分する。","監査資源は、過去に問題が無かった領域に偏って配分し、リスクの高い領域は監査の対象としない。","監査資源は、一律に均等に配分する。","監査資源は、監査人の興味のある領域に優先して配分し、リスクの重要性は判断の材料にしない。"],"correctIndex":0,"explanations":["○ 正しい。リスクに基づく監査計画は、重要性とリスクの高い領域へ資源を優先的に配分するものである。","× 誤り。問題の無かった領域に偏らせると、リスクの高い領域を見落とす。","× 誤り。一律配分では、リスクの大きさに応じた監査ができない。","× 誤り。個人の興味で配分すると、リスクに基づく監査計画の趣旨に反する。"]},{"id":"isms-159","type":"mc","chapterIndex":10,"stem":"監査におけるサンプリングの考え方として、最も適切なものはどれか。","options":["サンプルは、母集団の一部から都合のよいものを選び、結論は選んだ範囲の結果だけで決め、母集団全体への推定はしない。","サンプルは、件数を少なくするため、重要な項目を含めず、残りの項目から無作為に選び、結果の限界は示さない。","サンプルは、母集団の特徴を代表するように選び、結論の根拠とともに限界を明示する。","サンプルは、監査人が結論を先に決めてから、その結論に合う項目だけを選び、限界の説明は最終報告書に記載しない。"],"correctIndex":2,"explanations":["× 誤り。都合のよい項目だけで母集団全体の結論を導くと、結論の根拠として不十分である。","× 誤り。重要な項目を除くと、母集団の特徴を代表させられない。","○ 正しい。サンプリングは、母集団を代表するように抽出し、結論の根拠と限界を示すことが求められる。","× 誤り。結論に合わせて項目を選ぶことは、客観性を損なう。"]},{"id":"isms-160","type":"mc","chapterIndex":10,"stem":"面談（インタビュー）による証拠の扱いとして、最も適切なものはどれか。","options":["面談の内容は、そのまま結論の根拠とする。","面談は記録に残さず、担当者の記憶だけで評価する。","面談で得た情報は、本人の発言なので、疑わずに採用する。","面談の内容は、記録等の客観的証拠で裏付けてから、結論の根拠として扱う。"],"correctIndex":3,"explanations":["× 誤り。面談の内容だけで結論を導くと、客観的な裏付けを欠く。","× 誤り。記録を残さない評価は、検証できない。","× 誤り。発言をそのまま採用すると、証拠としての信頼性を確認できない。","○ 正しい。面談の内容は、記録などの客観的証拠で裏付けてから、結論の根拠とするべきである。"]},{"id":"isms-161","type":"mc","chapterIndex":10,"stem":"監査人が収集した監査証拠の扱いとして、最も適切なものはどれか。","options":["監査証拠は、追跡できるように記録し、保存する。","監査証拠は、監査人の記憶だけに基づいて扱い、記録は残さず、必要になった時点で作成する。","監査証拠は、確認せずに廃棄してよい。","監査証拠は、個人の端末に保存する。"],"correctIndex":0,"explanations":["○ 正しい。監査証拠は、追跡できるように記録し、保存する。","× 誤り。記憶だけに基づき記録を残さないと、証拠として追跡できない。","× 誤り。証拠を確認せず廃棄すると、監査結論の根拠を示せない。","× 誤り。個人の端末だけに保存すると、組織として管理・追跡できない。"]},{"id":"isms-162","type":"mc","chapterIndex":10,"stem":"内部監査の初回会議（opening meeting）の目的として、最も適切なものはどれか。","options":["初回会議は、被監査部門への事前通知を省き、監査人が一方的に監査の範囲と日程を決めて通知する場とする。","監査の目的・範囲・計画・日程を被監査部門と確認する。","会議は行わず、書面の通知だけで済ませる。","初回会議では、監査の結論を先に伝え、被監査部門の回答を求める。"],"correctIndex":1,"explanations":["× 誤り。事前通知を省き一方的に決めると、被監査部門の協力を得られない。","○ 正しい。初回会議では、監査の目的・範囲・計画・日程を被監査部門と確認する。","× 誤り。会議を省くと、目的や範囲を確認する機会がなくなる。","× 誤り。結論を先に伝えることは、監査の目的に反する。"]},{"id":"isms-163","type":"mc","chapterIndex":10,"stem":"終了会議（closing meeting）の目的として、最も適切なものはどれか。","options":["監査所見と結論を被監査部門と確認し、事実誤認を解消する機会を設ける。","終了会議は、被監査部門の反論を聞かずに、監査所見を一方的に確定させ、結果の報告書は非公開とする。","終了会議は、経営層だけの参加に限り、被監査部門の担当者には結論を伝えない運用とする。","終了会議は、監査が終わった後に省略し、所見は報告書の提出時にだけ、関係者へ書面で通知する。"],"correctIndex":0,"explanations":["○ 正しい。終了会議では、監査所見と結論を被監査部門と確認し、事実誤認を解消する機会を設ける。","× 誤り。反論を聞かずに所見を確定すると、事実誤認を解消できない。","× 誤り。被監査部門に結論を伝えないと、是正の合意が得られない。","× 誤り。終了会議を省くと、所見を確認する機会がなくなる。"]},{"id":"isms-164","type":"mc","chapterIndex":10,"stem":"不適合（nonconformity）と観察事項（observation）の区別として、最も適切なものはどれか。","options":["不適合は軽微な指摘にすぎず、観察事項と同じく扱う。","観察事項は、要求事項を満たしていないことを指す。","不適合と観察事項は、区別せずに、同じ是正の期限で扱う。","不適合は要求事項を満たしていないことを指し、観察事項は改善の機会として扱う。"],"correctIndex":3,"explanations":["× 誤り。不適合は要求事項を満たしていない指摘であり、観察事項と同一ではない。","× 誤り。要求事項を満たしていないことを指すのは不適合であり、観察事項ではない。","× 誤り。両者は性質が異なり、区別して扱う必要がある。","○ 正しい。不適合は要求事項を満たしていないこと、観察事項は改善の機会として扱うことを指す。"]},{"id":"isms-165","type":"mc","chapterIndex":10,"stem":"内部監査報告書の内容として、最も適切なものはどれか。","options":["監査の範囲・基準・所見・結論を、読み手に分かる形で報告する。","内部監査報告書は、結論だけを簡潔に記載し、監査の範囲・基準・所見の根拠は、読み手に分からないように省略する。","報告書は、口頭の説明だけで済ませ、文書にはしない。","報告書は、担当者だけが読めるように作成する。"],"correctIndex":0,"explanations":["○ 正しい。監査報告書には、範囲・基準・所見・結論を、読み手に分かる形で記載する。","× 誤り。根拠を省略すると、読み手が所見の妥当性を判断できない。","× 誤り。文書にしないと、記録として残らず、フォローアップができない。","× 誤り。関係者が読めない報告書では、改善につなげられない。"]},{"id":"isms-166","type":"mc","chapterIndex":10,"stem":"是正処置後のフォローアップの要点として、最も適切なものはどれか。","options":["是正処置の実施後は、結果を確認せずに、次回の監査まで対応を保留し、原因が残っているかは問わない。","是正処置の実施後、原因が除去されたかを確認し、その結果を記録する。","是正処置の実施後は、特に何もしない。","是正処置の実施後は、原因の除去を確認せずに、対応した事実だけを記録して、フォローアップを終了する。"],"correctIndex":1,"explanations":["× 誤り。結果を確認しないまま保留すると、原因が残ったままになる。","○ 正しい。フォローアップでは、是正処置の実施後に原因が除去されたかを確認し、記録する。","× 誤り。確認を行わないと、是正の有効性を判断できない。","× 誤り。原因の除去を確認せず終了すると、同じ問題が再発するおそれがある。"]},{"id":"isms-167","type":"mc","chapterIndex":5,"stem":"根本原因分析（root cause analysis）の考え方として、最も適切なものはどれか。","options":["指摘された事象は、その場で処理し、原因は調べずに、担当者の注意を促すことで、再発防止の対策として十分とする。","原因分析は、担当者の責任を明確にすることを目的とし、個人の過失を特定して処分を決めることを中心に行う。","指摘された事象の原因を特定し、同じ問題が再発しないように是正する。","根本原因の分析は、事象の表面的な現象だけを記録し、原因の追究は再発時に限って行う。"],"correctIndex":2,"explanations":["× 誤り。原因を調べずに注意だけで済ませると、同じ問題が再発する。","× 誤り。責任追及を中心にすると、原因の究明と再発防止が進まない。","○ 正しい。根本原因分析は、原因を特定し、再発防止につなげるためのものである。","× 誤り。表面的な記録だけでは、根本原因を特定できない。"]},{"id":"isms-168","type":"mc","chapterIndex":10,"stem":"内部監査の結果を経営層へ報告する目的として、最も適切なものはどれか。","options":["経営層に、結論だけを伝えて、詳細は報告しない。","経営層への報告は、良い結果だけを示すことを目的とする。","経営層の判断に関係なく、担当部門だけで共有する。","経営層がISMSの運用状況と、改善すべき事項を判断できるようにする。"],"correctIndex":3,"explanations":["× 誤り。詳細を報告しないと、経営層は運用状況を判断できない。","× 誤り。良い結果だけを示すと、改善すべき事項が伝わらない。","× 誤り。経営層が判断できない共有では、組織としての改善につながらない。","○ 正しい。内部監査の結果は、経営層がISMSの状況を判断し、改善の方向を決めるために報告される。"]},{"id":"isms-169","type":"mc","chapterIndex":4,"stem":"ISO/IEC 27001:2022 の 9.2（内部監査）の要求事項に関する記述として、最も適切なものはどれか。","options":["内部監査は計画された間隔で実施し、監査プログラムには頻度・方法・責任・報告を含める。","内部監査は、問題が起きたときだけ、担当者が必要と判断した時点で実施し、監査プログラムは作成せず、報告の方法も定めない。","内部監査は、認証審査の直前だけに実施する。","内部監査の頻度は、担当者の判断に任せる。"],"correctIndex":0,"explanations":["○ 正しい。9.2は、内部監査を計画された間隔で実施し、監査プログラムに頻度・方法・責任・報告を含めることを求める。","× 誤り。問題発生時だけで監査プログラムを持たないと、計画された間隔での実施という要求を満たさない。","× 誤り。直前だけの監査では、継続的な有効性を確認できない。","× 誤り。頻度を担当者任せにすると、計画された実施が保証されない。"]},{"id":"isms-170","type":"mc","chapterIndex":10,"stem":"監査基準（audit criteria）の説明として、最も適切なものはどれか。","options":["監査基準は、監査人が監査の途中で自由に定めてよく、事前に被監査部門へ伝える必要はなく、結果の評価にだけ使う基準のことである。","ISMSの要求事項、社内規程、適用される法令などの、適合性を判断するための基準。","監査人が気づいた問題点の一覧。","監査基準は、監査対象の部門が自ら作成した目標値であり、監査人はその目標値の達成度だけを確認する基準のことである。"],"correctIndex":1,"explanations":["× 誤り。事前に示さない自由な基準では、適合性を公正に判断できない。","○ 正しい。監査基準は、ISMSの要求事項・社内規程・適用法令など、適合性を判断するための基準である。","× 誤り。問題点の一覧は、監査基準ではなく所見の材料である。","× 誤り。被監査部門の目標値だけでは、要求事項への適合性を判断できない。"]},{"id":"isms-171","type":"mc","chapterIndex":10,"stem":"監査プログラムを見直す契機として、最も適切なものはどれか。","options":["監査プログラムは、一度作成すれば、監査結果や組織の変化があっても、同じ内容を翌年以降も継続して用いる。","監査結果や、組織の重大な変化があった場合に、監査プログラムを見直す。","監査プログラムは、監査人の交代があった場合にだけ、担当者が個人的に見直し、組織としての承認は必要としない。","監査プログラムは、監査の結果が良好であった場合に限り、次回の監査の頻度を減らすために見直す。"],"correctIndex":1,"explanations":["× 誤り。変化があっても内容を変えないと、リスクに合わない監査になる。","○ 正しい。監査結果や組織の重大な変化は、監査プログラムを見直す契機となる。","× 誤り。組織としての承認を省くと、プログラムの妥当性を確保できない。","× 誤り。結果の良否だけで頻度を減らすと、リスクの変化を反映できない。"]},{"id":"isms-172","type":"mc","chapterIndex":10,"stem":"監査人の質問の仕方として、最も適切なものはどれか。","options":["相手に圧力をかけ、回答を一つに絞るように求める。","質問は、はいかいいえだけで答えさせる。","質問は、相手の回答を遮り、次の項目へ進める。","オープンな質問で状況を聞き、必要に応じて記録を確認する。"],"correctIndex":3,"explanations":["× 誤り。圧力をかけると、正確な情報を引き出せない。","× 誤り。答えを限定すると、状況の全体像を把握できない。","× 誤り。回答を遮ると、重要な情報を聞き漏らすおそれがある。","○ 正しい。オープンな質問で状況を聞き、記録などで裏付けることが、適切な質問の仕方である。"]},{"id":"isms-173","type":"mc","chapterIndex":10,"stem":"監査証拠の「十分性」と「適切性」の説明として、最も適切なものはどれか。","options":["十分性は、証拠が結論を支えるのに足りる量であること。適切性は、関連性と信頼性があること。","十分性は、証拠の量が多ければ常に足りることであり、適切性は、誰が作成した証拠であっても関連性と信頼性を問わないことである。","十分性と適切性は、同じ意味であり、区別しない。","適切性は、証拠の量であり、十分性は証拠の質のことである。"],"correctIndex":0,"explanations":["○ 正しい。十分性は量の観点、適切性は関連性と信頼性の観点で、証拠を評価するものである。","× 誤り。量が多くても、関連性や信頼性がなければ適切な証拠とはいえない。","× 誤り。両者は異なる概念であり、区別して評価する必要がある。","× 誤り。十分性は量、適切性は質の観点であり、逆に説明している。"]},{"id":"isms-174","type":"mc","chapterIndex":10,"stem":"規程や手順書の文書レビューの目的として、最も適切なものはどれか。","options":["規程や手順書は、文書の段階では確認せず、運用の実績を見てから、要求事項を満たしているかを判断するものとする。","規程や手順書がISMSの要求事項を満たしているかを、文書の段階で確認する。","文書の形式だけを確認し、内容は問わない。","文書レビューは、作成者本人だけが行い、第三者による確認や要求事項との照合は行わない形で、効率を重視する。"],"correctIndex":1,"explanations":["× 誤り。運用の実績だけで判断すると、文書の不備を早期に見つけられない。","○ 正しい。文書レビューは、規程や手順書がISMSの要求事項を満たしているかを確認するものである。","× 誤り。形式だけを見ると、要求事項を満たすかを確認できない。","× 誤り。第三者による確認を省くと、文書の妥当性を客観的に評価できない。"]},{"id":"isms-175","type":"mc","chapterIndex":10,"stem":"監査における観察（observation）の要点として、最も適切なものはどれか。","options":["実際の作業を観察し、手順書どおりに行われているかを確認する。","観察は、事前に通知せずに行い、作業者には見られていることを伝えず、作業の様子を記録することも控える。","観察は、作業者の一部だけを対象にし、対象外の作業は手順書に照らして確認せず、結果を全体の結論として扱う。","観察は、実施した後で作業者に口頭で確認するだけとし、作業の時点での状況は記録に残さないようにする。"],"correctIndex":0,"explanations":["○ 正しい。観察は、実際の作業を見て、手順書どおりに行われているかを確認する。","× 誤り。作業者に伝えず記録もしないと、観察の結果を検証できない。","× 誤り。一部だけを観察して全体の結論とすると、結論の根拠として不十分である。","× 誤り。事後の口頭確認だけでは、作業時点の実態を把握できない。"]},{"id":"isms-176","type":"mc","chapterIndex":5,"stem":"是正処置の計画と追跡に関する記述として、最も適切なものはどれか。","options":["是正処置は、期限を定めず、担当者の都合に合わせて行う。","是正処置は、合意された期限内に計画を立て、実施状況を追跡する。","是正処置は、計画を立てずに、思いついた時点で行う。","是正処置の進捗は、追跡せずに、完了の報告だけを待つ。"],"correctIndex":1,"explanations":["× 誤り。期限を定めないと、是正が遅延し、管理できない。","○ 正しい。是正処置は、合意された期限内に計画を立て、実施状況を追跡する。","× 誤り。計画を立てないと、是正の効果を確認できない。","× 誤り。追跡しないと、未完了の是正を把握できない。"]},{"id":"isms-177","type":"mc","chapterIndex":10,"stem":"監査人の独立性を保つための対応として、最も適切なものはどれか。","options":["監査対象との利害関係がある場合は、その監査から外れる。","監査人は、監査対象との利害関係があっても、業務に支障がなければ監査を継続し、その事実は報告書に記載しない。","利害関係は、監査の結論に関係しない。","独立性は、監査人の気持ちの問題である。"],"correctIndex":0,"explanations":["○ 正しい。利害関係がある場合は、客観性を保つために、その監査から外れることが必要である。","× 誤り。利害関係を開示せず監査を続けると、結論の客観性が損なわれる。","× 誤り。利害関係は結論に影響するおそれがあり、無関係とはいえない。","× 誤り。独立性は、客観的な仕組みと態度の両面で確保する必要がある。"]},{"id":"isms-178","type":"mc","chapterIndex":10,"stem":"監査中に重大なリスクを発見した場合の対応として、最も適切なものはどれか。","options":["重大なリスクは、監査報告書の提出後に、次回の監査で扱うものとし、監査中には関係者へ伝えない。","重大なリスクは、速やかに管理責任者へ報告し、適切な対応を求める。","重大なリスクは、監査人だけで対処する。","重大なリスクは、担当者の判断で解決できた場合にだけ報告し、その他は監査報告書にまとめて翌年に伝える。"],"correctIndex":1,"explanations":["× 誤り。監査中に伝えないと、重大なリスクへの対応が遅れる。","○ 正しい。重大なリスクは、速やかに管理責任者へ報告し、適切な対応を求めるべきである。","× 誤り。監査人だけで対処すると、管理責任者の判断と統制を欠く。","× 誤り。担当者判断に任せると、重大なリスクが管理者に伝わらない。"]},{"id":"isms-179","type":"mc","chapterIndex":10,"stem":"内部監査の記録の保管に関する記述として、最も適切なものはどれか。","options":["監査の記録は、報告書が完成した時点で破棄し、監査計画や証拠は保持せず、必要になったときに再作成する。","監査の記録は、個人の端末に保存し、組織として保持や提示の方法を定めず、担当者が異動する際には記録を消去する。","監査計画、証拠、報告書などの記録を保持し、必要に応じて提示できるようにする。","監査の記録は、保持期間を定めずに、必要な範囲の関係者にだけ口頭で説明できるように、要点のみをメモしておく。"],"correctIndex":2,"explanations":["× 誤り。計画や証拠を破棄すると、監査結論の根拠を後から示せない。","× 誤り。個人の端末に任せると、組織として記録を管理できない。","○ 正しい。監査計画・証拠・報告書などの記録は、保持し、必要に応じて提示できるようにすべきである。","× 誤り。保持期間を定めず要点のみでは、事後の検証に必要な情報が残らない。"]},{"id":"isms-180","type":"mc","chapterIndex":4,"stem":"内部監査の目的として、最も適切なものはどれか。","options":["担当部門が自ら判断し、監査は行わない。","要求事項を満たさなくてもよいかを判断する。","監査は、外部の認証機関の審査結果のみを確認する。","ISMSが要求事項を満たし、有効に運用されているかを判断する。"],"correctIndex":3,"explanations":["× 誤り。監査を行わないと、要求事項を満たしているかを確認できない。","× 誤り。要求事項を満たさなくてもよいとする判断は、内部監査の目的に反する。","× 誤り。外部審査だけでは、組織内の運用状況を継続的に確認できない。","○ 正しい。内部監査は、ISMSが要求事項を満たし、有効に運用されているかを判断するために行う。"]}];
+  const CHAPTERS = ["箇条4〜5 組織の状況・リーダーシップ","箇条6 計画（リスクアセスメント・リスク対応・目標・変更）","箇条7 支援","箇条8 運用","箇条9 パフォーマンス評価（監視・内部監査・マネジメントレビュー）","箇条10 改善（不適合・是正処置・継続的改善）","附属書A 組織的管理策（5.x）","附属書A 人的管理策（6.x）","附属書A 物理的管理策（7.x）","附属書A 技術的管理策（8.x）","内部監査の実務（ISO 19011）"];
+  const BASE_CHAPTER_COUNT = 11;   // これ以降の章は新シラバス仮問題集（deck:'extra3'）用
+// GAS_WEBAPP_URL / EXAM_ID / EXAM_SHORT_TITLE / TRACKING_EXAM_ID / QUESTIONS / CHAPTERS は build_html.js が
+// ビルド時にこのファイルの直前へ注入する。QUESTIONS は {id, type:'mc'|'tf'|'mc-multi', chapterIndex, stem, ...}
+// の配列。TRACKING_EXAM_ID は成績記録シート名（<TRACKING_EXAM_ID>_<mode>）専用のIDで、
+// 同じexam.id配下に複数の問題集（quiz/quiz2）がある場合に成績を分離するため EXAM_ID とは別に持つ
+// （EXAM_ID はチャットへ戻る遷移先ページなので exam.id のまま変えない）。
+// 'mc-multi' は「すべて選びなさい」形式（正解が複数）。見た目は 'mc' と同じ選択肢ボタンだが、
+// クリックのたびにトグル選択（複数選択可）になり、正解は correctIndexes（配列）で持つ。
+
+const MODE_LABEL = { mc: '模擬試験', tf: '一問一答', extra: '追加問題', extra2: '追加問題2', extra3: '新シラバス仮問題', review: '復習' };
+// 成績記録（QuizTracking.js）のシートを分けるための mode 変換。
+// 'extra'（追加問題、別ソースの問題集）は既存の 模擬試験(seiseiai_mc) と混在しないよう
+// 'mc2' という別モード名で記録する。'extra2'（3つ目の問題集）は同様に'mc3'。
+// 'review'（復習モード）は章別推移表には記録せず、専用の復習ログへ書く（recordResults参照）。
+const TRACKING_MODE = { mc: 'mc', tf: 'tf', extra: 'mc2', extra2: 'mc3', extra3: 'mc4', review: 'review' };
+
+// 復習モードの「卒業」条件。復習でこの回数だけ連続正解したら、既定の出題対象から外す
+// （「記録にある全部」を選べば卒業ぶんも出題できる）。バックエンド QuizReview.js は
+// 生の連続正解数(streak)だけを返し、閾値の判断はこの画面側で持つ。
+const GRADUATE_STREAK = 2;
+// 復習の範囲「最近間違えた問題」が遡る日数。
+const RECENT_MISS_DAYS = 14;
+
+let mode = null;             // 'mc' | 'tf' | 'extra' | 'extra2' | 'extra3' | 'review'
+let modePool = [];           // モードごとの出題プール（下記参照）
+let scopeChapterIndex = null; // null = 全部、それ以外は対象chapterIndex
+let scopeGroup = null;        // null = 章全体、それ以外は章の中のテーマ別グループ名
+let questions = [];          // 範囲確定時に modePool を全部 or 該当章でfilterしたもの
+let idx = 0;
+let selectedOption = null;   // mc: 0-3 の数値、tf: true/false、mc-multi: 選択中indexの配列、未選択は null（mc-multiは[]）
+let revealed = false;
+let sessionResults = [];     // [{id, chapterIndex, correct, selectedOption}]
+let skippedCount = 0;        // 回答せずに飛ばした問題数（正答率の母数には入れない）
+
+// 復習モード用の状態。reviewEntries はバックエンド apiGetReviewPool の戻り
+// [{id, mode, missCount, lastMissAt, reviewCount, streak, lastReviewAt}]。
+let reviewEntries = [];
+let reviewEntryById = {};
+let reviewScopeKey = null;   // 'active' | 'repeat' | 'recent' | 'all' | chapterIndex(数値)
+let reviewMissingCount = 0;  // 記録にあるが今の問題集に見つからない問題数（ID未記録の旧データなど）
+
+(function initCounts() {
+  document.getElementById('mcCount').textContent = QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).length;
+  document.getElementById('tfCount').textContent = QUESTIONS.filter((q) => q.type === 'tf' && !q.deck).length;
+  document.getElementById('extraCount').textContent = QUESTIONS.filter((q) => q.deck === 'extra').length;
+  document.getElementById('extra2Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra2').length;
+  document.getElementById('extra3Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra3').length;
+  // 問題が1問も無いモードのカードは出さない（FP3のように問題集が1本だけの資格向け）。
+  [['tfCard', 'tfCount'], ['extraCard', 'extraCount'], ['extra2Card', 'extra2Count'], ['extra3Card', 'extra3Count']].forEach(([card, count]) => {
+    if (!Number(document.getElementById(count).textContent)) document.getElementById(card).style.display = 'none';
+  });
+  // 模擬試験カードの選択肢数表記（FP3は3択）。選択肢数が混在するときは「3〜4択」のように範囲で出す。
+  const sizes = Array.from(new Set(QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).map((q) => q.options.length)));
+  if (sizes.length) {
+    const lo = Math.min.apply(null, sizes), hi = Math.max.apply(null, sizes);
+    document.getElementById('mcKind').textContent = (lo === hi ? lo : lo + '〜' + hi) + '択';
+  }
+  // 問題集1本だけの資格は「模擬試験」ではなく exams.js の quiz.mcTitle で呼び替える。
+  if (typeof MC_TITLE === 'string' && MC_TITLE) {
+    MODE_LABEL.mc = MC_TITLE;
+    document.getElementById('mcTitle').textContent = MC_TITLE;
+  }
+})();
+
+function showScreen(id) {
+  ['screenMode', 'screenScope', 'screenQuestion', 'screenSummary'].forEach((s) => {
+    document.getElementById(s).style.display = s === id ? '' : 'none';
+  });
+}
+
+function chooseMode(m) {
+  if (m === 'review') { startReview(); return; }
+  const pool = m === 'extra' || m === 'extra2' || m === 'extra3'
+    ? QUESTIONS.filter((q) => q.deck === m)
+    : QUESTIONS.filter((q) => q.type === m && !q.deck);
+  if (!pool.length) { alert('このモードの問題がまだ登録されていません。'); return; }
+  mode = m;
+  modePool = pool;
+  renderScopeScreen();
+}
+
+// ── 復習モード（間違えた問題だけの再学習） ────────────────────────────────
+// 出題プールはスプレッドシートの記録（<examId>_<mode>_ミス、全モードぶん）から作る。
+// 端末のlocalStorageは使わない: このページはGASのサンドボックスiframe（*.googleusercontent.com）
+// で配信されるため保存先が端末・ブラウザごとにバラバラになり、スマホとPCで復習状況が
+// 食い違ってしまう。記録は既にスプレッドシートにあるのでそれを唯一の正とする。
+async function startReview() {
+  const card = document.getElementById('reviewCard');
+  const desc = document.getElementById('reviewCount');
+  const prevDesc = desc.textContent;
+  card.disabled = true;
+  desc.textContent = '記録を読み込み中...';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+    });
+    if (!data.ok) {
+      alert('復習リストを取得できませんでした: ' + (data.error || ''));
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    reviewEntries = data.entries || [];
+    reviewEntryById = {};
+    reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+
+    const pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+    reviewMissingCount = reviewEntries.length - pool.length;
+    if (!pool.length) {
+      alert(reviewEntries.length
+        ? '記録にある問題が今の問題集に見つかりませんでした（問題IDの無い古い記録のみです）。'
+        : 'まだ間違えた問題の記録がありません。\n各モードを解いたあとサマリー画面で「この回の結果を記録」を押すと、ここに溜まっていきます。');
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    mode = 'review';
+    modePool = pool;
+    desc.textContent = pool.filter((q) => !isGraduated(q)).length + '問が未克服';
+    renderScopeScreen();
+  } catch (err) {
+    alert('通信エラー: ' + (err && err.message ? err.message : err));
+    desc.textContent = prevDesc;
+  } finally {
+    card.disabled = false;
+  }
+}
+
+// 復習プールの1問あたりの状態を引く小物。記録に無い問題（通常は起きない）は0扱い。
+function isGraduated(q) {
+  const e = reviewEntryById[q.id];
+  return !!e && e.streak >= GRADUATE_STREAK;
+}
+function missCountOf(q) {
+  const e = reviewEntryById[q.id];
+  return e ? e.missCount : 0;
+}
+function lastMissTimeOf(q) {
+  const e = reviewEntryById[q.id];
+  return e && e.lastMissAt ? new Date(e.lastMissAt).getTime() : 0;
+}
+
+// 復習の範囲キー → 出題対象の絞り込み条件。
+function reviewFilter(key) {
+  if (key === 'all') return function () { return true; };
+  if (key === 'repeat') return function (q) { return !isGraduated(q) && missCountOf(q) >= 2; };
+  if (key === 'recent') {
+    const since = Date.now() - RECENT_MISS_DAYS * 24 * 60 * 60 * 1000;
+    return function (q) { return !isGraduated(q) && lastMissTimeOf(q) >= since; };
+  }
+  if (typeof key === 'number') return function (q) { return !isGraduated(q) && q.chapterIndex === key; };
+  return function (q) { return !isGraduated(q); }; // 'active'（既定）
+}
+
+function reviewScopeLabel(key) {
+  if (key === 'all') return '記録にある全部';
+  if (key === 'repeat') return '2回以上間違えた問題';
+  if (key === 'recent') return '最近' + RECENT_MISS_DAYS + '日で間違えた問題';
+  if (typeof key === 'number') return chapterLabelText(key);
+  return '未克服の問題';
+}
+
+// 復習モードでは色々なデッキの問題が混ざるので、その問題がどの問題集のものかを示す。
+function deckLabelOf(q) {
+  if (q.deck === 'extra') return '追加問題';
+  if (q.deck === 'extra2') return '追加問題2';
+  if (q.deck === 'extra3') return '新シラバス仮問題';
+  return q.type === 'tf' ? '一問一答' : '模擬試験';
+}
+
+// モード確定後、「全部」か「章ごとにチャレンジ」かを選ぶ画面を組み立てる。
+function renderScopeScreen() {
+  if (mode === 'review') { renderReviewScopeScreen(); return; }
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">📚 全部</div><div class="scope-all-desc">' + modePool.length + '問すべて出題</div>';
+  allBtn.onclick = () => chooseScope(null);
+  el.appendChild(allBtn);
+
+  const chapterIndexes = Array.from(new Set(modePool.map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとにチャレンジ';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const count = modePool.filter((q) => q.chapterIndex === ci).length;
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + count + '問</span>';
+      btn.onclick = () => chooseScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+
+    // 章の下のテーマ別グループ（問題に group が付いているときだけ）。
+    if (modePool.some((q) => q.group)) {
+      const gHeading = document.createElement('div');
+      gHeading.className = 'scope-chapter-heading';
+      gHeading.textContent = 'テーマ別にチャレンジ';
+      el.appendChild(gHeading);
+      chapterIndexes.forEach((ci) => {
+        const inChapter = modePool.filter((q) => q.chapterIndex === ci && q.group);
+        const names = [];
+        inChapter.slice().sort((a, b) => (a.groupIndex || 0) - (b.groupIndex || 0)).forEach((q) => { if (names.indexOf(q.group) < 0) names.push(q.group); });
+        if (!names.length) return;
+        const sub = document.createElement('div');
+        sub.className = 'scope-note';
+        sub.textContent = chapterLabelText(ci);
+        el.appendChild(sub);
+        const gList = document.createElement('div');
+        gList.className = 'scope-chapter-list';
+        names.forEach((name) => {
+          const n = inChapter.filter((q) => q.group === name).length;
+          const btn = document.createElement('button');
+          btn.className = 'scope-chapter-btn';
+          btn.innerHTML = '<span class="name">' + escapeHtml(name) + '</span><span class="count">' + n + '問</span>';
+          btn.onclick = () => chooseScope(ci, name);
+          gList.appendChild(btn);
+        });
+        el.appendChild(gList);
+      });
+    }
+  }
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲選択画面。章ではなく「未克服／繰り返しミス／最近／全部」で切る。
+function renderReviewScopeScreen() {
+  document.getElementById('headerSub').textContent = '復習　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const countOf = (key) => modePool.filter(reviewFilter(key)).length;
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">🔁 未克服の問題</div><div class="scope-all-desc">'
+    + countOf('active') + '問・間違えたまま克服できていない問題</div>';
+  allBtn.onclick = () => chooseReviewScope('active');
+  el.appendChild(allBtn);
+
+  const presets = [
+    { key: 'repeat', name: '🔥 2回以上間違えた問題' },
+    { key: 'recent', name: '📅 最近' + RECENT_MISS_DAYS + '日で間違えた問題' },
+    { key: 'all', name: '📚 記録にある全部（克服済みも含む）' },
+  ];
+  const presetList = document.createElement('div');
+  presetList.className = 'scope-chapter-list';
+  presets.forEach((p) => {
+    const n = countOf(p.key);
+    const btn = document.createElement('button');
+    btn.className = 'scope-chapter-btn';
+    btn.disabled = n === 0;
+    btn.innerHTML = '<span class="name">' + escapeHtml(p.name) + '</span><span class="count">' + n + '問</span>';
+    btn.onclick = () => chooseReviewScope(p.key);
+    presetList.appendChild(btn);
+  });
+  el.appendChild(presetList);
+
+  // 章ごと（未克服のぶんだけ）。0問の章はボタン自体を出さない。
+  const chapterIndexes = Array.from(new Set(modePool.filter(reviewFilter('active')).map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとに復習（未克服ぶん）';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const n = countOf(ci);
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + n + '問</span>';
+      btn.onclick = () => chooseReviewScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+  }
+
+  const note = document.createElement('div');
+  note.className = 'scope-note';
+  note.textContent = '復習で' + GRADUATE_STREAK + '回連続で正解した問題は「克服」として既定の出題から外れます。'
+    + (reviewMissingCount > 0 ? '（記録のうち' + reviewMissingCount + '問は今の問題集に無いため対象外）' : '');
+  el.appendChild(note);
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲確定。ミスが多い問題・最近間違えた問題から先に出す。
+function chooseReviewScope(key) {
+  const pool = modePool.filter(reviewFilter(key));
+  if (!pool.length) { alert('この条件に当てはまる問題がありません。'); return; }
+  reviewScopeKey = key;
+  scopeChapterIndex = typeof key === 'number' ? key : null;
+  scopeGroup = null;
+  questions = pool.slice().sort((a, b) => (missCountOf(b) - missCountOf(a)) || (lastMissTimeOf(b) - lastMissTimeOf(a)));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = '復習　' + reviewScopeLabel(key) + '（' + questions.length + '問）';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function chooseScope(chapterIndex, group) {
+  scopeChapterIndex = chapterIndex;
+  scopeGroup = group || null;
+  questions = chapterIndex == null ? modePool : modePool.filter((q) => q.chapterIndex === chapterIndex && (!scopeGroup || q.group === scopeGroup));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　' + (chapterIndex == null ? '全部' : chapterLabelText(chapterIndex) + (scopeGroup ? '／' + scopeGroup : ''));
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function restartMode() {
+  if (mode === 'review') { chooseReviewScope(reviewScopeKey); return; }
+  chooseScope(scopeChapterIndex, scopeGroup);
+}
+
+// 今のセッションで間違えた問題だけを、その場でもう一度出題する（記録を待たない簡易復習）。
+// 記録ベースの本格的な復習はモード選択の「🔁 復習」。
+function retryWrongInSession() {
+  const wrong = sessionResults.filter((r) => !r.correct)
+    .map((r) => questions.find((q) => q.id === r.id))
+    .filter(Boolean);
+  if (!wrong.length) return;
+  questions = wrong;
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent =
+    (mode === 'review' ? '復習' : MODE_LABEL[mode]) + '　間違えた' + wrong.length + '問をもう一度';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function backToScopeSelect() {
+  renderScopeScreen();
+}
+
+function backToModeSelect() {
+  mode = null;
+  modePool = [];
+  scopeChapterIndex = null;
+  scopeGroup = null;
+  document.getElementById('headerSub').textContent = 'モードを選んでください';
+  showScreen('screenMode');
+}
+
+function chapterLabelText(chapterIndex) {
+  if (chapterIndex == null || !CHAPTERS[chapterIndex]) return '';
+  // BASE_CHAPTER_COUNT 以降は新シラバス仮問題集の章（旧シラバスの章と名前が重なるので「新」を付ける）
+  if (chapterIndex >= BASE_CHAPTER_COUNT) return '新シラバス第' + (chapterIndex - BASE_CHAPTER_COUNT + 1) + '章：' + CHAPTERS[chapterIndex];
+  return '第' + (chapterIndex + 1) + '章：' + CHAPTERS[chapterIndex];
+}
+
+function renderQuestion() {
+  const q = questions[idx];
+  selectedOption = q.type === 'mc-multi' ? [] : null;
+  revealed = false;
+
+  // 復習モードは色々なデッキが混ざるので、どの問題集の何問目かと通算ミス回数も出す。
+  const progressLabel = mode === 'review'
+    ? '復習（' + deckLabelOf(q) + '）　' + (idx + 1) + ' / ' + questions.length + '　通算' + missCountOf(q) + '回ミス'
+    : MODE_LABEL[mode] + '　' + (idx + 1) + ' / ' + questions.length;
+  document.getElementById('progress').textContent = progressLabel;
+  document.getElementById('chapterLabel').textContent = chapterLabelText(q.chapterIndex) + (q.group ? '／' + q.group : '');
+  document.getElementById('stem').textContent = q.stem + (q.type === 'mc-multi' ? '（複数選択可）' : '');
+
+  const optionsEl = document.getElementById('options');
+  optionsEl.innerHTML = '';
+
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    q.options.forEach((text, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = '(' + (i + 1) + ') ' + text;
+      btn.onclick = () => selectOption(i);
+      optionsEl.appendChild(btn);
+    });
+  } else {
+    const trueBtn = document.createElement('button');
+    trueBtn.className = 'option-btn tf-btn';
+    trueBtn.textContent = '○ 正しい';
+    trueBtn.onclick = () => selectOption(true);
+    const falseBtn = document.createElement('button');
+    falseBtn.className = 'option-btn tf-btn';
+    falseBtn.textContent = '× 誤り';
+    falseBtn.onclick = () => selectOption(false);
+    optionsEl.appendChild(trueBtn);
+    optionsEl.appendChild(falseBtn);
+  }
+
+  // 「回答」ボタンは複数選択（mc-multi）専用。mc / tf は選択した時点で即判定するため出さない。
+  const answerBtn = document.getElementById('answerBtn');
+  answerBtn.disabled = true;
+  answerBtn.style.display = q.type === 'mc-multi' ? '' : 'none';
+  document.getElementById('questionActions').style.display = '';
+  document.getElementById('revealArea').style.display = 'none';
+}
+
+// 回答せずに次の問題へ飛ばす。スキップした問題は sessionResults に入れないので
+// 正答率の母数にも、間違えた問題の記録にも入らない（＝ミス扱いにはしない）。
+function skipQuestion() {
+  if (revealed) return;
+  skippedCount++;
+  saveProgress(idx + 1);
+  nextQuestion();
+}
+
+// mc / tf は「選択＝回答」で、選択肢を押した時点でそのまま正誤を表示する（回答ボタンは出さない）。
+// mc-multi（すべて選びなさい）は複数選んでから確定する必要があるため、従来どおり
+// トグル選択 →「回答」ボタンで reveal() する。
+function selectOption(v) {
+  if (revealed) return;
+  const q = questions[idx];
+
+  if (q.type !== 'mc-multi') {
+    selectedOption = v;
+    reveal();
+    return;
+  }
+
+  const i = selectedOption.indexOf(v);
+  if (i === -1) selectedOption.push(v);
+  else selectedOption.splice(i, 1);
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, j) => {
+    btn.classList.toggle('selected', selectedOption.includes(j));
+  });
+  document.getElementById('answerBtn').disabled = selectedOption.length === 0;
+}
+
+function sameIndexSet(a, b) {
+  if (a.length !== b.length) return false;
+  const sortedA = a.slice().sort();
+  const sortedB = b.slice().sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+// ── 効果音（正解＝ピンポン／不正解＝ブブー） ─────────────────────────────────────
+// 音声ファイルは使わず Web Audio で合成する。鳴らすのは回答の瞬間（利用者のクリック直後）なので
+// ブラウザの自動再生制限にかからない。失敗しても回答の処理は止めない。ON/OFFは端末ごとの好みなので
+// localStorage に覚える（読めない環境ではONのまま）。
+let soundOn = true;
+let audioCtx = null;
+try { soundOn = localStorage.getItem('quizSound') !== 'off'; } catch (e) { /* 読めなければON */ }
+
+function getAudioCtx() {
+  if (audioCtx) return audioCtx;
+  const AC = typeof AudioContext !== 'undefined' ? AudioContext
+    : (typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null);
+  if (!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+
+// 1音: 立ち上がりを素早く、あとは指数的に減衰させる（ぷつっというノイズを避ける）。
+function playTone(ctx, start, freq, dur, type, peak) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
+function playResultSound(correct) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const t = ctx.currentTime;
+    // 音量: 同時に鳴る音の合計が 1.0 を超えない範囲（超えると割れる）。
+    if (correct) {
+      // ピン（高）→ポーン（低）。倍音を足してベルらしくする。
+      playTone(ctx, t, 1175, 0.3, 'sine', 0.65);
+      playTone(ctx, t, 2350, 0.2, 'sine', 0.18);
+      playTone(ctx, t + 0.18, 880, 0.6, 'sine', 0.65);
+      playTone(ctx, t + 0.18, 1760, 0.35, 'sine', 0.18);
+    } else {
+      // ブッ、ブー。少しずらした低いのこぎり波2本でブザーらしいざらつきを出す。
+      [150, 157].forEach((f) => {
+        playTone(ctx, t, f, 0.16, 'sawtooth', 0.31);
+        playTone(ctx, t + 0.22, f, 0.5, 'sawtooth', 0.31);
+      });
+    }
+  } catch (e) { /* 音が鳴らなくても学習の邪魔をしない */ }
+}
+
+function updateSoundBtn() {
+  const btn = document.getElementById('soundBtn');
+  if (!btn) return;
+  btn.textContent = soundOn ? '🔊 音' : '🔇 音';
+  btn.title = soundOn ? '効果音ON（押すとOFF）' : '効果音OFF（押すとON）';
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('quizSound', soundOn ? 'on' : 'off'); } catch (e) { /* 保存できなくても今回は有効 */ }
+  updateSoundBtn();
+  if (soundOn) playResultSound(true);   // ONにしたときに音を確かめられるよう、ピンポンを鳴らす
+}
+updateSoundBtn();
+
+function reveal() {
+  if (selectedOption === null || revealed) return;
+  if (Array.isArray(selectedOption) && selectedOption.length === 0) return;
+  revealed = true;
+
+  const q = questions[idx];
+  const correct = q.type === 'mc' ? selectedOption === q.correctIndex
+    : q.type === 'mc-multi' ? sameIndexSet(selectedOption, q.correctIndexes)
+    : selectedOption === q.correct;
+  sessionResults.push({ id: q.id, chapterIndex: q.chapterIndex, correct, selectedOption });
+  saveProgress(idx + 1);   // 回答した時点で保存（次へを押す前に閉じても、次の問題から再開できる）
+  playResultSound(correct);
+
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, i) => {
+    btn.disabled = true;
+    btn.classList.remove('selected');
+    const isCorrectChoice = q.type === 'mc' ? i === q.correctIndex
+      : q.type === 'mc-multi' ? q.correctIndexes.includes(i)
+      : (i === 0) === q.correct;
+    const isSelectedChoice = q.type === 'mc' ? i === selectedOption
+      : q.type === 'mc-multi' ? selectedOption.includes(i)
+      : (i === 0) === selectedOption;
+    if (isCorrectChoice) btn.classList.add('correct');
+    else if (isSelectedChoice) btn.classList.add('incorrect');
+  });
+
+  const revealOptions = document.getElementById('revealOptions');
+  revealOptions.innerHTML = '';
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    // バッジは「選択肢として選ぶべきか(correctIndex/correctIndexes)」ではなく、解説文が本来持つ○/×
+    // （その文が事実として正しいか）をそのまま使う。「最も不適切なものはどれか」形式の設問では
+    // 正解の選択肢が「事実として誤り（×）」であるため、correctIndexだけで○/×を決めると意味が逆転する。
+    q.explanations.forEach((text, i) => {
+      const row = document.createElement('div');
+      row.className = 'option-explain';
+      const m = text.match(/^([○×])\s*/);
+      const fallbackCorrect = q.type === 'mc-multi' ? q.correctIndexes.includes(i) : i === q.correctIndex;
+      const badge = m ? m[1] : (fallbackCorrect ? '○' : '×');
+      row.innerHTML = '<span class="option-badge">' + badge + '</span>' + escapeHtml(text.replace(/^[○×]\s*/, ''));
+      revealOptions.appendChild(row);
+    });
+  } else {
+    const row = document.createElement('div');
+    row.className = 'option-explain';
+    row.innerHTML = '<span class="option-badge">' + (q.correct ? '○ 正しい' : '× 誤り') + '</span><br>' + escapeHtml(q.explanation.replace(/^[○×]\s*/, ''));
+    revealOptions.appendChild(row);
+  }
+
+  document.getElementById('questionActions').style.display = 'none';
+  document.getElementById('revealArea').style.display = '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 選択肢のindex（mc/mc-multi）やbool（tf）を、スプレッドシート出力・アドバイス用に
+// 人が読めるテキストへ変換する。
+function answerText(q, val) {
+  if (q.type === 'mc') return val == null ? '（未回答）' : q.options[val];
+  if (q.type === 'mc-multi') return (val || []).map((i) => q.options[i]).join(' / ');
+  return val ? '正しい' : '誤り';
+}
+
+function buildAskPrompt(q, selected) {
+  // ラベルは問題タイプではなく、現在解いているモード（MODE_LABEL）から決める。
+  // mc3（追加問題2）もtype:'mc'なので、type起点だと「模擬試験」と誤表示されてしまうため。
+  // 復習モードは複数デッキが混ざるので、その問題自身の出自（deckLabelOf）を使う。
+  const deckLabel = mode === 'review' ? deckLabelOf(q) : (MODE_LABEL[mode] || '問題集');
+  if (q.type === 'mc') {
+    const selfAnswerLine = selected != null && selected !== q.correctIndex
+      ? '\n自分は(' + (selected + 1) + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + (q.correctIndex + 1) + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  if (q.type === 'mc-multi') {
+    const selectedList = (selected || []).map((i) => i + 1).join(', ');
+    const correctList = q.correctIndexes.map((i) => i + 1).join(', ');
+    const selfAnswerLine = selected != null && !sameIndexSet(selected, q.correctIndexes)
+      ? '\n自分は(' + selectedList + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題（複数選択）について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + correctList + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  const selfAnswerLine = selected != null && selected !== q.correct
+    ? '\n自分は「' + (selected ? '正しい' : '誤り') + '」と回答して間違えました。なぜそれが誤りかも教えてください。'
+    : '';
+  return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の文の正誤について教えてください。\n\n' +
+    '問題文：' + q.stem + '\n' +
+    '正解：' + (q.correct ? '正しい' : '誤り') + selfAnswerLine +
+    '\nこの論点の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+}
+
+function askInChat() {
+  const q = questions[idx];
+  // GASのHtmlServiceはページをiframe（サンドボックス）内に読み込むため、
+  // location.href だとiframe内だけが遷移してしまう（top.location.hrefが必要）。
+  // さらに相対URLはiframeの内部配信元（googleusercontent.com）を基準に解決
+  // されてしまうため、GAS_WEBAPP_URLを前置した絶対URLにする必要がある。
+  // チャットの「元の問題に戻る」ボタン用に、戻り先（この問題を開き直すURL）を一緒に渡す。
+  // 復習モードは記録の読み込みが要るので、その問題が属する通常モード（出自のデッキ）へ戻す。
+  const backMode = mode === 'review' ? (q.deck || q.type) : mode;
+  let backUrl = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '-quiz&resume=' + encodeURIComponent(q.id) + '&m=' + encodeURIComponent(backMode);
+  if (mode !== 'review' && scopeChapterIndex != null) backUrl += '&c=' + scopeChapterIndex;
+  if (mode !== 'review' && scopeGroup) backUrl += '&g=' + encodeURIComponent(scopeGroup);
+  top.location.href = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '&ask=' + encodeURIComponent(buildAskPrompt(q, selectedOption))
+    + '&back=' + encodeURIComponent(backUrl);
+}
+
+// チャットの「元の問題に戻る」から開かれたとき、?resume=<問題ID>&m=<モード>[&c=<章>][&g=<グループ>] の問題を開き直す。
+// 出題順は固定（シャッフルなし）なので、同じ範囲を作り直して該当の位置へ移れば続きから解ける。
+function initResumeParam() {
+  if (typeof google === 'undefined' || !google.script || !google.script.url || !google.script.url.getLocation) return;
+  google.script.url.getLocation(function (loc) {
+    const p = (loc && loc.parameter) || {};
+    if (!p.resume || !p.m) return;
+    const target = QUESTIONS.find((q) => q.id === p.resume);
+    if (!target) return;
+    chooseMode(p.m);
+    if (mode !== p.m) return;
+    const c = p.c != null && p.c !== '' ? Number(p.c) : null;
+    chooseScope(Number.isInteger(c) ? c : null, p.g || null);
+    let at = questions.findIndex((q) => q.id === target.id);
+    if (at < 0) { chooseScope(null, null); at = questions.findIndex((q) => q.id === target.id); }
+    if (at < 0) return;
+    idx = at;
+    renderQuestion();
+  });
+}
+initResumeParam();
+
+// ── 中断→再開 ─────────────────────────────────────────────────────────
+// 1問回答／スキップするたびに、いまの出題セッションの途中経過をバックエンド（UserProperties）へ送る。
+// 次に開いたとき、モード選択画面の先頭に「続きから再開」を出し、中断した次の問題から続けられる。
+// 1資格につき1枠（最後に解いていたセッション）。端末をまたいで再開できる。最後まで解くと消える。
+// 状態は小さく詰める（UserProperties は1値約9KB上限）: q=出題順のID列、a=[[ID, 正誤(1/0), 選んだ答え]…]、i=次に解く位置。
+let pendingProgress = null;
+
+function hasGoogleRun() {
+  return typeof google !== 'undefined' && google && google.script && google.script.run;
+}
+
+function saveProgress(nextIdx) {
+  if (!hasGoogleRun() || !mode || !questions.length) return;
+  const state = {
+    v: 1, t: Date.now(), mode: mode, c: scopeChapterIndex, g: scopeGroup, r: reviewScopeKey,
+    h: document.getElementById('headerSub').textContent,
+    q: questions.map((q) => q.id).join(','), i: nextIdx,
+    a: sessionResults.map((r) => [r.id, r.correct ? 1 : 0, r.selectedOption]), sk: skippedCount,
+  };
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiSaveQuizProgress({ examId: TRACKING_EXAM_ID, state: state });
+  } catch (e) { /* 保存に失敗しても出題は続ける */ }
+}
+
+function clearProgress() {
+  pendingProgress = null;
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiClearQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 無視 */ }
+}
+
+// 保存された途中経過が、今の問題集でそのまま復元できるか（問題が差し替わっていたら諦める）。
+function isResumableProgress(s) {
+  if (!s || s.v !== 1 || typeof s.q !== 'string' || !Array.isArray(s.a) || !Number.isInteger(s.i)) return false;
+  const ids = s.q.split(',');
+  if (s.i < 0 || s.i >= ids.length) return false;
+  const known = {};
+  QUESTIONS.forEach((q) => { known[q.id] = true; });
+  return ids.every((id) => known[id]) && s.a.every((r) => Array.isArray(r) && known[r[0]]);
+}
+
+function offerResume(s) {
+  if (!isResumableProgress(s)) return;
+  pendingProgress = s;
+  const total = s.q.split(',').length;
+  document.getElementById('resumeText').textContent =
+    '📌 途中の問題集があります：' + (s.h || '') + '　' + (s.i + 1) + '問目から（全' + total + '問・回答済み' + s.a.length + '問）';
+  document.getElementById('resumeBanner').style.display = '';
+}
+
+(function initProgress() {
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) { if (res && res.ok && res.state) offerResume(res.state); })
+      .withFailureHandler(function () {})
+      .apiLoadQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 再開バナーが出ないだけ */ }
+})();
+
+function discardProgress() {
+  document.getElementById('resumeBanner').style.display = 'none';
+  clearProgress();
+}
+
+async function resumeProgress() {
+  const s = pendingProgress;
+  if (!s || !isResumableProgress(s)) { discardProgress(); return; }
+  const btn = document.getElementById('resumeBtn');
+  btn.disabled = true;
+  try {
+    let pool;
+    if (s.mode === 'review') {
+      // 復習は問題ごとの通算ミス回数・卒業判定が画面に出るので、記録を読み直してから復元する。
+      const data = await new Promise(function (resolve, reject) {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+      });
+      if (!data.ok) { alert('復習の記録を取得できませんでした: ' + (data.error || '')); return; }
+      reviewEntries = data.entries || [];
+      reviewEntryById = {};
+      reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+      pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+      reviewMissingCount = reviewEntries.length - pool.length;
+    } else {
+      pool = s.mode === 'extra' || s.mode === 'extra2' || s.mode === 'extra3'
+        ? QUESTIONS.filter((q) => q.deck === s.mode)
+        : QUESTIONS.filter((q) => q.type === s.mode && !q.deck);
+    }
+    const byId = {};
+    QUESTIONS.forEach((q) => { byId[q.id] = q; });
+    mode = s.mode;
+    modePool = pool;
+    scopeChapterIndex = s.c == null ? null : s.c;
+    scopeGroup = s.g || null;
+    reviewScopeKey = s.r == null ? null : s.r;
+    questions = s.q.split(',').map((id) => byId[id]);
+    idx = s.i;
+    sessionResults = s.a.map((r) => ({ id: r[0], chapterIndex: byId[r[0]].chapterIndex, correct: !!r[1], selectedOption: r[2] }));
+    skippedCount = s.sk || 0;
+    pendingProgress = null;
+    document.getElementById('resumeBanner').style.display = 'none';
+    document.getElementById('headerSub').textContent = s.h || MODE_LABEL[mode] || '';
+    showScreen('screenQuestion');
+    renderQuestion();
+  } catch (err) {
+    alert('再開できませんでした: ' + (err && err.message ? err.message : err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function nextQuestion() {
+  idx++;
+  if (idx >= questions.length) showSummary();
+  else renderQuestion();
+}
+
+// CHAPTERS の全章を常に含めて返す（今回未出題の章は total:0）。
+// スプレッドシート側は最初の記録時に受け取った章名で行を確定するため、
+// 章の集合が回によってブレると2回目以降の記録で行が見つからなくなる。
+// 常に全章を送ることでこれを防ぐ。
+function aggregateByChapter(results) {
+  const byIndex = {};
+  results.forEach((r) => {
+    if (!byIndex[r.chapterIndex]) byIndex[r.chapterIndex] = { correct: 0, total: 0 };
+    byIndex[r.chapterIndex].total++;
+    if (r.correct) byIndex[r.chapterIndex].correct++;
+  });
+  // 新シラバス仮問題集（extra3）は新シラバスの章だけ、それ以外の問題集は旧シラバスの章だけを送る
+  // （新しい成績シートに旧章の行が並んだり、既存シートの章の集合が変わって行が見つからなくなるのを防ぐ）。復習は全章。
+  const inScope = (i) => mode === 'review' || (mode === 'extra3' ? i >= BASE_CHAPTER_COUNT : i < BASE_CHAPTER_COUNT);
+  return CHAPTERS.map((label, i) => ({
+    chapterIndex: i,
+    chapterLabel: i >= BASE_CHAPTER_COUNT ? chapterLabelText(i) : label,
+    correct: (byIndex[i] && byIndex[i].correct) || 0,
+    total: (byIndex[i] && byIndex[i].total) || 0,
+  })).filter((c) => inScope(c.chapterIndex));
+}
+
+function showSummary() {
+  clearProgress();   // 最後まで解いたので、途中経過は不要
+  showScreen('screenSummary');
+  const total = sessionResults.length;
+  const correct = sessionResults.filter((r) => r.correct).length;
+  const wrongCount = total - correct;
+  const pct = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
+  document.getElementById('summaryScore').textContent =
+    correct + ' / ' + total + '（' + pct + '%）' + (skippedCount > 0 ? '　スキップ ' + skippedCount + '問' : '');
+
+  const byChapter = aggregateByChapter(sessionResults);
+  const chaptersEl = document.getElementById('summaryChapters');
+  chaptersEl.innerHTML = '';
+  byChapter.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'summary-chapter-row';
+    const scoreText = c.total > 0
+      ? c.correct + '/' + c.total + '（' + Math.round((c.correct / c.total) * 1000) / 10 + '%）'
+      : '未出題';
+    row.innerHTML = '<span class="name">' + escapeHtml(c.chapterLabel) + '</span><span class="score">' + scoreText + '</span>';
+    chaptersEl.appendChild(row);
+  });
+
+  document.getElementById('recordStatus').textContent = '';
+  const recordBtn = document.getElementById('recordBtn');
+  // 全問スキップ（回答0問）のときは記録しても中身が無いので押させない。
+  recordBtn.disabled = total === 0;
+  recordBtn.textContent = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+
+  // 間違えた問題があるときだけ、その場で解き直すボタンを出す。
+  const retryBtn = document.getElementById('retryWrongBtn');
+  retryBtn.style.display = wrongCount > 0 ? '' : 'none';
+  retryBtn.textContent = '🔁 間違えた' + wrongCount + '問だけもう一度';
+
+  const note = document.getElementById('summaryNote');
+  if (mode === 'review') {
+    note.textContent = '復習の結果は「' + TRACKING_EXAM_ID + '_復習ログ」に記録され、'
+      + GRADUATE_STREAK + '回連続で正解した問題は次回から「克服」として出題対象から外れます'
+      + '（章別の正答率推移シートには影響しません）。';
+    note.style.display = '';
+  } else {
+    note.style.display = 'none';
+    note.textContent = '';
+  }
+
+  document.getElementById('adviceArea').style.display = 'none';
+  document.getElementById('adviceStatus').textContent = '';
+  document.getElementById('adviceBtn').disabled = false;
+  document.getElementById('adviceBtn').textContent = '🎯 学習アドバイスを見る';
+}
+
+// 今回の結果（章別正答率・間違えた問題）と、過去に蓄積した「ミス」シートの履歴を
+// バックエンドで突き合わせ、Geminiに弱点分野・復習優先度・次のアクションをまとめさせる。
+async function getAdvice() {
+  const btn = document.getElementById('adviceBtn');
+  const status = document.getElementById('adviceStatus');
+  const area = document.getElementById('adviceArea');
+  btn.disabled = true;
+  btn.textContent = 'アドバイスを作成中...';
+  status.textContent = '';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiQuizAdvice({
+          examId: EXAM_ID,
+          trackingExamId: TRACKING_EXAM_ID,
+          mode: TRACKING_MODE[mode] || mode,
+          chapters: aggregateByChapter(sessionResults),
+          wrongAnswers: buildWrongAnswers(),
+        });
+    });
+    if (data.ok) {
+      area.textContent = data.advice;
+      area.style.display = '';
+      btn.textContent = '🎯 学習アドバイスを見る';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || 'アドバイスの取得に失敗しました');
+      btn.textContent = '🎯 学習アドバイスを見る';
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.textContent = '🎯 学習アドバイスを見る';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 間違えた問題だけを、問題文・自分の回答・正解を添えたスプレッドシート出力用の形へ整形する。
+function buildWrongAnswers() {
+  return sessionResults.filter((r) => !r.correct).map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+// 復習モードの記録用。正解した問題も含めて全問を送る（連続正解＝克服の判定に必要なため）。
+function buildReviewResults() {
+  return sessionResults.map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      deckLabel: deckLabelOf(q),
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      correct: r.correct,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+async function recordResults() {
+  const btn = document.getElementById('recordBtn');
+  const status = document.getElementById('recordStatus');
+  const labelWhenIdle = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+  btn.disabled = true;
+  btn.textContent = '記録中...';
+  status.textContent = '';
+
+  const byChapter = aggregateByChapter(sessionResults);
+  try {
+    // fetchではなく google.script.run を使う（理由は chat-app.js の callBackend 参照）。
+    // 復習モードは章別の正答率推移シートに混ぜない（出題が間違えた問題に偏っていて
+    // 推移のグラフが本来の実力より低く歪むため）。専用の復習ログへ全問を書く。
+    const data = await new Promise(function (resolve, reject) {
+      const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      if (mode === 'review') {
+        runner.apiRecordReviewLog({
+          examId: TRACKING_EXAM_ID,
+          results: buildReviewResults(),
+          attemptAt: new Date().toISOString(),
+        });
+        return;
+      }
+      runner.apiRecordQuizResult({
+        examId: TRACKING_EXAM_ID,
+        mode: TRACKING_MODE[mode] || mode,
+        chapters: byChapter,
+        wrongAnswers: buildWrongAnswers(),
+        attemptAt: new Date().toISOString(),
+      });
+    });
+    if (data.ok) {
+      status.textContent = '✅ 記録しました';
+      btn.textContent = '記録済み';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || '記録に失敗しました');
+      btn.disabled = false;
+      btn.textContent = labelWhenIdle;
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.disabled = false;
+    btn.textContent = labelWhenIdle;
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PMP問題集（仮問題）</title>
+<meta name="robots" content="noindex,nofollow">
+<script>
+(function () {
+  function make(ok, fail) {
+    return new Proxy({}, { get: function (_, name) {
+      if (name === "withSuccessHandler") return function (f) { return make(f, fail); };
+      if (name === "withFailureHandler") return function (f) { return make(ok, f); };
+      return function () {
+        var reading = /^(apiLoad|apiGet)/.test(String(name));
+        setTimeout(function () {
+          if (reading) { if (ok) ok(null); }
+          else if (fail) fail(new Error("公開版では記録・AI助言は使えません"));
+        }, 0);
+      };
+    } });
+  }
+  window.google = { script: { run: make(null, null) } };
+})();
+</script>
+  <style>
+    :root {
+      --theme-color: #2e5e4e;
+      --theme-color-dark: #1a3a31;
+    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: var(--theme-color-dark);
+  padding: 0;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.container {
+  background: white;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--theme-color) 0%, var(--theme-color-dark) 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-icon { font-size: 32px; }
+
+.header-text { min-width: 0; flex: 1 1 140px; }   /* ボタンに押されてタイトルが1文字幅に潰れ、縦書きのように見えるのを防ぐ */
+.header-text h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; writing-mode: horizontal-tb; }
+.header-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-btn:hover { background: rgba(255,255,255,0.3); }
+
+.quiz-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { width: 100%; max-width: 520px; margin: 0 auto; }
+
+/* --- モード選択画面 --- */
+/* カード数が増えても幅が細くなりすぎないよう、flexではなくgridで自動折り返しする
+   （4つ目の「追加問題2」追加時にスマホで窮屈にならないための変更）。 */
+.mode-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.mode-card {
+  min-width: 0;
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.mode-card:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 復習モードのカードだけ、出題元の問題集カードと見分けられるよう薄く色を敷く。 */
+.review-card {
+  background: #fffaf2;
+  border-color: #f0d9b5;
+}
+.review-card:hover { border-color: #e0a75e; }
+.mode-card:disabled { opacity: 0.6; cursor: wait; }
+
+.mode-icon { font-size: 36px; margin-bottom: 8px; }
+.mode-title { font-size: 17px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.mode-desc { font-size: 13px; color: #888; }
+
+/* --- 範囲選択画面（全部 / 章ごとにチャレンジ） --- */
+.back-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.back-link:hover { color: var(--theme-color); }
+
+.scope-select {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-all-btn {
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  margin-bottom: 8px;
+}
+
+.scope-all-btn:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.scope-all-title { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.scope-all-desc { font-size: 13px; color: #888; }
+
+.scope-chapter-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  margin: 4px 0 2px;
+}
+
+.scope-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scope-chapter-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  background: #f8f9ff;
+  border: 1.5px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scope-chapter-btn:hover { border-color: var(--theme-color); }
+
+.scope-chapter-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.scope-chapter-btn:disabled:hover { border-color: #e6e8ee; }
+
+/* 範囲選択画面の下に出す補足（復習モードの「克服」ルールの説明など） */
+.scope-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.scope-chapter-btn .name { flex: 1; padding-right: 12px; }
+.scope-chapter-btn .count { flex-shrink: 0; color: var(--theme-color); font-weight: 700; font-size: 13px; }
+
+/* --- 出題画面 --- */
+.progress {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.chapter-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--theme-color);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.question-card {
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stem {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #222;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option-btn:hover { border-color: var(--theme-color); }
+
+.option-btn.selected {
+  border-color: var(--theme-color);
+  background: #f0f0ff;
+  font-weight: 600;
+}
+
+.option-btn.tf-btn {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 回答後の表示状態 */
+.option-btn.correct {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.option-btn.incorrect {
+  border-color: #c62828;
+  background: #fdecea;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-badge {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.option-explain {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.answer-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.answer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 回答（複数選択のときだけ表示）とスキップを縦に並べる操作行。
+   mc / tf は選択した時点で判定するため、この行にはスキップだけが残る。 */
+.question-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skip-btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: white;
+  color: #888;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.skip-btn:hover { border-color: var(--theme-color); color: var(--theme-color); }
+
+.reveal-area { margin-top: 20px; }
+
+.reveal-options { margin-bottom: 16px; }
+
+.reveal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.action-btn:hover { border-color: var(--theme-color); }
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+}
+
+/* --- 終了サマリー画面 --- */
+#screenSummary { text-align: center; }
+#screenSummary h2 { font-size: 22px; color: #333; margin-bottom: 16px; }
+
+.summary-score {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--theme-color);
+  margin-bottom: 20px;
+}
+
+.summary-chapters {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.summary-chapter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.summary-chapter-row .name { color: #333; }
+.summary-chapter-row .score { color: var(--theme-color); font-weight: 700; }
+
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 間違えた問題だけを解き直すボタン。記録ボタンの次に置いて目に入るようにする。 */
+.action-btn.retry-wrong {
+  border-color: #f0d9b5;
+  background: #fffaf2;
+  color: #a1670f;
+  font-weight: 700;
+}
+.action-btn.retry-wrong:hover { border-color: #e0a75e; }
+
+.summary-note {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.record-status,
+.advice-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #888;
+  min-height: 18px;
+}
+
+.advice-area {
+  margin-top: 12px;
+  text-align: left;
+  white-space: pre-wrap;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.quiz-body::-webkit-scrollbar { width: 5px; }
+.quiz-body::-webkit-scrollbar-track { background: transparent; }
+.quiz-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+/* --- PCブラウザ（幅900px以上）: 画面幅を広く使う ---
+   以前は .screen が max-width:520px の中央寄せで、PCでは画面の中央に細い1列が出るだけだった（2026-09-20 に変更）。
+   スマホ（600px以下）の指定とは範囲が重ならない。行が長くなりすぎないよう、上限は 1120px（1400px以上は 1240px）。
+   ボタン類は横いっぱいに伸ばさず、中央に寄せた幅に留める。 */
+@media (min-width: 900px) {
+  .header { padding: 18px 40px; }
+  .header-text h1 { font-size: 20px; }
+  .header-text p { font-size: 13px; }
+  .header-btn { font-size: 12px; padding: 7px 14px; }
+
+  .quiz-body { padding: 32px 48px; }
+  .screen { max-width: 1120px; }
+
+  /* モード選択: カードを横に並べて広く使う（4枚なら1行） */
+  .mode-select { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+  .mode-card { padding: 30px 20px; }
+  .mode-icon { font-size: 40px; }
+  .mode-title { font-size: 18px; }
+  .mode-desc { font-size: 14px; }
+
+  /* 範囲選択: 章のボタンを2列に（章が多くても縦に長くなりすぎない） */
+  .scope-chapter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+  .scope-chapter-btn { font-size: 15px; }
+
+  /* 出題: 問題文・選択肢を広く、文字も一段大きく */
+  .question-card { padding: 28px 36px; }
+  .stem { font-size: 18px; line-height: 1.8; }
+  .options { gap: 12px; }
+  .option-btn { font-size: 16px; padding: 14px 20px; }
+  .answer-btn, .action-btn, .skip-btn { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .question-actions { align-items: center; }
+  .question-actions .answer-btn, .question-actions .skip-btn { width: 100%; }
+  .summary-note, .scope-note { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .reveal-actions { align-items: stretch; }
+
+  /* 終了サマリー: 章別の結果を2列に */
+  .summary-chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+  .summary-chapter-row { font-size: 14.5px; padding: 12px 16px; }
+  .summary-actions { align-items: center; }
+  .summary-actions .action-btn { width: 100%; }
+}
+
+@media (min-width: 1400px) {
+  .screen { max-width: 1240px; }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0; }
+  .container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+  .header { padding: 12px 14px; gap: 8px 10px; flex-wrap: wrap; }   /* 狭い画面ではボタン類を2行目へ折り返す */
+  .header-icon { font-size: 28px; }
+  .header-text h1 { font-size: 16px; }
+  .header-text p { display: none; }
+  .header-actions { gap: 6px; flex-wrap: wrap; flex-basis: 100%; margin-left: 0; }
+  .header-btn { font-size: 11px; padding: 6px 10px; }
+  .quiz-body { padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); }
+  .stem { font-size: 16.5px; }
+  .option-btn { font-size: 16px; }
+  .mode-select { gap: 10px; }
+  .mode-card { padding: 16px 8px; }
+  .mode-icon { font-size: 26px; margin-bottom: 4px; }
+  .mode-title { font-size: 14px; margin-bottom: 2px; }
+  .mode-desc { font-size: 11px; }
+}
+
+@media (max-height: 480px) {
+  .quiz-body { padding-top: 14px; }
+  .mode-card { padding: 12px 8px; }
+  .mode-icon { font-size: 22px; margin-bottom: 2px; }
+}
+
+/* --- 中断した問題集の再開バナー（モード選択画面の先頭） --- */
+.resume-banner {
+  border: 2px solid var(--theme-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.resume-text { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 10px; }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.resume-actions .action-btn { flex: 1 1 140px; width: auto; }
+
+  </style>
+<style>#askBtn,#adviceBtn{display:none !important}</style>
+</head>
+<body>
+<div style="background:#fff4d6;color:#5b4300;padding:10px 14px;font-size:14px;line-height:1.6;border-bottom:1px solid #e6c96b">
+<strong>非公式・個人作成の仮問題です。</strong>PMI（PMP）の公式の試験・規格とは無関係で、公式の出題・難度とは一致しません。事実関係は公式テキストで未照合です。この公開版では成績・途中経過は保存されません。
+</div>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">📋</div>
+    <div class="header-text">
+      <h1>PMP問題集（仮問題）</h1>
+      <p id="headerSub">モードを選んでください</p>
+    </div>
+    <div class="header-actions">
+      
+      
+      
+      <button type="button" class="header-btn" id="soundBtn" onclick="toggleSound()">🔊 音</button>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quizBody">
+    <div class="screen" id="screenMode">
+      <div class="resume-banner" id="resumeBanner" style="display:none;">
+        <div class="resume-text" id="resumeText"></div>
+        <div class="resume-actions">
+          <button class="action-btn primary" id="resumeBtn" onclick="resumeProgress()">▶ 続きから再開</button>
+          <button class="action-btn" onclick="discardProgress()">破棄</button>
+        </div>
+      </div>
+      <div class="mode-select">
+        <button class="mode-card" onclick="chooseMode('mc')">
+          <div class="mode-icon">📝</div>
+          <div class="mode-title" id="mcTitle">模擬試験</div>
+          <div class="mode-desc"><span id="mcCount">0</span>問・<span id="mcKind">4択</span></div>
+        </button>
+        <button class="mode-card" id="tfCard" onclick="chooseMode('tf')">
+          <div class="mode-icon">⭕</div>
+          <div class="mode-title">一問一答</div>
+          <div class="mode-desc"><span id="tfCount">0</span>問・正誤判定</div>
+        </button>
+        <button class="mode-card" id="extraCard" onclick="chooseMode('extra')">
+          <div class="mode-icon">📘</div>
+          <div class="mode-title">追加問題</div>
+          <div class="mode-desc"><span id="extraCount">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra2Card" onclick="chooseMode('extra2')">
+          <div class="mode-icon">📗</div>
+          <div class="mode-title">追加問題2</div>
+          <div class="mode-desc"><span id="extra2Count">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra3Card" onclick="chooseMode('extra3')">
+          <div class="mode-icon">🆕</div>
+          <div class="mode-title">新シラバス仮問題</div>
+          <div class="mode-desc"><span id="extra3Count">0</span>問・4択（2027年2月〜の追加分）</div>
+        </button>
+        <button class="mode-card review-card" id="reviewCard" onclick="chooseMode('review')">
+          <div class="mode-icon">🔁</div>
+          <div class="mode-title">復習</div>
+          <div class="mode-desc" id="reviewCount">間違えた問題だけ</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen" id="screenScope" style="display:none;">
+      <button class="back-link" onclick="backToModeSelect()">← モード選択に戻る</button>
+      <div class="scope-select" id="scopeSelect"></div>
+    </div>
+
+    <div class="screen" id="screenQuestion" style="display:none;">
+      <div class="progress" id="progress"></div>
+      <div class="chapter-label" id="chapterLabel"></div>
+      <div class="question-card">
+        <p class="stem" id="stem"></p>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="question-actions" id="questionActions">
+        <button class="answer-btn" id="answerBtn" onclick="reveal()" disabled>回答</button>
+        <button class="skip-btn" id="skipBtn" onclick="skipQuestion()">回答せずに次へ →</button>
+      </div>
+      <div class="reveal-area" id="revealArea" style="display:none;">
+        <div class="reveal-options" id="revealOptions"></div>
+        <div class="reveal-actions">
+          <button class="action-btn" id="askBtn" style="display:none !important" onclick="askInChat()">🤖 チャットに詳しく聞く</button>
+          <button class="action-btn primary" id="nextBtn" onclick="nextQuestion()">次の問題へ →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenSummary" style="display:none;">
+      <h2>お疲れさまでした！</h2>
+      <div class="summary-score" id="summaryScore"></div>
+      <div class="summary-chapters" id="summaryChapters"></div>
+      <div class="summary-actions">
+        <button class="action-btn primary" id="recordBtn" onclick="recordResults()">この回の結果を記録</button>
+        <button class="action-btn retry-wrong" id="retryWrongBtn" onclick="retryWrongInSession()" style="display:none;">🔁 間違えた問題だけもう一度</button>
+        <button class="action-btn" id="adviceBtn" style="display:none !important" onclick="getAdvice()">🎯 学習アドバイスを見る</button>
+        <button class="action-btn" onclick="restartMode()">もう一度</button>
+        <button class="action-btn" onclick="backToScopeSelect()">別の範囲へ</button>
+        <button class="action-btn" onclick="backToModeSelect()">別のモードへ</button>
+      </div>
+      <div class="summary-note" id="summaryNote" style="display:none;"></div>
+      <div class="record-status" id="recordStatus"></div>
+      <div class="advice-status" id="adviceStatus"></div>
+      <div class="advice-area" id="adviceArea" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_WEBAPP_URL = '';
+  const EXAM_ID = 'pmp';
+  const EXAM_SHORT_TITLE = 'PMP';
+  const TRACKING_EXAM_ID = 'pmp';
+  const MC_TITLE = '問題集';
+  const QUESTIONS = [{"id":"pmp-1","type":"mc","chapterIndex":0,"stem":"プロジェクトマネージャーのAさんは、新しく参加したメンバーが自分の役割を理解していないことに気づいた。最も適切な最初の対応はどれか。","options":["メンバーと一対一で面談し、期待する役割と不安な点を確認する。","役割が分かる人だけで作業を進める。","担当を外し、本人の状況は様子を見て判断する。","役割を説明しないまま、ほかのメンバーに業務を任せて、本人が自分で判断するまで待つ。"],"correctIndex":0,"explanations":["○ 正しい。役割の理解の不足は、本人の状況を直接聞くことで最も早く把握できる。","× 誤り。理解していない本人を外すと、役割の空白が放置され、支援の機会も失われる。","× 誤り。担当を外し様子を見て判断すると、本人の不安が解消されず、作業の遅れにつながる。","× 誤り。説明なしに任せると、役割の理解が進まず、チームの負担も増える。"]},{"id":"pmp-2","type":"mc","chapterIndex":0,"stem":"チーム憲章（チーム行動規範）を作成する目的として、最も適切なものはどれか。","options":["個人の評価基準を決め、人事部門へ報告するための資料として、チームの全員に配布する。","会議や意思決定の進め方について、チームの合意事項を明文化して共有する。","プロジェクトの予算と工程の詳細を確定させる。","リーダーが決めた方針を、メンバーに一方的に伝えて、合意の手続を省くための通知書とする。"],"correctIndex":1,"explanations":["× 誤り。チーム憲章は個人評価のための文書ではなく、チームの行動規範を合意するためのものである。","○ 正しい。チーム憲章は、行動の期待値と意思決定の方法を全員で合意し、共有するために作る。","× 誤り。予算と工程の確定は計画の役割であり、チーム憲章の目的ではない。","× 誤り。チーム憲章は全員の合意で作るものであり、一方的な通知では合意の効果がない。"]},{"id":"pmp-3","type":"mc","chapterIndex":0,"stem":"チーム内で二人のメンバーの対立が続き、双方の目標が両立しない状況である。両者の関係とチームの成果の両方を大切にしたいとき、プロジェクトマネージャーが取るべき方針はどれか。","options":["対立を避けるため、問題を先送りし、双方の意見を聞かずに、しばらく様子を見るだけにする。","どちらか一方の意見を採用し、もう一方には結論だけを一方的に伝えて、理由の説明は省く。","双方の懸念を十分に聞き、両者が納得する共通の解決策を一緒に探す。","双方に譲歩を求め、中間の案で妥協させて、早く議論を終わらせ、残った懸念は後の会議で扱う。"],"correctIndex":2,"explanations":["× 誤り。問題の先送りは対立を悪化させ、関係とチームの成果を損なう。","× 誤り。一方だけを採用すると、もう一方の懸念が解決されず、関係が悪化する。","○ 正しい。協働的な解決は、双方の懸念と目標を明らかにし、両方の利益を満たす解決策を探すために用いる。","× 誤り。妥協は両者の目標を十分に満たさず、根本の懸念が残る場合がある。"]},{"id":"pmp-4","type":"mc","chapterIndex":0,"stem":"心理的安全性が高いチームの特徴として、最も適切なものはどれか。","options":["上司の指示に従うだけで、意見は言わない。","失敗は個人の責任として処理する。","発言は控えめにすることが望ましい。","メンバーが誤りや懸念を、非難されることを恐れずに表明できる。"],"correctIndex":3,"explanations":["× 誤り。意見を言う機会が少ない状態は、心理的安全性が低いチームの特徴である。","× 誤り。個人の責任を強く問う文化は、懸念の表明を妨げ、心理的安全性を下げる。","× 誤り。発言を控えることが望ましいとする考え方は、心理的安全性と逆の状態を指す。","○ 正しい。心理的安全性は、率直に発言し、失敗や懸念を共有しても不利益を受けないと感じられる状態を指す。"]},{"id":"pmp-5","type":"mc","chapterIndex":0,"stem":"サーバントリーダーシップの考え方に基づくプロジェクトマネージャーの行動として、最も適切なものはどれか。","options":["チームが障害を取り除けるよう支援し、メンバーが自律的に判断できる環境を整える。","チームの判断を最終的にすべて自分で行い、メンバーの裁量を最小限にする。","メンバーの作業の進め方を細かく指示し、逸脱がないよう監視を続ける。","障害の解決は本人の責任として、支援が必要かどうかを聞かずに判断し、チームの他の作業を優先する。"],"correctIndex":0,"explanations":["○ 正しい。サーバントリーダーは、チームの成長と障害の除去を支援し、メンバーの自律を促す。","× 誤り。判断をすべて自分が担うと、メンバーの自律が損なわれ、サーバントリーダーの考え方に反する。","× 誤り。細かな指示と監視は、サーバントリーダーではなく指示型のリーダーシップに近い。","× 誤り。支援を求められていないと判断して放置すると、障害が解決されず、チームの支援にもならない。"]},{"id":"pmp-6","type":"mc","chapterIndex":0,"stem":"ステークホルダーのエンゲージメント評価マトリクスで、ある関係者が「プロジェクトに抵抗しており、変化を妨げている」場合の分類として、最も適切なものはどれか。","options":["無関心（Unaware）：影響を知らない","抵抗的（Resistant）：変化に反対し、妨げている","中立（Neutral）：賛成も反対もせず、影響を見守り続ける段階","リーディング（Leading）：成功に積極的に関わり、他者を導く立場"],"correctIndex":1,"explanations":["× 誤り。無関心は、プロジェクトの存在や影響を知らず、関与していない状態を指す。","○ 正しい。評価マトリクスでは、プロジェクトの変化に反対し、妨げている状態を抵抗的と分類する。","× 誤り。中立は、プロジェクトに賛成も反対もしていない状態を指す。","× 誤り。リーディングは、プロジェクトの成功に積極的に関わり、他者を導いている状態を指す。"]},{"id":"pmp-7","type":"mc","chapterIndex":0,"stem":"チームの発達段階（Tuckman モデル）で、メンバーが役割や進め方をめぐって意見の対立を起こす段階はどれか。","options":["形成期（Forming）：互いを知り、役割や目標を確認する段階である。","統一期（Norming）：対立を越えて、チームの規範を定着させる段階","混乱期（Storming）：役割や進め方をめぐって対立が起きる","機能期（Performing）：高い成果を出し、目標を安定して達成する段階"],"correctIndex":2,"explanations":["× 誤り。形成期は、メンバーが互いを知り、役割や目標を確認する段階で、対立は少ない。","× 誤り。統一期は、対立を乗り越えてチームの規範が定着する段階である。","○ 正しい。混乱期は、役割や権限、進め方をめぐって対立が起きやすい段階である。","× 誤り。機能期は、チームが高い成果を出す段階であり、対立の中心ではない。"]},{"id":"pmp-8","type":"mc","chapterIndex":0,"stem":"リモートで働くチームの信頼を築くために、プロジェクトマネージャーが最初に取るべき行動はどれか。","options":["メンバーの作業時間を常に監視し、オンライン状態の確認を毎時間行う。","対面でないことを理由に、連絡を文書だけに限定する。","途中の状況は聞かず、提出物だけで判断して連絡を最小限にする。","定例の場で、メンバーの状況や困りごとを話しやすくするための時間を設ける。"],"correctIndex":3,"explanations":["× 誤り。常時の監視は信頼を損ない、相互の信頼を築く行動とは言えない。","× 誤り。対話を減らすと、状況の把握と信頼の両方が損なわれる。","× 誤り。途中の状況を把握しないと、問題の早期発見が遅れ、信頼も築けない。","○ 正しい。リモートでは偶発的な会話が減るため、意図して状況を共有する場を作ることが信頼の基盤になる。"]},{"id":"pmp-9","type":"mc","chapterIndex":0,"stem":"チームの混乱期に、メンバー間で役割の重なりが生じている。プロジェクトマネージャーが最も適切に対処する方法はどれか。","options":["役割の重なりを洗い出し、チーム全員で責任範囲を話し合って明確にする。","重なっている役割を、経験の浅いメンバーに移し、以後は話し合いを行わずに任せる。","役割の重なりは一時的なものとして扱う。","重なりは能力の高い人に寄せて、早く解決する。"],"correctIndex":0,"explanations":["○ 正しい。役割の重なりは、全員で責任範囲を確認し直すことで解消でき、合意が納得感を高める。","× 誤り。話し合いなしに役割を移すと、本人が納得せず、重なりの原因も解消されない。","× 誤り。重なりを放置すると、判断の遅れや作業の二重化を招く。","× 誤り。一部に役割を集めると、負担が偏り、チーム全体の協力も損なわれる。"]},{"id":"pmp-10","type":"mc","chapterIndex":0,"stem":"プロジェクトマネージャーは、ある調達先の企業と個人的な利害関係があることに気づいた。倫理的に最も適切な対応はどれか。","options":["利害関係は個人の問題であり、業務の判断に影響しない限り、報告する必要はないと判断する。","利害関係を速やかに開示し、組織の定める手続に従って関与の扱いを決める。","調達の判断を自分一人で行い、関係者には結果だけを知らせて、経緯は記録しない。","利害関係のある取引を、知られないよう密かに進める。"],"correctIndex":1,"explanations":["× 誤り。利害関係は影響の有無にかかわらず、開示して判断を組織に委ねるべきである。","○ 正しい。利害の衝突は、隠さずに開示し、組織の手続で判断することが倫理的行動の基本である。","× 誤り。判断の経緯を記録せず一人で決めると、透明性と公正さを損なう。","× 誤り。隠した取引は、結果にかかわらず倫理的な行動に反する。"]},{"id":"pmp-11","type":"mc","chapterIndex":0,"stem":"アジャイルのチームが自己組織化を進めている段階で、プロジェクトマネージャーに求められる役割として、最も適切なものはどれか。","options":["作業の割り当てと優先順位を、すべて自分が決めて、チームには実行だけを求め、判断は一切任せない。","チームの自己決定を尊重するため、障害が発生しても対応を控え、チームに任せきりにし、報告も求めない。","チームが自分たちで作業を決められるよう、意思決定の仕組みと障害の除去を支える。","チームの進め方を毎日の会議で細かく評価し、遵守していない行動を個別に指摘して、改善の結果を報告させる。"],"correctIndex":2,"explanations":["× 誤り。すべてを決めると、自己組織化は進まず、指示型の運営に戻ってしまう。","× 誤り。障害を放置すると、チームは判断も作業も進められなくなる。","○ 正しい。自己組織化されたチームでは、マネージャーは意思決定を奪わず、仕組みと障害の除去で支える。","× 誤り。細かな評価と指摘は、チームの自律を損なう行動である。"]},{"id":"pmp-12","type":"mc","chapterIndex":0,"stem":"メンバーが期待以上の成果を上げた。プロジェクトマネージャーとして、チームのモチベーションを高める効果的な方法はどれか。","options":["成果が出た後は評価を控え、次の作業だけを指摘する。","成果の評価は個人の給与に関わるため、本人だけに伝える。","成果は偶然の要素が大きいため、評価の対象にはしない。","その成果を具体的に認め、チーム全員に共有して、その行動を称える。"],"correctIndex":3,"explanations":["× 誤り。成果を認めないと、動機付けが下がり、同じ行動が続きにくくなる。","× 誤り。チーム全体への共有を控えると、他のメンバーが行動の基準を学べない。","× 誤り。偶然と決めつけて評価しないと、具体的な行動の価値が伝わらず、意欲を損なう。","○ 正しい。具体的な承認は、どの行動が評価されたかを明確にし、動機付けの効果を高める。"]},{"id":"pmp-13","type":"mc","chapterIndex":0,"stem":"プロジェクトの作業について、誰が実行し、誰が承認し、誰に相談し、誰に報告するかを明確にする手法はどれか。","options":["RACIチャート（責任分担マトリクス）","リスクの内容と対応を記録する文書","問題と対応状況を管理する記録簿","ステークホルダー登録簿（関係者の情報と関心を記録する文書）"],"correctIndex":0,"explanations":["○ 正しい。RACIは、実行・説明責任・相談・報告の役割を作業ごとに割り当てて、責任を明確にする。","× 誤り。リスクの内容と対応を記録する文書であり、役割分担を示すものではない。","× 誤り。問題と対応状況を管理する記録簿は、役割分担を示すものではない。","× 誤り。ステークホルダー登録簿は関係者の情報や関心を記録する文書で、作業ごとの役割を割り当てるものではない。"]},{"id":"pmp-14","type":"mc","chapterIndex":0,"stem":"メンバーに改善点を伝えるフィードバックの方法として、最も適切なものはどれか。","options":["人柄に関わる評価として伝え、本人の性格を変えるよう求める。","状況と行動と影響を具体的に示し、改善のための次の行動を一緒に考える。","多くの人の前で指摘し、全員が問題を理解できるように公開の場で、具体的に伝える。","改善点は次の評価面談までは伝えず、そのときに一度だけまとめて話し、以後の行動は本人に任せる。"],"correctIndex":1,"explanations":["× 誤り。人柄への評価は本人が行動を変えるための具体性がなく、建設的ではない。","○ 正しい。状況・行動・影響（SBI）の枠組みで伝えると、事実に基づき、改善の行動に結びつけやすい。","× 誤り。公開の場での指摘は本人の立場を傷つけ、率直な発言を妨げる。","× 誤り。まとめて遅く伝えると、本人が行動を改める機会を失い、フィードバックの効果が下がる。"]},{"id":"pmp-15","type":"mc","chapterIndex":0,"stem":"ステークホルダーを「権限の強さ」と「関心の高さ」で分類したとき、権限が強く関心が低い関係者への対応として、最も適切なものはどれか。","options":["関心が低いので、プロジェクトの情報を一切伝えず、必要なときだけ関与させ、判断も任せない。","権限が強い関係者は、常に方針を決めてもらうため、プロジェクトの進め方を毎週細かく相談する。","満足させるように関わり、重要な決定の前に状況を報告して、理解を得ておく。","権限が強いので、関心を高めるため、プロジェクトの失敗の責任を求める場を設けて対応する。"],"correctIndex":2,"explanations":["× 誤り。権限が強い関係者に情報を伝えないと、重要な場面で反対されるおそれがある。","× 誤り。関心が低い関係者に毎週細かく相談すると、負担になり、関与の効果も低い。","○ 正しい。権限が強いが関心が低い関係者は、満足させて関与を保つよう、必要な報告と確認を行う。","× 誤り。責任を求める対応は関係を損ない、支持を得る目的に合わない。"]},{"id":"pmp-16","type":"mc","chapterIndex":0,"stem":"二人のメンバーの対立が、個人の感情の問題として長期化している。プロジェクトマネージャーとして、最も適切な初期の対応はどれか。","options":["感情の問題は時間が解決するため、関与せずに様子を見る。","対立の当事者を別のチームに移し、以後は話し合いを行わずに関係を断つ。","双方の言い分を聞かず、どちらが正しいかを判定して、一方に謝罪を求める。","対立の原因となっている作業上の問題を個別に確認し、早い段階で両者と話し合う。"],"correctIndex":3,"explanations":["× 誤り。対立は放置すると悪化しやすく、早期の関与が必要である。","× 誤り。話し合いなしに移すと、原因が残り、チーム全体の協力関係にも影響する。","× 誤り。一方的な判定は、もう一方の不満を強め、対立を長引かせる。","○ 正しい。対立が長引く前に、作業上の原因を特定して当事者と直接話すことで、解決の糸口が得られる。"]},{"id":"pmp-17","type":"mc","chapterIndex":0,"stem":"文化が異なる国のメンバーで構成されたチームの運営として、最も適切なものはどれか。","options":["会議の進め方や意思決定の方法について、各メンバーの前提を確認し、共通の理解を作る。","一つの国の慣習を基準にして、全員がそれに合わせるように求める。","文化の違いは個人の問題であり、業務に影響しないよう、話題にすることを避ける。","文化の違いが業務に影響するかどうかは、メンバーの自己申告に任せ、こちらからは確認しない。"],"correctIndex":0,"explanations":["○ 正しい。文化の違いは前提の違いとして現れやすいため、進め方を事前に確認して共通の理解を作ることが重要である。","× 誤り。一つの慣習を押し付けると、他のメンバーの参加を妨げ、協力を損なう。","× 誤り。違いを話題にしないと、誤解が解消されず、業務の進行に影響する。","× 誤り。自己申告だけに頼ると、言い出しにくい前提の違いが見過ごされる。"]},{"id":"pmp-18","type":"mc","chapterIndex":0,"stem":"メンバーのやる気を高めるうえで、内発的動機付けを重視する方法として、最も適切なものはどれか。","options":["成果に応じた報酬を基準にして、目標の達成だけを強く求め、個人の評価にも直結させ、昇給にも反映させる。","メンバーが仕事の意味を理解し、自分の判断で取り組める機会と成長の機会を与える。","失敗を避けるため、作業の方法と手順を細かく定め、判断の余地を残さない。","競争を強めるため、メンバーどうしの成果を比べ、順位を毎週公開して、上位者には特別な報酬を与える。"],"correctIndex":1,"explanations":["× 誤り。報酬だけに頼る動機付けは、内発的な動機を弱めることがある。","○ 正しい。内発的動機付けは、自律性・習熟・目的の感覚を満たすことで高まる。","× 誤り。判断の余地をなくすと、自律性が損なわれ、内発的動機付けは下がる。","× 誤り。比較と順位の公開は、協力を損ない、内発的動機付けにも効果が低い。"]},{"id":"pmp-19","type":"mc","chapterIndex":0,"stem":"チームの多様性（経験・専門性・文化）がプロジェクトに与える効果として、最も適切なものはどれか。","options":["考え方が分かれるため、意思決定は常に遅くなり、成果も必ず低下し、チームの信頼も失われる。","同じ経験を持つメンバーだけで構成すると、合意が早まり、常に成果が高くなり、新しい視点も生まれやすい。","多様な視点が集まり、問題の見方が広がって、より良い解決策を生み出しやすくなる。","多様性を高めると、役割の境界があいまいになるため、各自の専門性は一切活かせなくなる。"],"correctIndex":2,"explanations":["× 誤り。多様性が遅延を生む場合はあるが、常に成果が低下するとは言えない。","× 誤り。同質性は合意を早めても、視点の偏りを生み、成果が常に高いとは限らない。","○ 正しい。多様性は、異なる視点の組み合わせにより、問題解決の質を高める効果がある。","× 誤り。多様性は専門性を活かすための視点を広げるものであり、専門性を失わせるものではない。"]},{"id":"pmp-20","type":"mc","chapterIndex":0,"stem":"コーチングの場面で、メンバーが自分で答えを見つけられるよう支援する質問として、最も適切なものはどれか。","options":["私が指示した方法で進めればよいですよね。","なぜその作業を先に進めなかったのか、説明してください。","答えは過去の経験から明らかではありませんか。","その問題について、あなたはどのような選択肢を考えていますか。"],"correctIndex":3,"explanations":["× 誤り。誘導的な質問は、本人の考えを引き出さず、答えを押し付けることになる。","× 誤り。原因を問う質問は、本人を責める印象を与えやすく、自ら考える支援になりにくい。","× 誤り。答えを決めつける質問は、本人が検討する機会を奪い、自ら考える力を育てない。","○ 正しい。オープンな質問は、メンバー自身の考えを引き出し、自律的な解決を支援する。"]},{"id":"pmp-21","type":"mc","chapterIndex":0,"stem":"他部門の担当者と、資源の配分をめぐって交渉している。双方の利益を満たしながら合意に至るための方法として、最も適切なものはどれか。","options":["双方の目的と制約を先に共有し、両方が受け入れられる選択肢を一緒に検討する。","自分の立場を先に強く主張し、相手が譲歩するまで要求を変えない。","相手の要求を一方的に受け入れて、早く合意を成立させる。","交渉の前に、相手の弱みを探し、その情報を使って、合意の条件を自分たちに有利な形で固める。"],"correctIndex":0,"explanations":["○ 正しい。Win-Win の交渉は、利害の背景を理解し、双方が満足できる解決策を探すことで成立しやすい。","× 誤り。立場の固定化は交渉の行き詰まりを招き、双方の利益を満たしにくい。","× 誤り。一方的な受け入れは、自分たちの目的や制約を無視しており、適切な合意とは言えない。","× 誤り。相手の弱みを利用する方法は、信頼を損ない、長期的な協力関係を壊す。"]},{"id":"pmp-22","type":"mc","chapterIndex":0,"stem":"ステークホルダーの期待が、プロジェクトの目標と矛盾している。プロジェクトマネージャーが最初に行うべき対応はどれか。","options":["期待に合わせて目標を変更し、ほかのステークホルダーに事後的に知らせる。","期待の内容と背景を確認し、目標との違いを明らかにして、ステークホルダーと共有する。","どちらの期待も満たせないため、対応を諦めて、プロジェクトの範囲を縮小し、関係者には後から伝える。","矛盾の原因はステークホルダーの理解不足にあるため、一方的に目標の意味を説明し直し、相手の反応は確認しない。"],"correctIndex":1,"explanations":["× 誤り。合意なしの目標変更は、他の関係者の期待を損ない、承認の手続にも反する。","○ 正しい。期待の矛盾は、背景を確認して違いを明確にしたうえで、関係者と共有することから解決が始まる。","× 誤り。範囲の縮小は、矛盾の確認と共有を省くため、最初の対応として適切ではない。","× 誤り。説明を一方的に行うと、相手の懸念を聞けず、矛盾の背景も確認できない。"]},{"id":"pmp-23","type":"mc","chapterIndex":0,"stem":"プロジェクトマネージャーがメンバーに権限を委譲する場面として、最も適切なものはどれか。","options":["判断を任せるが、結果については責任を問わない旨を伝えて、詳細な情報は共有しない。","判断を任せた後も、すべての決定を毎回確認し、最終的な決定権を自分に残す。","業務の判断に必要な情報と責任範囲を明確にしたうえで、判断を任せる。","判断を任せる相手を、経験に関係なく順番に決め、判断の範囲は当日になって知らせ、記録も残さない。"],"correctIndex":2,"explanations":["× 誤り。情報の不足と責任の不明確さは、委譲の効果を損ない、適切な判断を妨げる。","× 誤り。決定権を残すと、権限の委譲にはならず、メンバーの成長も進まない。","○ 正しい。権限の委譲は、判断の範囲と必要な情報を示し、責任を明確にすることで効果が出る。","× 誤り。判断の範囲を事前に示さないと、本人は責任の所在を理解できず、判断が遅れる。"]},{"id":"pmp-24","type":"mc","chapterIndex":0,"stem":"チームの心理的安全性を損なう行動として、最も適切なものはどれか。","options":["メンバーの懸念を聞き、次回の会議で検討する予定を伝える。","失敗の原因を、関係者と一緒に振り返り、再発防止の方法を全員で考える。","発言の機会を全員に等しく設ける。","会議で意見が出た直後に、その意見を否定し、理由を説明させずに結論を決める。"],"correctIndex":3,"explanations":["× 誤り。懸念を聞いて検討する行動は、心理的安全性を高める行動である。","× 誤り。振り返りを共有して行う行動は、心理的安全性の向上につながる。","× 誤り。発言の機会を公平に設ける行動は、心理的安全性を高める行動である。","○ 正しい。意見を否定し、理由を聞かずに結論を決める行動は、発言の意欲を下げ、心理的安全性を損なう。"]},{"id":"pmp-25","type":"mc","chapterIndex":0,"stem":"対立を解決する方法のうち、双方の関係を損なわずに問題を一時的に先送りする方法はどれか。","options":["回避（Avoiding）：問題を先送りする","競争：相手に勝つことを優先する","妥協：双方が互いに一部譲って合意する","協働（Collaborating）：双方の懸念を満たす解決策を一緒に探す"],"correctIndex":0,"explanations":["○ 正しい。回避は、対立のある問題を先送りしたり、関わりを避けたりする方法で、一時的に緊張を和らげる。","× 誤り。競争は、相手に勝つことを優先する方法で、先送りには当たらない。","× 誤り。妥協は、双方が一部を譲って合意する方法で、先送りとは異なる。","× 誤り。協働は、双方の懸念を満たす解決策を一緒に探す方法で、先送りには当たらない。"]},{"id":"pmp-26","type":"mc","chapterIndex":0,"stem":"プロジェクトの進捗が遅れていることを、顧客に報告する場面で最も倫理的な行動はどれか。","options":["遅れを小さく見せるため、重要な情報を省略し、次の段階で挽回できるとだけ伝える。","遅れの事実と原因、回復の見込みを正確に伝え、必要な判断を一緒に検討する。","遅れの報告は定例会議まで行わず、その間に見込みを確かめる。","遅れの原因はチームの責任なので、顧客には原因を伝えず、対策だけを一方的に示し、経緯も説明しない。"],"correctIndex":1,"explanations":["× 誤り。重要な情報の省略は、顧客の判断を誤らせ、倫理的な行動に反する。","○ 正しい。誠実な報告は、事実と原因と見通しを率直に伝え、関係者が判断できるようにする。","× 誤り。報告を遅らせると、顧客が対応する機会を失い、信頼を損なう。","× 誤り。原因を伏せると、顧客は今後の判断材料を失い、信頼も損なわれる。"]},{"id":"pmp-27","type":"mc","chapterIndex":0,"stem":"ハイブリッドのプロジェクトで、予測型の計画とアジャイルのチームが併存している。チーム内の役割の扱いとして、最も適切なものはどれか。","options":["予測型の要件を優先し、アジャイルのチームには役割の定義を一切与えず、指示どおりに作業させ、変更も認めない。","アジャイルの考え方を優先し、予測型の管理に必要な計画や報告を一切行わず、進捗の確認も省き、関係者への説明も控える。","予測型の管理の要件を満たしつつ、アジャイルのチームが自律的に作業を進められる役割と責任を定義する。","両者を切り分けるため、チームを二つに分け、互いに関わらないよう情報の共有を制限して、調整は担当者に任せ、会議も別々にする。"],"correctIndex":2,"explanations":["× 誤り。役割を与えずに指示だけを出すと、アジャイルのチームの自律が失われる。","× 誤り。計画と報告を省くと、組織の管理要件を満たせず、ステークホルダーの信頼も損なう。","○ 正しい。ハイブリッドでは、両方の要件を満たす役割と責任を定義し、チームの自律と管理の要件を両立させる。","× 誤り。情報共有を制限すると、協力が損なわれ、全体の成果が下がる。"]},{"id":"pmp-28","type":"mc","chapterIndex":0,"stem":"メンバーの能力を高めるため、プロジェクトマネージャーが業務の中で取るべき方法として、最も適切なものはどれか。","options":["難しい作業は自分が担い、担当者には簡単な作業だけを任せる。","能力の向上は本人の責任として、支援はせず、結果だけで評価する。","難しい作業は能力の高い人にだけ任せ、育成は行わない。","少し難しい作業を任せ、必要な支援と振り返りの機会を組み合わせて成長を促す。"],"correctIndex":3,"explanations":["× 誤り。難しい作業を取り上げると、能力を伸ばす機会がなくなる。","× 誤り。支援がないと、能力の向上は進みにくく、評価も適切にできない。","× 誤り。能力の差に応じて機会を制限すると、育成の機会が偏り、チームの力も伸びにくい。","○ 正しい。適度な挑戦と支援、振り返りの組み合わせは、能力の向上を効果的に促す。"]},{"id":"pmp-29","type":"mc","chapterIndex":0,"stem":"状況に応じてリーダーシップのスタイルを変えるモデルに基づく対応として、最も適切なものはどれか。","options":["経験の浅いメンバーには具体的な指示を与え、経験を積んだメンバーには判断の裁量を広げる。","すべてのメンバーに同じ指示の仕方を用い、個人の経験による違いを考慮しない。","経験の浅いメンバーにも判断を全面的に任せ、指示や支援はいっさい行わない。","経験を積んだメンバーにも細かな指示を続け、判断の裁量はリーダーが最後まで保持し、報告の頻度も上げる。"],"correctIndex":0,"explanations":["○ 正しい。状況対応型のリーダーシップは、メンバーの成熟度に応じて指示と支援の度合いを変える。","× 誤り。全員に同じ方法を用いると、メンバーの成熟度に合わず、効果が下がる。","× 誤り。経験の浅いメンバーに支援がないと、判断を誤りやすく、成長の機会も損なわれる。","× 誤り。経験を積んだメンバーに細かく指示を続けると、自律が育たず、効果的な支援にならない。"]},{"id":"pmp-30","type":"mc","chapterIndex":0,"stem":"ある関係者がプロジェクトの方針変更に強く反対し、他の関係者にも悪影響を与えている。最も適切な対応はどれか。","options":["反対する関係者を会議から外し、方針変更の決定を速やかに進め、後の説明は求めないようにする。","反対の理由を個別に聞き、懸念に応える具体的な対策を示して、合意を得る努力を続ける。","反対は個人の意見にすぎないため、その意見を無視して変更を進める。","反対する関係者の影響を抑えるため、ほかの関係者にはその人の意見を伝えず、賛成の声だけを集める。"],"correctIndex":1,"explanations":["× 誤り。会議から外すと、懸念が解消されず、反対が強まり、関係が悪化するおそれがある。","○ 正しい。反対の背景にある懸念を理解し、対策を示すことで、抵抗を和らげ、合意に近づけられる。","× 誤り。懸念を無視すると、抵抗が強まり、後の作業の障害になるおそれがある。","× 誤り。意見を伏せて賛成だけを集めると、情報が偏り、信頼と合意の基盤を損なう。"]},{"id":"pmp-31","type":"mc","chapterIndex":0,"stem":"上司からのフィードバックを受け取る場面で、プロジェクトマネージャーとして最も適切な姿勢はどれか。","options":["フィードバックを受けた時点で、その内容に反論し、自分の判断の正しさを詳しく説明する。","フィードバックは評価に関係するため、受け取った内容をチームには一切共有せず、自分の中だけで考える。","内容を最後まで聞き、理解を確認する質問をしたうえで、改善に使える点を整理する。","フィードバックの内容が自分の考えと違う場合は、受け取らなかったことにして、そのまま進める。"],"correctIndex":2,"explanations":["× 誤り。反論が先に立つと、内容の理解が進まず、改善の機会を失う。","× 誤り。内容を隠すと、チームの改善の機会を失い、透明性も損なわれる。","○ 正しい。フィードバックは、理解を確認し、改善に活かす姿勢で受け取ることで、効果が高まる。","× 誤り。受け取らずに進めると、改善の機会を失い、上司との信頼関係も損なわれる。"]},{"id":"pmp-32","type":"mc","chapterIndex":0,"stem":"チームのメンバーが、困ったときに相談しやすい環境を作るための方法として、最も適切なものはどれか。","options":["相談の内容が評価に影響しないことを、一度だけ文書で伝える。","相談は業務時間内に限り、勤務時間外の連絡は受け付けないと決めて、周知する。","相談してきたメンバーの名前を、ほかのメンバーにも伝える。","相談を受けたときに批判せずに聞き、解決に向けた支援を行う姿勢を、日常の行動で示す。"],"correctIndex":3,"explanations":["× 誤り。一度の伝達だけでは信頼は育たず、日常の行動が伴わなければ効果がない。","× 誤り。相談の窓口を限定しすぎると、困りごとが早期に共有されず、かえって問題が大きくなる。","× 誤り。本人の同意なく相談内容や名前を共有すると、信頼を大きく損ない、相談は減る。","○ 正しい。相談しやすさは、相談への反応を積み重ねることで育つ信頼によって決まる。"]},{"id":"pmp-33","type":"mc","chapterIndex":0,"stem":"メンバーの不満が、チームの中で表面化しないまま広がっているように見える。プロジェクトマネージャーが早期に把握する方法として、最も適切なものはどれか。","options":["一対一の定期的な対話を設け、業務の状況と気がかりな点を率直に聞く。","不満がないことを前提として、チームの状況は問題ないと判断し、対話の機会は設けない。","不満を持つメンバーを探すため、発言を記録する。","不満は一時的なので、しばらく様子を見る。"],"correctIndex":0,"explanations":["○ 正しい。一対一の対話は、表に出にくい不満や懸念を早い段階で把握する効果的な方法である。","× 誤り。前提で判断すると、潜在的な不満を見逃し、対応が遅れる。","× 誤り。評価の材料として記録すると、信頼を損ない、率直な発言がさらに減る。","× 誤り。様子見では不満の原因が残り、表面化したときには対応が難しくなる。"]},{"id":"pmp-34","type":"mc","chapterIndex":0,"stem":"関係者の意見が分かれている意思決定で、合意形成を進めるための方法として、最も適切なものはどれか。","options":["多数決で決め、少数の意見は聞かずに実施する。","選択肢と評価基準を明確にし、関係者が根拠をもとに議論できる場を設ける。","決定の責任を避けるため、関係者に結論を委ね、プロジェクトマネージャーは判断に関与しない。","意見が分かれている場合は、最も上位の関係者の意見をそのまま採用し、ほかの意見は記録しない。"],"correctIndex":1,"explanations":["× 誤り。少数意見を聞かずに決めると、納得が得られず、実施後の抵抗が強まる。","○ 正しい。評価基準を共有して議論すると、感情ではなく根拠に基づく合意形成が進みやすい。","× 誤り。判断の責任を放棄すると、議論が収束せず、決定が遅れる。","× 誤り。上位者の意見だけを採用すると、ほかの関係者の懸念が残り、合意の質も下がる。"]},{"id":"pmp-35","type":"mc","chapterIndex":0,"stem":"チーム内の衝突が繰り返し起きている。その原因を分析する方法として、最も適切なものはどれか。","options":["衝突の原因は個人の性格にあると判断し、関わったメンバーを異動させ、ほかの業務にも大きく影響させない。","衝突はチームの成長過程で必ず起きるものとして、原因の確認は行わず、しばらく様子を見ることにする。","衝突が起きた場面ごとに、役割、情報、目標、進め方のどこに食い違いがあったかを確認する。","衝突の当事者だけを集めて、誰が悪かったかを明確にし、責任を問う場を設け、結果を全員に公表して、再発時は処分も検討する。"],"correctIndex":2,"explanations":["× 誤り。性格を原因とみなして異動させると、構造上の問題が残り、同じ衝突が再発する。","× 誤り。原因を確認せずに放置すると、衝突は繰り返され、チームの生産性が下がる。","○ 正しい。衝突の原因は、役割・情報・目標・進め方などの構造上の食い違いにあることが多く、場面ごとの確認が有効である。","× 誤り。責任を問う場は対立を強め、原因の解明にもつながらない。"]},{"id":"pmp-36","type":"mc","chapterIndex":0,"stem":"仮想チームのメンバーが、時差のため会議に参加しにくい状況がある。コミュニケーションを円滑にするための方法として、最も適切なものはどれか。","options":["会議は特定の地域の時間に固定し、参加できない人は録画で見る。","時差の問題は各メンバーに任せ、連絡の方法も個別に決めてもらう。","時差の影響は小さいため、会議は変えず、意見は次回まで待つ。","会議の時間や連絡の方法をメンバーと相談し、非同期での情報共有の仕組みも併用する。"],"correctIndex":3,"explanations":["× 誤り。参加できないメンバーの意見を反映できず、関与の機会も少なくなる。","× 誤り。調整を個人に任せると、情報の断絶が生じ、チーム全体の連携が損なわれる。","× 誤り。意見を先送りにすると、議論の鮮度が落ち、参加できない人の関与も損なわれる。","○ 正しい。時差のあるチームでは、同期と非同期の手段を組み合わせ、全員が参加しやすい仕組みを作ることが重要である。"]},{"id":"pmp-37","type":"mc","chapterIndex":0,"stem":"ステークホルダー登録簿を更新するタイミングとして、最も適切なものはどれか。","options":["新しい関係者が判明したとき、または関係者の関心や影響が変わったときに随時更新する。","プロジェクトの終了時に一度だけまとめて作成し、途中では更新しない。","開始時に作成した内容は変えず、変化は別の文書で管理する。","関係者の変化は担当者が個人的に覚えておき、必要になったときに思い出して対応し、記録は残さない。"],"correctIndex":0,"explanations":["○ 正しい。ステークホルダー登録簿は、関係者の状況が変わるたびに更新することで、有効に活用できる。","× 誤り。途中で更新しないと、新たな関係者や関心の変化を把握できず、対応が遅れる。","× 誤り。別の文書に分けると情報が散らばり、登録簿の役割を果たせない。","× 誤り。記録に残さず記憶に頼ると、情報が抜け落ち、対応が遅れるおそれがある。"]},{"id":"pmp-38","type":"mc","chapterIndex":0,"stem":"メンバーの能力が現在の作業に不足しているとき、プロジェクトマネージャーが取るべき方法として、最も適切なものはどれか。","options":["能力のある人にすべての作業を移し、育成は行わない。","必要な能力を明確にし、研修や先輩との協働、段階的な作業の割り当てで補う。","能力の不足は本人の努力で補うべきとして、支援や研修の機会は提供せず、結果だけを評価する。","能力の不足が分かった時点で、作業の期限を延ばして、本人が自分のペースで学ぶまで待つ。"],"correctIndex":1,"explanations":["× 誤り。能力のある人だけに作業を移すと、チームの育成が進まず、負担も偏る。","○ 正しい。能力の不足は、必要な能力を特定し、学習の機会と支援を組み合わせて補うことで解消できる。","× 誤り。支援がなければ、能力の不足は補われにくく、作業の品質も下がる。","× 誤り。期限の延長だけでは学習の方向が定まらず、遅れも解消されない。"]},{"id":"pmp-39","type":"mc","chapterIndex":0,"stem":"チーム内で、特定のメンバーが評価や機会の配分において不公平に扱われていると感じられている。最も適切な対応はどれか。","options":["不公平感を持つメンバーの意見は、個人的な感情として扱い、基準の説明は行わず、話し合いも打ち切る。","配分の基準は、リーダーの判断に任せることで柔軟性を保ち、基準の文書化は行わず、説明も省く。","評価と機会の配分の基準を明確にし、その基準を全員に説明して、判断の根拠を示す。","不公平感が出ないよう、評価と機会の配分の内容を、関係者だけに伝えて、メンバーには知らせない。"],"correctIndex":2,"explanations":["× 誤り。意見を感情として扱うと、不公平感が解消されず、信頼が損なわれる。","× 誤り。基準を文書化しないと、判断が恣意的に見え、公平性への疑いが強まる。","○ 正しい。公平性は、基準の明確化と説明によって信頼を得られ、不公平感を解消しやすくなる。","× 誤り。内容を伏せると、かえって不信感が強まり、公平性を確かめる手段がなくなる。"]},{"id":"pmp-40","type":"mc","chapterIndex":0,"stem":"新しいプロセスの導入に、チームの一部が強く抵抗している。プロジェクトマネージャーとして最も適切な最初の対応はどれか。","options":["抵抗するメンバーは変化に適応できないと判断し、導入を強制する。","抵抗は一時的なものとして扱い、問題が起きたときに対応する。","抵抗する理由は聞かず、導入の日程を早める。","抵抗の理由を聞き、導入によって得られる利点と懸念への対策を具体的に伝える。"],"correctIndex":3,"explanations":["× 誤り。強制は反発を強め、チームの信頼を損なう。","× 誤り。問題が起きてから対応すると、混乱が広がり、導入の効果も下がる。","× 誤り。理由を聞かずに日程を早めると、懸念が残ったまま導入が進み、抵抗がさらに強まる。","○ 正しい。変化への抵抗は、理由の理解と具体的な利点・対策の提示によって和らぎやすい。"]},{"id":"pmp-41","type":"mc","chapterIndex":0,"stem":"チームの人材に関するリスク（ピープルリスク）として、最も適切なものはどれか。","options":["主要なメンバーの離脱や、必要な能力を持つ人材が確保できないことによって、作業が遅れるリスク。","ソフトウェアの不具合が原因で、製品の品質が基準を満たさないリスク。","為替の変動により、資金の調達コストが増えるリスク。","外部の規制が変わり、プロジェクトの成果物の仕様や納期、必要な体制、顧客との契約内容を見直す必要が生じるリスク。"],"correctIndex":0,"explanations":["○ 正しい。ピープルリスクは、人材の離脱や能力不足など、チームの構成に関わる不確実性を指す。","× 誤り。不具合による品質のリスクは、技術や製品に関わるリスクであり、ピープルリスクではない。","× 誤り。為替の変動は、市場や財務に関わるリスクであり、ピープルリスクには当たらない。","× 誤り。規制の変更は、外部環境に関わるリスクであり、人材の要素に当たらない。"]},{"id":"pmp-42","type":"mc","chapterIndex":0,"stem":"チームが大きな成果を達成した後の、メンバーへの対応として、最も適切なものはどれか。","options":["成果はチームの当然の責任として、特別な承認は行わず、次の作業の計画を速やかに示し、成果の意味は共有しない。","チーム全体の貢献を公式に認め、個々の貢献を具体的に伝えて、次の成長につなげる。","成果の承認は、リーダーの功績として報告し、個々のメンバーへの言及は控え、チームの評価は行わない。","成果は次の評価期間の終わりにまとめて認める。"],"correctIndex":1,"explanations":["× 誤り。承認を省くと、メンバーの意欲が下がり、次の成果にもつながりにくい。","○ 正しい。成果の承認は、チーム全体と個人の貢献を具体的に認めることで、次の意欲と成長につながる。","× 誤り。リーダーの功績として扱うと、メンバーの貢献が見えにくくなり、意欲を損なう。","× 誤り。承認が遅れると、成果と行動の結び付きが薄れ、動機付けの効果も下がる。"]},{"id":"pmp-43","type":"mc","chapterIndex":0,"stem":"プロジェクトチームの心理的安全性を測定し、改善につなげる方法として、最も適切なものはどれか。","options":["心理的安全性は目に見えないものであるため、測定は行わず、リーダーの感覚と経験だけで判断し、改善の計画も立てない。","測定結果は個人の評価に使うと公表し、発言の少ないメンバーを特定して、改善を促し、評価にも反映させ、全員に通知する。","匿名のアンケートや定期的な振り返りで、発言のしやすさや懸念の表明について意見を集め、改善に反映する。","心理的安全性の測定は、チームの成果を評価する指標と一緒に、数値だけで比べ、改善の方向は見ずに、点数だけで判断することにする。"],"correctIndex":2,"explanations":["× 誤り。感覚だけでは実態を把握しにくく、改善の効果も確認できない。","× 誤り。評価に使うと発言の意欲がさらに下がり、心理的安全性を損なう。","○ 正しい。心理的安全性は、匿名の意見収集と振り返りを通じて把握し、改善の行動につなげると効果的である。","× 誤り。数値だけの比較は、個々の状況や改善の方向を読み取れず、有効な改善につながらない。"]},{"id":"pmp-44","type":"mc","chapterIndex":0,"stem":"対立する二人のメンバーの間で、双方の重要な懸念が共通する点があると分かった。対立を協力的に解決するための方法として、最も適切なものはどれか。","options":["対立の原因は双方にあるとして、どちらの懸念も取り上げない。","共通の懸念は一方の意見に合わせる口実とし、もう一方は無視する。","対立が解決するまで、両者の作業を別々の担当に分ける。","共通する懸念を明らかにし、その懸念を解決する共同の作業を両者に任せる。"],"correctIndex":3,"explanations":["× 誤り。懸念を取り上げないと、対立の原因が残り、作業の協力も進みにくい。","× 誤り。一方の懸念を無視すると、不公平感が生まれ、対立が長引く。","× 誤り。関わりを断つと、共通の懸念を一緒に解決する機会を失い、対立も残る。","○ 正しい。共通の懸念を出発点にすると、対立を協力的な作業に変えやすく、関係の改善にもつながる。"]},{"id":"pmp-45","type":"mc","chapterIndex":0,"stem":"プロジェクトマネージャーが、ステークホルダーとの間で信頼を築くための行動として、最も適切なものはどれか。","options":["約束したことを期限内に実行し、実行できない場合は早い段階で理由と対応を伝える。","約束は当初のまま維持するため、状況が変わっても変えない。","約束の不履行は、ステークホルダーの理解不足が原因なので、説明は行わずに次の約束を提示する。","約束を守れなかった場合は、しばらく連絡を控える。"],"correctIndex":0,"explanations":["○ 正しい。信頼は、約束の遵守と、問題が生じたときの早期で誠実な報告の積み重ねによって築かれる。","× 誤り。状況の変化を伝えずに約束を維持すると、かえって実現できず、信頼を損なう。","× 誤り。説明を省いて新たな約束を示すと、信頼が回復せず、関係も悪化する。","× 誤り。連絡を控えると、関係者の不安が強まり、信頼の回復がさらに遅れる。"]},{"id":"pmp-46","type":"mc","chapterIndex":0,"stem":"プロジェクトマネージャーは、メンバーが会社の規定を軽く扱い、小さな違反を繰り返していることに気づいた。倫理的に最も適切な対応はどれか。","options":["小さな違反は重大な問題ではないため、本人の判断に任せ、記録も残さない。","違反の内容と影響を確認し、本人と話し合って規定の意味を説明し、必要な是正を求める。","違反をした本人だけを、チームの全員の前で厳しく指摘し、再発防止の見せしめとして記録にも残す。","違反の問題は、規定を作った部署に丸ごと任せ、プロジェクトの中では一切触れないようにする。"],"correctIndex":1,"explanations":["× 誤り。違反を放置して記録も残さないと、規定の意味が失われ、同様の違反が広がる。","○ 正しい。小さな違反でも、その内容と影響を確認し、本人と話して是正を求めることが倫理的な対応である。","× 誤り。公開の場での叱責は、本人の尊厳を損ない、倫理的な対応とは言えない。","× 誤り。自分の担当範囲の問題を放置すると、是正の機会を失い、責任も果たせない。"]},{"id":"pmp-47","type":"mc","chapterIndex":0,"stem":"関係者へのプロジェクト情報の提供の頻度を決める際の、最も適切な考え方はどれか。","options":["すべての関係者に、同じ内容を同じ頻度で伝え、個別の違いは一切考慮せず、形式も統一する。","情報は問題が起きたときだけ伝え、通常時には関係者に状況を知らせず、報告も求めない。","関係者の関心と影響の大きさに応じて、必要な情報の内容と頻度を決める。","頻度は担当者の都合で決め、関係者からの要望があった場合にだけ情報を提供する。"],"correctIndex":2,"explanations":["× 誤り。一律の情報提供は、関係者の必要に合わず、情報の過多や不足を生む。","× 誤り。平常時に情報を伝えないと、関係者は状況を把握できず、問題にも気づきにくい。","○ 正しい。コミュニケーションの計画は、関係者の関心と影響に応じて、情報の内容と頻度を決めるのが基本である。","× 誤り。要望を待つだけでは、関係者が必要な情報を得る機会が限られ、判断も遅れる。"]},{"id":"pmp-48","type":"mc","chapterIndex":0,"stem":"チームの役割を再設計する必要が生じた。最も適切な進め方はどれか。","options":["役割の再設計は、リーダーが一人で決め、結果だけをチームに伝える。","役割の再設計は、新しい作業だけを割り当てる。","役割は経験の年数だけで機械的に決める。","メンバーの強みと現在の課題を確認し、チームで役割の案を検討して合意を得る。"],"correctIndex":3,"explanations":["× 誤り。一方的な決定は、メンバーの納得を得られず、役割が機能しにくくなる。","× 誤り。既存の役割を変えずに新しい作業だけを加えると、課題の根本的な解決にならない。","× 誤り。経験の年数だけで決めると、強みや意欲が活かされず、役割の適合性も低くなる。","○ 正しい。役割の再設計は、強みや課題を踏まえてチームで検討し、合意を得ることで、実効性が高まる。"]},{"id":"pmp-49","type":"mc","chapterIndex":0,"stem":"サーバント・リーダーとして、チームの生産性を高めるために行う支援の例はどれか。","options":["チームが直面している組織の障害を取り除くため、上位の関係者と交渉して必要な資源や判断を引き出す。","チームの作業を監督するため、メンバーの作業時間を毎日記録して、結果を評価の資料とする。","メンバーの判断を一つずつ確認し、必要に応じて修正を指示する。","チームの進捗を優先するため、上位の関係者からの要望はすべて受け入れ、チームの負荷や体制は一切考慮しない。"],"correctIndex":0,"explanations":["○ 正しい。サーバント・リーダーは、チームが成果を出せるよう、組織の障害を取り除き、資源を確保する。","× 誤り。作業時間の記録と評価は、支援ではなく監視に当たり、チームの信頼を損なう。","× 誤り。判断を一つずつ確認して修正すると、メンバーの自律が損なわれ、支援にならない。","× 誤り。負荷を考慮しない要望の受け入れは、チームを疲弊させ、生産性を下げる。"]},{"id":"pmp-50","type":"mc","chapterIndex":0,"stem":"ステークホルダーの影響力の分析で、プロジェクトに大きな影響を与える可能性がある関係者について、最初に確認すべきことはどれか。","options":["影響力の大きい関係者には、情報をすべて伏せ、必要な時点で結論だけを伝え、質問にも答えない。","その関係者の関心と立場、プロジェクトへの影響の内容を明らかにし、対応の方針を立てる。","影響力は役職だけで判断し、役職の低い人の分析は省く。","影響の大きさは、プロジェクトの途中で明らかになるため、初期の段階では対応方針を立てず、様子を見る。"],"correctIndex":1,"explanations":["× 誤り。情報を伏せると、関係者の懸念が高まり、協力が得られにくくなる。","○ 正しい。影響の大きい関係者は、関心・立場・影響の内容を把握したうえで、対応方針を計画するのが基本である。","× 誤り。役職だけで判断すると、実際の影響を見落とし、重要な関係者への対応が遅れる。","× 誤り。対応方針を後回しにすると、影響が表面化したときに対応が間に合わなくなる。"]},{"id":"pmp-51","type":"mc","chapterIndex":0,"stem":"プロジェクトの会議で、一部の参加者だけが発言し、他の参加者の意見が出にくい状況がある。ファシリテーションとして最も適切なものはどれか。","options":["発言する人の意見を優先して、議論の時間を延ばし、結論を素早く出すことを重視する。","発言の少ない参加者は意見がないとみなして、議事を先に進め、確認も求めない。","発言の機会を全員に均等に設け、意見を出しにくい参加者に意見を求める。","会議の終了後に個別の意見を集める方法だけに頼り、会議中の発言の機会は一切設けない。"],"correctIndex":2,"explanations":["× 誤り。一部の意見だけで決めると、他の参加者の懸念が残り、合意の質も下がる。","× 誤り。意見がないと決めつけると、重要な視点を見落とし、会議の成果が下がる。","○ 正しい。ファシリテーションでは、全員が発言できるよう機会を設計し、意見の偏りを減らすことが重要である。","× 誤り。会議中の発言の機会を設けないと、参加者同士の議論が生まれず、意見の質も上がらない。"]},{"id":"pmp-52","type":"mc","chapterIndex":0,"stem":"メンバーの評価と成長の支援として、最も適切な進め方はどれか。","options":["評価は年に一度の結果だけで行い、途中の進捗や対話は行わずに最終的な判定を伝える。","評価の基準は本人に伝えず、成果が出なかった理由だけを一方的に指摘して、改善を求める。","成長の課題は本人が決めるべきなので、リーダーは一切触れない。","目標と期待する行動を明確にし、定期的に進捗を確認して、成長に向けた次の課題を一緒に決める。"],"correctIndex":3,"explanations":["× 誤り。途中の対話を省くと、本人は改善の方向を知らずに、評価の結果だけを受け取ることになる。","× 誤り。基準を伝えず指摘だけを行うと、本人は改善の方法が分からず、成長にもつながらない。","× 誤り。期待を示さないと、本人は成長の方向を見失い、支援の機会も失われる。","○ 正しい。評価と成長の支援は、期待と進捗を明確にし、定期的な対話で次の課題を決めることで効果が高まる。"]},{"id":"pmp-53","type":"mc","chapterIndex":0,"stem":"チーム内に、公式の役職はないが、他のメンバーから信頼されて影響力を持つ人物がいる。プロジェクトマネージャーが取るべき対応はどれか。","options":["その人物の影響力を理解し、チームの合意形成や知識の共有に役立つよう協力を求める。","公式の役職がないため、その人物の意見は軽く扱う。","その人物の影響力を抑えるため、担当を外し、他のメンバーとの接触を制限する。","その人物に、ほかのメンバーの評価を任せ、評価の結果はそのまま採用し、全員に公表して、以後の評価も同じ方法で行う。"],"correctIndex":0,"explanations":["○ 正しい。非公式なリーダーの影響力は、チームの合意形成に役立つため、その力を活かす協力関係が効果的である。","× 誤り。影響力を無視すると、チームの合意が得られにくく、非公式な懸念も見落としやすい。","× 誤り。影響力を抑え込むと、チームの協力が損なわれ、貴重な知見も失われる。","× 誤り。評価を一人に任せると、公正さが損なわれ、チームの信頼を失うおそれがある。"]},{"id":"pmp-54","type":"mc","chapterIndex":0,"stem":"文化の異なるメンバーの間で、同じ言葉が違う意味で使われて誤解が生じている。最も適切な対応はどれか。","options":["誤解はメンバーの理解力の問題として扱い、本人に理解を求めて、説明は行わない。","用語の意味を具体例で確認し、チームで共通の定義を作って共有する。","誤解を避けるため、チーム内では専門用語の使用を一切禁止し、すべての会話を文書で行う。","誤解が生じるのは言葉が多いからなので、発言を短くする。"],"correctIndex":1,"explanations":["× 誤り。個人の理解力の問題とみなすと、構造的な誤解が解消されず、同じ誤解が続く。","○ 正しい。言葉の意味のずれは、具体例で確認し、共通の定義を作ることで解消しやすくなる。","× 誤り。用語を禁止すると、会話の柔軟性が失われ、必要な議論も進みにくくなる。","× 誤り。発言を短くしても意味のずれは解消されず、誤解が続くおそれがある。"]},{"id":"pmp-55","type":"mc","chapterIndex":0,"stem":"二人のメンバーが対立を続けており、感情的な衝突が業務に影響し始めている。プロジェクトマネージャーとして最も適切な対応はどれか。","options":["対立が業務に影響しているため、どちらか一方を一方的に別の業務へ移し、対立の原因には触れない。","感情的な対立は本人の問題であるため、業務の調整は行わず、双方に冷静になるよう伝え、経過も記録しない。","両者から個別に話を聞き、対立の争点を整理したうえで、共通の目標を確認する場を設ける。","業務への影響が出ている間は、両者の作業の成果を公開して、どちらの貢献が大きいかを示し、比べさせる。"],"correctIndex":2,"explanations":["× 誤り。原因に触れず移すと、対立は解消されず、移された側の不満も残る。","× 誤り。冷静になるよう伝えるだけでは争点が整理されず、業務への影響も放置される。","○ 正しい。感情的な対立は、個別の聴取で争点を整理し、共通の目標を確認することで、建設的な議論に移しやすい。","× 誤り。成果の比較を公開すると、対立がさらに強まり、協力の機会も失われる。"]},{"id":"pmp-56","type":"mc","chapterIndex":0,"stem":"チームの自律性を高めるために、プロジェクトマネージャーが行う取り組みとして、最も適切なものはどれか。","options":["作業の進め方はリーダーが定め、メンバーにはその手順に従うことだけを求める。","チームの判断に任せるため、判断の基準や情報は共有せず、結果だけを事後に確認する。","チームの自律を尊重するため、評価や振り返りは行わない。","チームが自分たちの作業の進め方を決め、必要な情報と判断の基準を共有する仕組みを整える。"],"correctIndex":3,"explanations":["× 誤り。手順だけを押し付けると、チームは自ら判断する機会を失い、自律性が育たない。","× 誤り。基準と情報がなければ、チームは適切な判断をしにくく、自律は高まらない。","× 誤り。振り返りを行わないと、判断の質が改善されず、自律を支える学習の機会も失われる。","○ 正しい。自律性は、判断の基準と情報を共有し、チームが自ら決められる仕組みを整えることで高まる。"]},{"id":"pmp-57","type":"mc","chapterIndex":0,"stem":"プロジェクトの途中で大きな失敗が起きた。チームでの振り返りを行う際に、最も適切な進め方はどれか。","options":["原因を個人ではなくプロセスと状況の面から分析し、再発防止と次の改善の行動を全員で決める。","失敗の責任者を特定し、その人の評価に反映させて、再発を防ぐための見せしめにする。","失敗は予測できなかったものとして、振り返りは行わず、次の作業を速やかに始める。","失敗の原因はプロジェクトマネージャーの判断にあるため、振り返りの場は設けず、自分の中だけで改善策を決める。"],"correctIndex":0,"explanations":["○ 正しい。振り返りは、個人の責任を問うよりプロセスと状況を分析し、改善の行動を全員で決めることに価値がある。","× 誤り。責任者を罰する振り返りは、報告や懸念の表明を妨げ、再発防止にもつながらない。","× 誤り。振り返りを省くと、同じ原因の失敗が再び起きるおそれがある。","× 誤り。チームの参加なしに改善策を決めると、実行されにくく、学びも共有されない。"]},{"id":"pmp-58","type":"mc","chapterIndex":0,"stem":"ステークホルダーとの長期的な関係を築くための行動として、最も適切なものはどれか。","options":["問題が起きたときだけ関係者に連絡し、平常時の接点は必要ないと判断する。","定期的に接点を持ち、関心事を把握して、プロジェクトの状況を先回りして共有する。","関係者との関係は、プロジェクトの成果だけで決まると考え、個人的な関わりや信頼の構築は持たない。","関係者との接点は、利害の大きい人だけに限定し、それ以外の関係者には、報告も連絡も行わない。"],"correctIndex":1,"explanations":["× 誤り。平常時の接点がないと、問題が起きたときに信頼がなく、対応が難しくなる。","○ 正しい。関係の構築は、定期的な接点と関心事の把握、先回りした情報共有の積み重ねによって進む。","× 誤り。個人的な関わりを持たないと、関係者の関心や懸念が見えず、信頼も深まらない。","× 誤り。接点を限定すると、影響の小さい関係者の懸念を見落とし、後に問題が大きくなる。"]},{"id":"pmp-59","type":"mc","chapterIndex":0,"stem":"プロジェクトマネージャーの言動が一貫していないため、メンバーが判断に迷っている。最も適切な対応はどれか。","options":["言動が一貫していなくても、結果が良ければ問題ないため、特に説明は行わず、評価も見直さず、次に進む。","メンバーの判断が迷いを生んでいるため、以後はすべての判断を自分一人で行い、メンバーに判断を任せない。","自分の判断の基準を明確にし、言動の不一致があったことを認めて、今後の方針を説明する。","言動の不一致は、メンバーが十分に理解していないことが原因なので、基準の説明は行わず、同じ言動を繰り返す。"],"correctIndex":2,"explanations":["× 誤り。説明を省くと、メンバーは判断の基準を理解できず、迷いが続く。","× 誤り。判断をすべて抱えると、メンバーの自律が損なわれ、一貫性の問題も解消されない。","○ 正しい。一貫性のない言動は、判断の基準を明確にし、必要に応じて過ちを認めて説明することで信頼を取り戻せる。","× 誤り。同じ言動を繰り返すと、迷いは強まり、信頼を損なう。"]},{"id":"pmp-60","type":"mc","chapterIndex":0,"stem":"プロジェクトマネージャーとして、倫理的な行動の模範を示すために最も重要な行動はどれか。","options":["目標のためなら、規定に沿わない判断も行い、理由は示さない。","誤りが起きた事実は関係者に伝えず、早く解決する。","規定にない場面では判断を後回しにし、行動は取らない。","誠実さと責任を持って判断し、自分の誤りを認めて、チームに透明性を示す。"],"correctIndex":3,"explanations":["× 誤り。規定に沿わない判断を理由を示さず行うと、チームの信頼を損ない、倫理的な模範にはならない。","× 誤り。誤りを隠すと、関係者の信頼を失い、倫理的な行動とは言えない。","× 誤り。規定にない場面で判断を保留すると、責任ある行動が取れず、模範とは言えない。","○ 正しい。倫理的行動の模範は、誠実に判断し、誤りを認め、透明性を示す日常の行動によって示される。"]},{"id":"pmp-61","type":"mc","chapterIndex":1,"stem":"プロジェクト憲章の位置づけとして最も適切なものはどれか。","options":["プロジェクト憲章は、立ち上げ段階の承認文書であり、詳細なスケジュールとコストの見積りは、この段階で確定させておく必要がある。","プロジェクト憲章は、作業の実績を記録する文書である。","プロジェクト憲章は、スポンサーが発行し、目的と主要な要求事項を示して、プロジェクトマネジャーに権限を与える文書である。","プロジェクト憲章は、メンバーの評価を記録する人事文書である。"],"correctIndex":2,"explanations":["× 誤り。詳細な見積りは計画の段階で作成するもので、憲章の時点で確定させるものではない。","× 誤り。実績の記録は実行と監視の文書であり、憲章の役割ではない。","○ 正しい。憲章はスポンサーが発行し、目的と要求事項を示して権限を与える。","× 誤り。人事評価は組織の人事の範囲であり、憲章の内容ではない。"]},{"id":"pmp-62","type":"mc","chapterIndex":1,"stem":"予測型のプロジェクトで、スコープ変更の要求が出された。最初に行うべき対応はどれか。","options":["変更要求は次の計画見直しまで保留し、現行のベースラインどおりに作業を続けて、影響の分析は後回しにし、関係者への説明も後回しにする。","変更要求を即座に承認し、既存の作業計画を修正して、変更の影響は作業が進んでから改めて評価し、その結果を次回のレビューで報告する。","変更要求の提出者と直接交渉し、スコープを縮小する代わりに個別に合意する。","変更要求を変更管理プロセスに登録し、スケジュール・コスト・品質・リスクへの影響を分析して、判断の材料を揃える。"],"correctIndex":3,"explanations":["× 誤り。影響を分析せずに保留すると、判断が遅れてリスクが残る。","× 誤り。影響の評価の前に承認すると、変更管理の統制が働かない。","× 誤り。変更管理プロセスを経ずに個別に交渉すると、合意内容が統制されない。","○ 正しい。変更は変更管理プロセスで登録し、影響を分析してから判断する。"]},{"id":"pmp-63","type":"mc","chapterIndex":1,"stem":"プロジェクトのスケジュールで、クリティカルパスに関する記述として適切なものはどれか。","options":["最も長い経路であり、その経路上の作業が遅れると、プロジェクト全体の完了日も遅れる。","最も短い経路であり、その経路上の作業が遅れても、全体の完了日には影響せず、余裕も生じない。","担当者ごとに決められる経路であり、プロジェクト全体の完了日とは関係がなく、進捗の管理にも用いない。","費用が最も少ない作業だけを結んだ経路であり、その経路は短縮の対象にせず、完了日の管理にも用いず、関係者にも伝えない。"],"correctIndex":0,"explanations":["○ 正しい。最も長い経路がクリティカルパスであり、遅延は全体の完了日に直結する。","× 誤り。最も短い経路は、クリティカルパスではない。","× 誤り。クリティカルパスは、プロジェクト全体の完了日を決める経路である。","× 誤り。費用の少なさは、クリティカルパスを決める条件ではない。"]},{"id":"pmp-64","type":"mc","chapterIndex":1,"stem":"CPI（コスト効率指数）が0.8のプロジェクトに関する記述として最も適切なものはどれか。","options":["実際のコストに対して出来高が多く、コストの効率が計画を上回っていることを示している。","1の価値の出来高を得るのに約1.25の費用がかかっており、コストが予算を超過している状態を示している。","スケジュールが予定より進んでいることを示すため、コストの状況については特に対応が不要である。","完了時のコストが計画どおりに収まることを示しており、この時点で予算を見直す必要はない。"],"correctIndex":1,"explanations":["× 誤り。CPIが1未満のときは、コストが超過しており、出来高は費用に見合っていない。","○ 正しい。CPIは出来高を実費で割った値なので、0.8は費用の超過を示す。","× 誤り。スケジュールの進みはSPIで判断し、CPIとは別の指標である。","× 誤り。CPIが1未満であれば、計画どおりに収まるとは言えない。"]},{"id":"pmp-65","type":"mc","chapterIndex":1,"stem":"品質計画に関する記述として、最も適切なものはどれか。","options":["品質の基準と測定方法を定め、品質の検査は作業を完了した後に一度だけ実施すればよいとし、途中の検査は行わない。","問題が発生したときに、その都度担当者が判断して対応を決める。","品質の基準と測定方法を定め、プロセスの改善や検証の計画も含めて、作業の開始前に決める。","品質の管理を外部の検査機関に一任し、プロジェクト内では基準を設けない。"],"correctIndex":2,"explanations":["× 誤り。検査を完了後だけに行うと、早期の欠陥発見ができない。","× 誤り。問題が起きてから決めると、計画の役割を果たさない。","○ 正しい。品質計画は基準、測定、改善と検証の方法を開始前に定める。","× 誤り。品質の管理を一任しても、プロジェクトとして基準を持つ責任は残る。"]},{"id":"pmp-66","type":"mc","chapterIndex":1,"stem":"脅威に対するリスク対応戦略のうち、発生確率または影響を許容できる水準まで下げることを目的とする戦略はどれか。","options":["回避は、リスクの原因を取り除いて、脅威が発生しない状態にする戦略である。","転嫁は、リスクの影響を第三者に移す戦略であり、リスクそのものは残るため、事前の対応は不要である。","受容は、リスクに対して何もせず、発生したときに対応する戦略であり、事前の計画は不要であるため、対応の準備も行わない。","低減は、脅威の発生確率または影響を許容できる水準まで下げるための対応を行う戦略である。"],"correctIndex":3,"explanations":["× 誤り。回避はリスクの原因を取り除く戦略であり、確率や影響を減らすという目的とは異なる。","× 誤り。転嫁は、影響を第三者に移す戦略であり、確率や影響を減らすという目的とは異なる。","× 誤り。受容は、事前の対応をとらずに受け入れる戦略であり、低減の目的とは異なる。","○ 正しい。低減は、発生確率または影響を許容水準まで下げる対応である。"]},{"id":"pmp-67","type":"mc","chapterIndex":1,"stem":"アジャイル型の開発で、スプリント計画会議の目的として最も適切なものはどれか。","options":["次のスプリントで取り組む作業を開発チームが選び、スプリントのゴールを決める。","次のスプリントの作業を、プロダクトオーナーが一方的に決定して開発チームに通知する。","プロジェクト全体の完了日を確定させるための会議であり、スプリントごとの開発は行わない。","前のスプリントの振り返りを行うための会議であり、その場では次の作業の選択は行わず、後日の計画に委ねる。"],"correctIndex":0,"explanations":["○ 正しい。計画会議では、チームが作業を選び、スプリントのゴールを決める。","× 誤り。作業の選択は、開発チームが行う。プロダクトオーナーは優先順位を示す役割である。","× 誤り。完了日の確定は、計画会議の目的ではない。","× 誤り。前のスプリントの振り返りは、レトロスペクティブの役割である。"]},{"id":"pmp-68","type":"mc","chapterIndex":1,"stem":"ハイブリッド型のプロジェクトで、予測型とアジャイルで進める部分を併用する場合の進め方として最も適切なものはどれか。","options":["すべてをアジャイルで進め、予測型の計画は必要な時にのみ作成する。","両者の境界、報告の方法、変更管理の手順をあらかじめ定めて関係者に共有し、統合的に管理する。","両者を別の組織として切り離し、互いの進捗は共有しない。","計画の変更を認めず、最初に決めたスコープとスケジュールを最後まで固定する。"],"correctIndex":1,"explanations":["× 誤り。すべてアジャイルに寄せ、必要時にだけ計画を作るのは、ハイブリッドの設計ではない。","○ 正しい。境界、報告、変更管理を事前に定めて共有すると、両方の進め方を統合できる。","× 誤り。進捗を共有しない切り離しは、全体の統制を失わせる。","× 誤り。計画の変更を認めないのは、適応的な進め方と矛盾する。"]},{"id":"pmp-69","type":"mc","chapterIndex":1,"stem":"変更管理に関する記述として、最も適切なものはどれか。","options":["担当者が必要と判断した変更は、承認を待たずにベースラインへ直ちに反映してよく、事後の報告も行わなくてよい。","変更の記録は、プロジェクトの完了時にまとめて作成すればよく、途中の変更は記録しない。","承認された変更だけをベースラインに反映し、承認の記録を残して、影響を追跡できるようにする。","スケジュールに影響しない小さな変更については、変更管理を適用する必要はない。"],"correctIndex":2,"explanations":["× 誤り。承認を待たない反映は、変更管理の統制を損なう。","× 誤り。途中の変更を記録しないと、ベースラインの履歴を追えなくなる。","○ 正しい。承認された変更だけを反映し、記録を残すことで影響を追跡できる。","× 誤り。小さな変更も記録と承認の対象であり、規模で免除する理由はない。"]},{"id":"pmp-70","type":"mc","chapterIndex":1,"stem":"プロジェクトの終結プロセスで行うべき作業として最も適切なものはどれか。","options":["プロジェクト完了後は、メンバーを直ちに解散させ、教訓の収集は次のプロジェクトで必要になった時点で行い、記録は残さず、関係者への報告も行わない。","成果物の受入れは、スポンサーの承認を必要とせず、担当者の判断で完了を宣言すれば足り、受入れの記録も残さず、関係者への周知も行わない。","契約の終了は、プロジェクトの完了前に行い、残った作業は通常業務として引き継ぎ、関係者の合意も得ない。","成果物の受入れを確認し、教訓を収集して文書化し、契約の終了手続を行ったうえで、記録を組織の資産として保管する。"],"correctIndex":3,"explanations":["× 誤り。教訓の収集を後回しにすると、組織の学習が失われる。","× 誤り。受入れはスポンサーなどの承認を得て行うべきで、担当者の判断だけでは足りない。","× 誤り。契約の終了は、契約の条件に従い、成果物の受入れの後に行う。","○ 正しい。受入れ、教訓の文書化、契約の終了、記録の保管を行うのが終結の作業である。"]},{"id":"pmp-71","type":"mc","chapterIndex":1,"stem":"予測型のプロジェクトで、EV（出来高）が200万円、PV（計画価値）が250万円、AC（実績コスト）が240万円のとき、SPIの値として最も適切なものはどれか。","options":["0.80であり、スケジュールは計画より遅れている。","0.83であり、EVをACで割った値で、コストが予定より超過していることを示している。","1.25であり、PVをEVで割った値で、スケジュールは計画より進んでいることを示している。","1.20であり、PVとACを使った誤った計算で、コストの状況を正しく示す値である。"],"correctIndex":0,"explanations":["○ 正しい。SPIはEV÷PVで、200÷250=0.80。1未満なので遅れを示す。","× 誤り。0.83はEVとACの比率に近い値で、SPIの計算式とは異なる。","× 誤り。1.25はPVをEVで割った値で、SPIの定義と逆になっている。","× 誤り。1.20はPVとACを使った誤った計算であり、コストの状況を示さない。"]},{"id":"pmp-72","type":"mc","chapterIndex":1,"stem":"リスク登録簿に記録すべき内容として最も適切なものはどれか。","options":["リスクの内容だけを記録し、発生確率や担当者は発生後に追記する。","リスクの内容、発生確率と影響、担当者、対応策、現在の状態を記録し、定期的に見直す。","成功に影響するリスクだけを記録し、軽微なものは省く。","完了時に一度だけ作成すればよく、途中で更新する必要はない。"],"correctIndex":1,"explanations":["× 誤り。確率や担当者は、発生の前に評価して記録しておく必要がある。","○ 正しい。登録簿は内容、確率、影響、担当者、対応策、状態を記録し、見直す。","× 誤り。軽微なリスクも後に拡大することがあるため、記録して監視する。","× 誤り。登録簿は継続的に更新する文書であり、完了時の一回だけでは足りない。"]},{"id":"pmp-73","type":"mc","chapterIndex":1,"stem":"調達の契約形態のうち、売手がコストの超過リスクを最も多く負う契約として最も適切なものはどれか。","options":["原価加算契約は、実費に手数料を加える契約であり、コストの超過リスクは売手が多く負うため、契約の交渉で価格を重視する。","実費償還契約は、かかった実費を買手が負担する契約であり、売手のリスクは小さい。","固定価格契約は、事前に合意した価格で作業を行う契約であり、コストの超過分は売手が負う。","時間と材料契約は、作業に応じた費用を売手が負うため、リスクは売手が常に全部負う。"],"correctIndex":2,"explanations":["× 誤り。原価加算契約では、実費は買手が負うため、売手のリスクは固定価格契約より小さい。","× 誤り。実費償還契約は、実費を買手が負担するため、売手のリスクは小さい。","○ 正しい。固定価格契約では、コストの超過分を売手が負うため、売手のリスクが最も大きい。","× 誤り。時間と材料契約では、一部のリスクを買手が負うため、売手が全部負うわけではない。"]},{"id":"pmp-74","type":"mc","chapterIndex":1,"stem":"コミュニケーション計画に関する記述として、最も適切なものはどれか。","options":["すべての情報を全関係者に同じ頻度と方法で配布し、相手ごとの立場や必要性の違いは考慮せず、一律の運用とする。","問題が起きたときに、その都度の判断で決めればよく、事前に計画を作成する必要はなく、必要が生じた時点で調整する。","情報の配布を最小限にとどめ、重要な情報であっても、関係者が求めた場合にのみ提供する。","関係者ごとに情報の内容、頻度、方法、責任者を定め、必要な情報が必要な相手に届くようにする。"],"correctIndex":3,"explanations":["× 誤り。全員に同じ頻度と方法で配布すると、関係者の必要に合わない。","× 誤り。問題が起きてから決めると、情報の伝達が遅れる。","× 誤り。重要な情報は求められなくても、関係者に提供する必要がある。","○ 正しい。関係者ごとの内容・頻度・方法・責任者を定めると、必要な情報が届く。"]},{"id":"pmp-75","type":"mc","chapterIndex":1,"stem":"ステークホルダーのエンゲージメントに関する記述として、最も適切なものはどれか。","options":["関与の現状と目標を比較して把握し、差がある場合は関与の方法を見直して調整する。","関与度は、プロジェクトの開始時に一度評価すれば、以後は見直さなくてよく、関係者の変化にも対応しない。","関与は、影響力の大きい人だけを対象とし、他の関係者には伝えず、関与の結果も評価しない。","関与は、プロジェクトマネジャーの責任であり、スポンサーは関与せず、関係者の意見も集めず、進め方も決めない。"],"correctIndex":0,"explanations":["○ 正しい。現状と目標の関与度を比べ、必要に応じて関与の方法を見直す。","× 誤り。関与度は、プロジェクトの状況に応じて継続的に評価する必要がある。","× 誤り。影響の小さい関係者にも、必要な情報を提供する必要がある。","× 誤り。スポンサーなどの関与は、プロジェクトの方向を決めるうえで重要である。"]},{"id":"pmp-76","type":"mc","chapterIndex":1,"stem":"スコープ定義とWBS（作業分解構成図）の関係として最も適切なものはどれか。","options":["WBSは、スケジュールの作成を終えた後に作る文書であり、スコープの定義には使われない。","WBSは、スコープの定義をもとに、成果物を管理可能な作業パッケージに分解したものであり、スコープの範囲を示す。","WBSは、プロジェクトの予算を決めるための文書であり、スコープの範囲とは関係がない。","WBSは、プロジェクトの完了時に作成し、作業の実績を記録するための文書である。"],"correctIndex":1,"explanations":["× 誤り。WBSはスケジュールの前に作成し、スコープの定義を支えるものである。","○ 正しい。WBSは成果物をもとに作業を分解し、スコープの範囲を示す。","× 誤り。WBSはスコープの範囲を示すもので、予算を決める文書ではない。","× 誤り。作業の実績の記録は、実行の段階の役割であり、WBSの役割ではない。"]},{"id":"pmp-77","type":"mc","chapterIndex":1,"stem":"進捗管理で、EAC（完了時予測）を求める式として一般に用いられるものはどれか。","options":["EAC = AC + BAC（残りの作業を計画どおりに行うと仮定した場合で、実績の差異は考慮しない）","EAC = PV ÷ SPI（スケジュールの効率が続く場合）","EAC = BAC ÷ CPI（現在のコスト効率が続くと仮定した場合）","EAC = EV − AC（コストの差額を完了時に加えた場合）"],"correctIndex":2,"explanations":["× 誤り。AC＋BACは、残りの作業が計画どおりでも、過去の超過を反映しない。","× 誤り。PV÷SPIはスケジュールの指標を用いた式で、EACの一般式ではない。","○ 正しい。現在のコスト効率が続くと仮定すると、EACはBAC÷CPIで求められる。","× 誤り。EV−ACは現時点の差額であり、完了時の予測を示すものではない。"]},{"id":"pmp-78","type":"mc","chapterIndex":1,"stem":"アジャイル型の要求管理に用いるプロダクトバックログの運用として最も適切なものはどれか。","options":["プロジェクトの開始時に確定させ、以後は変更しないことで、スコープの安定を図り、要求の変化は次のプロジェクトで扱う。","開発チームだけが参照する作業メモであり、ステークホルダーには公開しない。","各スプリントの終わりに初めて作成し、次のスプリントの計画にだけ使い、それ以外の場面では参照しない。","優先順位付きの要求の一覧であり、プロダクトオーナーが管理して、必要に応じて継続的に見直す。"],"correctIndex":3,"explanations":["× 誤り。変更しないと、顧客の学びや市場の変化を取り込めない。","× 誤り。ステークホルダーと情報を共有しないと、優先順位の判断ができない。","× 誤り。バックログは、プロジェクトの初めから継続的に作成し、更新する。","○ 正しい。プロダクトバックログは優先順位付きの要求の一覧で、継続的に見直す。"]},{"id":"pmp-79","type":"mc","chapterIndex":1,"stem":"リスクの定量分析の手法として、最も適切なものはどれか。","options":["決定木分析は、選択肢ごとの結果と確率を樹形図で表し、期待値を比較して意思決定に使う手法である。","ブレーンストーミングは、リスクの数量を求めるための統計的な手法であり、確率分布を用いて評価するとともに、結果を金額で示す。","根本原因分析は、リスクの発生確率を、過去のデータから自動的に決定する手法であり、原因の究明には用いない。","チェックリストは、リスクの影響を金額で計算するための手法であり、期待値を求めて、その大きさを比較する。"],"correctIndex":0,"explanations":["○ 正しい。決定木は結果と確率を樹形図で表し、期待値で比較する。","× 誤り。ブレーンストーミングはリスクを洗い出す技法で、数量化の手法ではない。","× 誤り。根本原因分析は、問題の原因を探る手法で、確率を自動で決めるものではない。","× 誤り。チェックリストはリスクの識別に使う技法で、金額の期待値を求めるものではない。"]},{"id":"pmp-80","type":"mc","chapterIndex":1,"stem":"資源の平準化を行う目的として最も適切なものはどれか。","options":["完了日を短縮するため、資源の割当てを増やして作業を並行させる。","資源の使用量の山と谷を減らし、資源の過剰な割当てを避けるために、作業の開始日を調整する。","クリティカルパス上の作業を優先して、クリティカルでない作業の資源を削減する。","コストを増やしてでも、全作業を最も早く完了させるための方法である。"],"correctIndex":1,"explanations":["× 誤り。完了日の短縮は、資源の平準化ではなく、資源の集中によるクラッシングの目的である。","○ 正しい。平準化は資源の山と谷を減らし、過剰な割当てを避けることが目的である。","× 誤り。クリティカルでない作業の資源を削ると、かえって遅延の影響を受けやすくなる。","× 誤り。コストを増やす方法は、平準化の目的とは異なる。"]},{"id":"pmp-81","type":"mc","chapterIndex":1,"stem":"変更管理委員会（CCB）の役割として最も適切なものはどれか。","options":["変更要求を自ら作成し、承認なしで実施する権限を持つ。","プロジェクトの完了後にのみ開催され、途中で出された変更要求は審議せず、次の段階に持ち越す。","変更要求の影響を評価し、承認、却下、保留などの判断を行い、その結果を記録する。","変更の承認を担当者の判断に任せ、結果の記録は行わない。"],"correctIndex":2,"explanations":["× 誤り。CCBは変更を作る役割ではなく、要求を審議して判断する。","× 誤り。途中の変更要求こそが、CCBの審議の対象である。","○ 正しい。CCBは影響を評価して判断し、結果を記録する。","× 誤り。判断を担当者に任せると、統制と記録が働かない。"]},{"id":"pmp-82","type":"mc","chapterIndex":1,"stem":"プロジェクトの終結で、教訓の収集の目的として最も適切なものはどれか。","options":["プロジェクトメンバーの評価を行い、人事上の処遇や次の配置を決めるために行う。","プロジェクトの完了後には不要であり、次のプロジェクトでは行わず、記録も残さず、教訓も共有しない。","契約の金額を見直すための交渉材料とし、他の目的では使わず、関係者の評価にも用いず、社内の記録にも残さない。","成功と失敗の要因を整理し、組織のプロセスや今後のプロジェクトに反映するために行う。"],"correctIndex":3,"explanations":["× 誤り。教訓の目的は、人事評価ではなく組織の学習である。","× 誤り。教訓は次のプロジェクトで活用するため、完了後も必要である。","× 誤り。教訓は契約交渉に限らず、組織の資産として広く活用する。","○ 正しい。教訓は組織の学習のため、要因を整理してプロセスに反映する。"]},{"id":"pmp-83","type":"mc","chapterIndex":1,"stem":"予測型のプロジェクトで、ベースラインの役割として最も適切なものはどれか。","options":["承認された計画の基準であり、実績と比較して進捗やコストの差異を評価するための基準として使う。","実績の記録を反映して毎日更新される文書であり、計画の基準としては使わず、変更の承認も不要とし、記録も残さない。","プロジェクトの開始前にのみ存在し、実行中は参照されないため、保管しておく必要はなく、完了後も廃棄してよい。","担当者が自由に変更できる文書であり、変更に承認は必要なく、関係者への周知や記録の保存も不要である。"],"correctIndex":0,"explanations":["○ 正しい。ベースラインは承認された計画で、実績との差異を評価する基準になる。","× 誤り。ベースラインは承認された基準で、毎日の実績で書き換えるものではない。","× 誤り。ベースラインは実行中に差異の評価の基準として参照する。","× 誤り。ベースラインの変更には承認が必要で、担当者が自由に変えてはならない。"]},{"id":"pmp-84","type":"mc","chapterIndex":1,"stem":"脅威を受け入れたうえで、発生に備えて予備の時間や予算を確保しておく戦略はどれか。","options":["受動的受容は、リスクを受け入れるが、予備を用意せず、発生したときに初めて対応する戦略である。","能動的受容は、リスクを受け入れたうえで、発生した場合に備えて、予備の時間や予算を確保しておく戦略である。","回避は、リスクを受け入れたうえで、予備を確保しておく戦略であり、リスクの原因は残る。","転嫁は、リスクの影響を予備として自社内で保有し、外部には移さない戦略である。"],"correctIndex":1,"explanations":["× 誤り。受動的受容は、予備を用意せず、発生時に対応する戦略である。","○ 正しい。能動的受容は、予備を確保して受け入れるリスク対応である。","× 誤り。回避はリスクの原因を取り除く戦略で、予備の確保を伴う受容とは異なる。","× 誤り。転嫁は影響を第三者に移す戦略で、予備を自社で保有する戦略ではない。"]},{"id":"pmp-85","type":"mc","chapterIndex":1,"stem":"スクラムのふりかえり（レトロスペクティブ）の目的として最も適切なものはどれか。","options":["個々のメンバーの業務評価を行い、報酬や昇進、配置転換の決定に用い、その結果を個人の処遇にも反映させるために行う。","プロダクトの完成を確認するための受入れ検査であり、顧客が参加して行う。","チームが作業の進め方を振り返り、次のスプリントでの改善点を決めるために行う。","スプリントの計画を、プロダクトオーナーが一方的に変更するために行う。"],"correctIndex":2,"explanations":["× 誤り。ふりかえりは個人評価の場ではなく、チームの改善の場である。","× 誤り。受入れ検査は、スプリントレビューで行う役割である。","○ 正しい。ふりかえりはチームの進め方を振り返り、改善を決めるために行う。","× 誤り。計画の変更はチームと協働して行うもので、一方的に行うものではない。"]},{"id":"pmp-86","type":"mc","chapterIndex":1,"stem":"要望と制約が対立した場合のプロジェクトマネジャーの対応として最も適切なものはどれか。","options":["単独で判断して進め、結果は後から関係者に報告する。","対立を避けるため、要望の内容を記録せず、制約を満たす範囲だけで作業を続け、要望への対応は見送る。","対立の解消は、プロジェクトの完了後に行うものとし、それまでは現状のまま進めて、関係者への説明も行わない。","対立の内容と影響を整理し、スポンサーなどの意思決定者と協議して、合意できる判断を導く。"],"correctIndex":3,"explanations":["× 誤り。単独の判断で進めると、関係者の合意と統制を損なう。","× 誤り。要望を記録しないと、判断の根拠を残せない。","× 誤り。対立を後回しにすると、影響が広がり、判断が遅れる。","○ 正しい。対立の影響を整理し、意思決定者と協議して合意を導くのが適切である。"]},{"id":"pmp-87","type":"mc","chapterIndex":1,"stem":"予測型プロジェクトの進捗を評価するEVMの指標として最も適切なものはどれか。","options":["EV、PV、ACを用いて、コストとスケジュールの効率を測り、完了時のコストを予測する。","EVを用いて、プロジェクトの品質の水準だけを測り、コストやスケジュールは評価せず、変更の判断にも使わない。","PVを用いて、リスクの発生確率を測り、対応策の効果を評価し、その結果を完了時のコストの予測に反映する。","ACを用いて、メンバーの作業時間だけを測り、成果物の出来高とは結びつけず、評価にも使わない。"],"correctIndex":0,"explanations":["○ 正しい。EV、PV、ACを用いると、コストとスケジュールの効率と完了時予測を評価できる。","× 誤り。EVは出来高の価値であり、品質の水準を測るものではない。","× 誤り。PVは計画価値であり、リスクの発生確率を測る指標ではない。","× 誤り。ACは実績コストであり、作業時間だけを測るものではない。"]},{"id":"pmp-88","type":"mc","chapterIndex":1,"stem":"アジャイル型で、顧客の要求が途中で変わる場合の進め方として最も適切なものはどれか。","options":["要求の変更は途中では受け付けず、リリース後に次のプロジェクトで扱う。","要求の変更はバックログの優先順位の見直しとして受け入れ、次のスプリントの計画で反映する。","要求の変更は、現在のスプリントに直ちに組み込み、そのたびにゴールを変える。","要求の変更は、プロダクトオーナーが一人で判断し、開発チームには伝えずに反映する。"],"correctIndex":1,"explanations":["× 誤り。途中の変更を受け付けないと、顧客の価値を最大化できない。","○ 正しい。変更はバックログの優先順位に反映し、次のスプリントで扱うのが基本である。","× 誤り。進行中のスプリントのゴールを毎回変えると、チームの計画が成り立たない。","× 誤り。開発チームに伝えずに反映すると、透明性と合意が失われる。"]},{"id":"pmp-89","type":"mc","chapterIndex":1,"stem":"売手の選定基準を事前に設定する目的として最も適切なものはどれか。","options":["選定後に基準を決めることで、評価の結果に合わせた柔軟な判断ができるようにするため。","価格だけで決め、評価の手間を省くため。","評価の公平性と透明性を確保し、必要な能力を持つ売手を選定するために行う。","売手の意向に合わせて設定することで、契約の交渉を早く進めるため。"],"correctIndex":2,"explanations":["× 誤り。選定後に基準を決めると、評価の公平性が損なわれる。","× 誤り。価格だけで選ぶと、能力や品質の評価が抜け落ちる。","○ 正しい。事前の基準は公平性と透明性を確保し、適切な売手の選定につながる。","× 誤り。売手の意向に合わせた基準は、公平な選定を損なう。"]},{"id":"pmp-90","type":"mc","chapterIndex":1,"stem":"スケジュールの圧縮方法の一つであるファストトラッキングに関する記述として最も適切なものはどれか。","options":["資源を追加して作業時間を短縮する方法であり、コストやリスクは増えず、品質の確保も容易になり、関係者の理解も得やすくなる。","クリティカルパス以外の作業を削減して、全体の期間を短縮する方法であり、クリティカルパス上の作業には影響しない。","作業の品質基準を下げて、作業時間を短縮する方法である。","本来は順番に行う作業を並行して進める方法であり、期間を短縮できる一方、手戻りのリスクが増える。"],"correctIndex":3,"explanations":["× 誤り。資源の追加による短縮はクラッシングであり、ファストトラッキングとは異なる。","× 誤り。クリティカルでない作業の削減は、期間の短縮に直接つながらない。","× 誤り。品質基準を下げる方法は、圧縮の手法として適切ではない。","○ 正しい。ファストトラッキングは作業を並行させて期間を縮めるが、手戻りのリスクが増える。"]},{"id":"pmp-91","type":"mc","chapterIndex":1,"stem":"実行段階で計画と実績に差異が生じた場合に行う対応として最も適切なものはどれか。","options":["差異の原因を分析し、是正措置や予防措置を検討して、必要に応じて変更要求として提出する。","差異は、プロジェクトの完了時にまとめて報告し、実行中は計画を変えずに進め、関係者への共有も行わない。","差異が小さい場合は、記録を残さず、次の作業で自然に吸収されるものとして扱い、原因の分析も行わない。","差異の原因は担当者の責任として明確にし、計画の見直しは行わず、同じ方法で作業を続けることを求め、報告も不要とする。"],"correctIndex":0,"explanations":["○ 正しい。差異の原因を分析し、是正・予防の措置を検討して、必要なら変更要求にする。","× 誤り。完了時に報告すると、差異への対応が遅れる。","× 誤り。記録を残さないと、差異の傾向と原因を分析できない。","× 誤り。原因を担当者に帰すだけでは、計画の改善につながらない。"]},{"id":"pmp-92","type":"mc","chapterIndex":1,"stem":"プロジェクトのステークホルダーの特定で最も適切なものはどれか。","options":["契約の相手方だけを対象とし、社内の関係者は対象に含めない。","プロジェクトに影響を与える、または影響を受ける個人や組織を洗い出し、関与の内容を整理する。","プロジェクトの完了時に行い、実行中の関係者は対象とせず、後から追加する。","プロジェクトマネジャーの個人的な人脈だけを対象とする。"],"correctIndex":1,"explanations":["× 誤り。社内の関係者も、プロジェクトに影響を与えうるため対象に含める必要がある。","○ 正しい。影響を与える、または受ける関係者を洗い出し、関与の内容を整理する。","× 誤り。実行中の関係者も対象であり、完了時だけでは関与の管理が遅れる。","× 誤り。個人的な人脈だけでは、関係者の洗い出しとして網羅性を欠く。"]},{"id":"pmp-93","type":"mc","chapterIndex":1,"stem":"コンティンジェンシー予備（既知のリスクへの予備）の扱いとして最も適切なものはどれか。","options":["マネジメント予備と同じものであり、既知のリスクへの対応には使えず、全体の予算からのみ配分される。","プロジェクトの完了後に残った予算として、必要に応じて配分する。","既知のリスクに対応するために設定し、ベースラインの一部として管理する。","担当者が自由に使える予算であり、報告や承認は不要である。"],"correctIndex":2,"explanations":["× 誤り。マネジメント予備は未知のリスクに対応するもので、同じものではない。","× 誤り。完了後の残りを配分するのは予備の管理として適切ではない。","○ 正しい。既知のリスクへの予備は、ベースラインの一部として管理する。","× 誤り。予備の使用には、報告と承認が必要である。"]},{"id":"pmp-94","type":"mc","chapterIndex":1,"stem":"作業の順序関係を示す先行関係の種類として最も適切なものはどれか。","options":["開始から開始（SS）は、後続作業が終了した後に、先行作業を開始する関係である。","開始から終了（SF）は、先行作業が終了すると後続作業が直ちに開始する関係であり、順序の管理も行わず、ほとんど用いられない。","終了から終了（FF）は、後続作業が開始すると先行作業が直ちに終了する関係であり、両作業の完了時期をそろえる際に用いる。","終了から開始（FS）は、先行作業が終了した後に後続作業を開始する関係であり、最も一般的に用いられる。"],"correctIndex":3,"explanations":["× 誤り。SSは、先行作業の開始に合わせて後続作業を始める関係で、定義が逆になっている。","× 誤り。SFは、後続作業の終了が先行作業の開始に依存する関係であり、先行作業の終了で後続作業が直ちに始まるわけではない。","× 誤り。FFは、両作業の終了を揃える関係であり、後続の開始に先行の終了を結びつけない。","○ 正しい。FSは先行作業の終了後に後続作業を始める、最も一般的な関係である。"]},{"id":"pmp-95","type":"mc","chapterIndex":1,"stem":"三点見積りによる作業期間の期待値の計算式として最も適切なものはどれか。","options":["期待値 = （楽観値 + 4 × 最頻値 + 悲観値）÷ 6","期待値 = （楽観値 + 最頻値 + 悲観値）÷ 3 として、最頻値に重みをつけずに平均する。","期待値 = 最頻値 × 2 + 楽観値 ÷ 悲観値 として、結果を作業期間の平均値として扱い、重みは用いない。","期待値 = 悲観値 − 楽観値 として、範囲の大きさを求め、その値を作業期間の期待値とみなして計画に用いる。"],"correctIndex":0,"explanations":["○ 正しい。三点見積りの期待値は、楽観値と悲観値に最頻値を重みをつけて加えて6で割る。","× 誤り。重みをつけない単純平均は、三点見積りの標準的な計算式ではない。","× 誤り。式の構成が三点見積りの定義と合わない。","× 誤り。悲観値と楽観値の差は範囲であり、期待値の求め方ではない。"]},{"id":"pmp-96","type":"mc","chapterIndex":1,"stem":"予測型のプロジェクトで、監視とコントロールに含まれる活動として最も適切なものはどれか。","options":["計画の作成を行い、ベースラインを初めて設定して、プロジェクトの範囲を確定させる。","進捗とパフォーマンスを測定し、計画との差異を分析して、必要な是正措置や変更要求を提出する。","プロジェクトの完了後に成果物を引き渡し、契約を終了させて、記録を保管する。","プロジェクトの立ち上げ時に、憲章を作成し、スポンサーの承認を得る。"],"correctIndex":1,"explanations":["× 誤り。計画の作成と初期のベースラインの設定は、計画のプロセスに属する。","○ 正しい。監視とコントロールは測定、差異分析、是正と変更の提出を含む。","× 誤り。引渡しと契約の終了は、終結のプロセスに属する。","× 誤り。憲章の作成は、立ち上げのプロセスに属する。"]},{"id":"pmp-97","type":"mc","chapterIndex":1,"stem":"スケジュール管理で、フロート（余裕）が0の作業に関する記述として最も適切なものはどれか。","options":["クリティカルパス上になく、遅延しても完了日には影響しないため、優先して管理する必要はない。","コストが最も少ない作業であり、管理は省く。","クリティカルパス上にあり、遅延すると、プロジェクト全体の完了日が遅れる。","プロジェクトの完了後に行う作業であり、スケジュールには含まれない。"],"correctIndex":2,"explanations":["× 誤り。フロートが0なら、遅延は完了日に影響する。","× 誤り。コストの少なさは、管理の優先度を決める基準ではない。","○ 正しい。フロート0はクリティカルパス上にあり、遅延は完了日に直結する。","× 誤り。完了後の作業は、スケジュールの一部として管理する必要がある。"]},{"id":"pmp-98","type":"mc","chapterIndex":1,"stem":"品質管理で、パレート図の用途として最も適切なものはどれか。","options":["データの時間的な推移を示し、将来の値を予測するために用いるとともに、異常の有無を判断する。","2つの変数の関係を示し、相関の強さを測るために用いて、因果関係を証明し、原因の特定にも使う。","作業の手順を図で示し、作業の担当者を決めるために用いる。","問題の原因を頻度の大きい順に並べて示し、改善の優先順位を決めるために用いる。"],"correctIndex":3,"explanations":["× 誤り。時間的な推移は、管理図などで示すもので、パレート図の用途ではない。","× 誤り。2変数の関係は、散布図で示すもので、パレート図とは異なる。","× 誤り。作業の手順は、フローチャートなどで示すもので、パレート図の用途ではない。","○ 正しい。パレート図は頻度順に示し、改善の優先順位を決める。"]},{"id":"pmp-99","type":"mc","chapterIndex":1,"stem":"プロジェクト憲章に基づいてスコープ記述書を作成する目的として最も適切なものはどれか。","options":["プロジェクトの範囲、成果物、除外事項を明確にし、関係者の合意の基準とするために作成する。","プロジェクトの完了後に作成し、実施した作業と使用した資源を記録するために作成し、以後の計画では参照しない。","メンバーの役割を決めるために作成し、範囲の定義は含まず、成果物の確認にも用いず、担当者の評価にも使う。","契約の金額を決めるためだけに作成し、成果物の内容は記載せず、関係者の合意の基準にもせず、変更の手続も定めない。"],"correctIndex":0,"explanations":["○ 正しい。範囲、成果物、除外事項を明確にし、合意の基準とするのが目的である。","× 誤り。完了後の記録は、スコープ記述書の目的ではない。","× 誤り。役割の決定は組織計画の役割で、スコープ記述書の範囲定義を省くものではない。","× 誤り。成果物の内容は、スコープ記述書の中心的な記載事項である。"]},{"id":"pmp-100","type":"mc","chapterIndex":1,"stem":"要求事項の収集の手法として最も適切なものはどれか。","options":["要求事項は、プロジェクトマネジャーが単独で決め、ステークホルダーには確認しない。","インタビュー、ワークショップ、観察などを組み合わせて、ステークホルダーの要求を引き出し、記録する。","要求事項は、過去のプロジェクトの要求をそのまま流用し、新たな収集は行わない。","要求事項は、契約の締結後に売手が一方的に決め、買手の確認は必要ない。"],"correctIndex":1,"explanations":["× 誤り。ステークホルダーの確認なしでは、要求の妥当性を確かめられない。","○ 正しい。インタビューやワークショップなどで要求を引き出し、記録する。","× 誤り。過去の要求の流用は、今回の要求を捉えられない。","× 誤り。買手の確認を省くと、後に合意の食い違いが生じる。"]},{"id":"pmp-101","type":"mc","chapterIndex":1,"stem":"予測型とアジャイル型を選択する際に考慮すべき要因として最も適切なものはどれか。","options":["開発チームの好みだけを基準に決め、顧客の関与、要求の確実性、組織の方針は考慮せず、そのときの流行に合わせて決める。","組織の過去の方法を常に踏襲し、プロジェクトごとの違いは考慮しない。","要求の確実性、顧客の関与、変化への対応の必要性、リスクの性質を考慮して、適切な進め方を選ぶ。","コストが最も少ない方法を、要因の確認なしに一律に採用する。"],"correctIndex":2,"explanations":["× 誤り。チームの好みだけで決めると、プロジェクトの特性に合わない。","× 誤り。過去の方法の踏襲だけでは、プロジェクトの違いに対応できない。","○ 正しい。要求の確実性や顧客の関与などを考慮して、適切な進め方を選ぶ。","× 誤り。要因の確認なしの一律の採用は、適切な判断とは言えない。"]},{"id":"pmp-102","type":"mc","chapterIndex":1,"stem":"チームの成長を促すために行う活動として最も適切なものはどれか。","options":["チームの役割は固定せず、担当の変更を頻繁に行い、チームの成長の機会を減らし、メンバーの定着も図らず、評価の基準も示さない。","チームの成果は個人の業績だけで評価し、チームとしての協働は評価せず、貢献の度合いも問わない。","メンバーには必要な情報を与えず、判断はリーダーに集中させ、チームでの話し合いの機会も設けず、評価も行わない。","チームの役割と責任を明確にし、スキルの育成や定期的なフィードバックを行って、チームの成果を高める。"],"correctIndex":3,"explanations":["× 誤り。担当を頻繁に変えると、チームの成長と専門性の蓄積が妨げられる。","× 誤り。協働を評価しないと、チームとしての成果が生まれにくい。","× 誤り。情報を与えないと、チームが自律的に判断できない。","○ 正しい。役割の明確化、育成、フィードバックがチームの成長を促す。"]},{"id":"pmp-103","type":"mc","chapterIndex":1,"stem":"リスクの確率と影響をもとに優先順位を付ける手法として最も適切なものはどれか。","options":["定性的リスク分析は、リスクの確率と影響を相対的な尺度で評価し、優先順位を付けるために用いる。","定量的リスク分析は、リスクの確率と影響を相対的な尺度だけで評価し、金額は求めず、対応の優先順位も決めない。","リスクの識別は、リスクの優先順位を付けるための手法であり、確率や影響は評価せず、対応策の決定にも用いず、記録も残さない。","リスクの監視は、リスクの優先順位を付けるために、発生前に実施する分析であり、残存リスクの追跡は行わない。"],"correctIndex":0,"explanations":["○ 正しい。定性的分析は、確率と影響を相対的に評価して優先順位を付ける。","× 誤り。定量的分析は、数値で評価する分析であり、相対尺度だけに限らない。","× 誤り。リスクの識別は、リスクを洗い出す作業であり、優先順位の評価は含まない。","× 誤り。リスクの監視は、対応の実施と状況の追跡であり、優先順位の付与を目的としない。"]},{"id":"pmp-104","type":"mc","chapterIndex":1,"stem":"プロジェクトにおけるスポンサーの役割として最も適切なものはどれか。","options":["日々の作業の進め方をすべて決め、メンバーに直接指示を出す。","プロジェクトの目的を支持し、資金の提供や重要な判断を行い、プロジェクトマネジャーを支援する。","完了後に成果物を使うだけで、途中の判断には関与しない。","品質の検査を担当し、テストの結果を単独で判定する。"],"correctIndex":1,"explanations":["× 誤り。日々の作業の指示は、プロジェクトマネジャーとチームの役割である。","○ 正しい。スポンサーは目的を支持し、資金と重要な判断を担い、支援する。","× 誤り。スポンサーは途中の重要な判断にも関与する必要がある。","× 誤り。品質の検査は、プロジェクトの品質管理の役割であり、スポンサーが単独で行うものではない。"]},{"id":"pmp-105","type":"mc","chapterIndex":1,"stem":"情報の伝達の効果を評価する際の観点として最も適切なものはどれか。","options":["配布の量が多いほど効果が高いとみなし、受け手の理解は確認しない。","プロジェクトの完了後にのみ評価すればよく、実行中の評価は不要であり、受け手の反応も確認せず、評価の結果も公開しない。","情報が必要な相手に適切な時期と方法で届いているか、また相手が内容を理解しているかを確認する。","効果は担当者の感覚だけで判断し、客観的な確認は行わない。"],"correctIndex":2,"explanations":["× 誤り。配布量の多さは、効果の指標にはならない。","× 誤り。実行中の評価を省くと、伝達の問題の早期発見ができない。","○ 正しい。届いた時期、方法、理解の有無を確認すると、伝達の効果を評価できる。","× 誤り。感覚だけの判断では、伝達の効果を客観的に評価できない。"]},{"id":"pmp-106","type":"mc","chapterIndex":1,"stem":"予測型のプロジェクトで、変更要求の承認後に行う作業として最も適切なものはどれか。","options":["承認された変更は、ベースラインに反映せず、計画の文書は元のまま保管する。","承認された変更は、関係者に伝えず、プロジェクトマネジャーだけが把握しておき、後から必要になっても共有しない。","承認された変更は、次のプロジェクトで実施するため、現在の作業には反映せず、計画の文書も更新しない。","承認された変更をベースラインに反映し、計画の関連文書を更新して、関係者に変更の内容を伝える。"],"correctIndex":3,"explanations":["× 誤り。反映しないと、計画と実態が食い違う。","× 誤り。関係者に伝えないと、作業の認識が揃わない。","× 誤り。承認された変更は、現在の作業に反映する必要がある。","○ 正しい。承認後は、ベースラインと関連文書を更新し、関係者に伝える。"]},{"id":"pmp-107","type":"mc","chapterIndex":1,"stem":"調達管理で、契約の変更を管理する目的として最も適切なものはどれか。","options":["契約の変更を統制し、変更の影響を評価して、承認された内容を契約文書に正しく反映するために行う。","売手と直接合意すれば、正式な記録や承認は省略してよく、契約変更の影響も評価しなくてよく、関係者への説明も省くため。","契約の変更は、契約の終了後に行うものであり、実行中は契約条件を変えず、影響の評価も行わず、変更の内容も共有しないため。","買手の要望のみを反映させ、売手の影響は評価せず、承認の記録も残さず、契約金額も変えず、支払条件も見直さないため。"],"correctIndex":0,"explanations":["○ 正しい。変更を統制し、影響を評価して、承認内容を契約に正しく反映する。","× 誤り。正式な記録と承認を省くと、契約の統制が効かない。","× 誤り。契約の変更は実行中にも必要になるため、終了後だけに限定されない。","× 誤り。売手の影響を評価しないと、変更の妥当性を判断できない。"]},{"id":"pmp-108","type":"mc","chapterIndex":1,"stem":"プロセスの改善を通じて品質を高める考え方として最も適切なものはどれか。","options":["品質は、完成後の検査によって保証し、プロセスの改善は品質に影響しないとする。","品質は、検査で欠陥を見つけるのではなく、プロセスの設計と改善によって作り込むものとして管理する。","品質は、顧客の要求を満たす必要はなく、社内の基準だけに従って管理する。","品質は、コストを下げるために検査の回数を減らすことだけで確保する。"],"correctIndex":1,"explanations":["× 誤り。完成後の検査だけでは、プロセスの欠陥を防げない。","○ 正しい。品質はプロセスの設計と改善によって作り込む考え方である。","× 誤り。顧客の要求を無視すると、品質の目的を満たせない。","× 誤り。検査の削減だけでは、品質を確保できない。"]},{"id":"pmp-109","type":"mc","chapterIndex":1,"stem":"予測型のプロジェクトで、スケジュールのベースラインの扱いとして最も適切なものはどれか。","options":["毎週の実績で書き換え、常に最新の計画として使い、変更の承認は行わず、過去の基準は保存しない。","プロジェクトの完了後にのみ作成し、実行中は使用しない。","承認された計画を基準として保存し、実績と比較して差異を管理するために用いる。","担当者ごとに作成し、全体の比較には使わない。"],"correctIndex":2,"explanations":["× 誤り。毎週書き換えると、計画からの差異が見えなくなる。","× 誤り。実行前に作成し、実行中の比較に使う必要がある。","○ 正しい。承認された計画を基準として保存し、実績との差異を管理する。","× 誤り。担当者ごとの作成では、全体の差異を管理できない。"]},{"id":"pmp-110","type":"mc","chapterIndex":1,"stem":"作業分解で、作業パッケージの特徴として最も適切なものはどれか。","options":["WBSの最上位の要素であり、プロジェクト全体の目的と成果物の詳細を示し、各作業の担当者も明確にするものである。","コストを割り当てない要素であり、スケジュールの管理だけに用い、進捗の報告や品質の確認にも使わない。","プロジェクトの完了後に作成する記録であり、計画には用いない。","WBSの最も下位の要素であり、責任者とコストを割り当てて管理できる単位にまとめたものである。"],"correctIndex":3,"explanations":["× 誤り。最上位はプロジェクト全体の要素で、作業パッケージは最下位にある。","× 誤り。作業パッケージにはコストを割り当て、管理に用いる。","× 誤り。作業パッケージは計画の段階で作成する要素である。","○ 正しい。作業パッケージはWBSの最下位で、責任者とコストを割り当てる単位である。"]},{"id":"pmp-111","type":"mc","chapterIndex":1,"stem":"プロジェクトの立ち上げで、ステークホルダーの期待を管理する目的として最も適切なものはどれか。","options":["期待を早い段階で把握し、目標と役割を合意することで、後の対立や手戻りを減らすために行う。","期待はプロジェクトの完了時に確認すればよく、立ち上げでは把握せず、後の変更にも対応せず、関係者の要望も集めない。","一部の関係者の意見だけを反映し、他の関係者の期待は考慮せず、合意の内容も記録しないために行う。","期待を範囲に含めず、関係者の個人的な期待として扱い、立ち上げの文書にも記載せず、管理は行わないために行う。"],"correctIndex":0,"explanations":["○ 正しい。期待を早期に把握し、合意しておくと、後の対立や手戻りを減らせる。","× 誤り。完了時の確認だけでは、期待のずれを早く修正できない。","× 誤り。一部の意見だけでは、全体の合意が得られない。","× 誤り。期待を範囲から外すと、成果の受入れで不一致が生じる。"]},{"id":"pmp-112","type":"mc","chapterIndex":1,"stem":"アジャイル型で、チームがスプリントのゴールを達成できなかった場合の対応として最も適切なものはどれか。","options":["未完了の作業は、そのまま次のスプリントの作業として追加し、原因の分析は行わない。","未完了の作業をバックログに戻し、原因をふりかえりで分析して、次のスプリントの計画に反映する。","ゴールを達成できなかった責任をチームの個人に負わせ、担当者を交代させる。","スプリントのゴールは、達成できなかった後に目標の基準を下げて、達成したことにする。"],"correctIndex":1,"explanations":["× 誤り。原因を分析しないと、同じ問題が繰り返される。","○ 正しい。未完了の作業はバックログに戻し、原因を分析して次の計画に反映する。","× 誤り。個人の責任に帰すと、チームの協働と学習を損なう。","× 誤り。基準を下げて達成とみなすと、進捗の評価が正しく行えない。"]},{"id":"pmp-113","type":"mc","chapterIndex":1,"stem":"リスク対応計画に含めるべき内容として最も適切なものはどれか。","options":["リスクが発生した後に作成し、事前の対応策は定めず、影響の大きさも記録しない。","確率が低いリスクだけを対象とし、影響の大きいものは含めず、対応の見直しも行わない。","リスクごとの対応戦略、対応策、担当者、必要な予算とスケジュール、発動の条件を定めて記録する。","担当者を定めず、発生時にチーム全員で対応する方法だけを記載し、具体的な責任の所在や予算の裏づけは示さない。"],"correctIndex":2,"explanations":["× 誤り。事前の対応策を定めないと、発生時に迅速な対応ができない。","× 誤り。影響の大きいリスクを除外すると、重大なリスクへの備えが欠ける。","○ 正しい。対応戦略、対応策、担当者、予算、発動条件を定めて記録する。","× 誤り。担当者を定めないと、対応の責任が曖昧になる。"]},{"id":"pmp-114","type":"mc","chapterIndex":1,"stem":"プロジェクトの終結で、プロジェクト文書の扱いとして最も適切なものはどれか。","options":["完了後にすべて廃棄し、組織には残さないことで、情報の漏えいを防ぎ、将来の参照や監査にも備えない。","担当者の個人のパソコンにだけ保存し、組織の共有の場所には残さず、他の人が参照できないようにし、引継ぎも行わない。","契約の締結前に作成した文書だけを保存し、実行中の記録は破棄する。","組織の資産として保管し、将来の参照や監査に備えて、適切な期間保存する。"],"correctIndex":3,"explanations":["× 誤り。全廃棄は、組織の学習と説明責任を損なう。","× 誤り。個人だけの保存は、組織の共有と継承を妨げる。","× 誤り。実行中の記録は、評価や教訓に必要な情報である。","○ 正しい。文書は組織の資産として保管し、参照や監査に備える。"]},{"id":"pmp-115","type":"mc","chapterIndex":1,"stem":"予測型のプロジェクトで、コスト管理の手法として最も適切なものはどれか。","options":["コストの見積り、予算の設定、実績との比較、差異の分析を行い、必要な是正措置を実施する。","コストは、プロジェクトの完了後に集計すればよく、実行中は管理せず、予算との比較も行わず、実績の記録も残さない。","コストは、担当者の判断で自由に使ってよく、予算との比較は行わず、使途の記録も残さず、承認の手続も省く。","コストは、見積りの段階で決めた金額を変更せず、実績の差異は記録せず、是正の検討も行わず、予算の見直しも不要とする。"],"correctIndex":0,"explanations":["○ 正しい。見積りと予算の設定、実績との比較、差異分析と是正を行う。","× 誤り。実行中に管理しないと、超過を早期に発見できない。","× 誤り。予算との比較を省くと、コストの統制が働かない。","× 誤り。差異を記録しないと、原因の分析と改善ができない。"]},{"id":"pmp-116","type":"mc","chapterIndex":1,"stem":"リスクの監視で、リスクの再評価を行う目的として最も適切なものはどれか。","options":["リスクは、一度評価すれば変わらないため、再評価は不要である。","リスクの状況の変化を把握し、対応策の効果を確認するとともに、新たなリスクを識別するために行う。","リスクの再評価は、担当者の判断で行い、結果は記録しない。","リスクの再評価は、プロジェクトの完了後にのみ行い、実行中は行わない。"],"correctIndex":1,"explanations":["× 誤り。リスクは状況とともに変化するため、再評価が必要である。","○ 正しい。状況の変化、対応策の効果、新たなリスクを把握するために再評価する。","× 誤り。結果を記録しないと、リスクの推移を追えない。","× 誤り。実行中の再評価を行わないと、リスクの変化に対応できない。"]},{"id":"pmp-117","type":"mc","chapterIndex":1,"stem":"ステークホルダーの関与を計画する際に用いる関与レベルの区分として最も適切なものはどれか。","options":["契約の金額の大きさだけで区分し、関係者の態度や影響力は考慮せず、関与の計画にも反映せず、支持の変化も追わない。","プロジェクトの完了後の評価として一度だけ区分する。","認知しているか、支持しているか、中立か、抵抗しているかなどの現状を、目標と比較して区分する。","プロジェクトマネジャーの好みに応じて自由に区分し、基準は設けない。"],"correctIndex":2,"explanations":["× 誤り。契約金額だけでは、関係者の態度を捉えられない。","× 誤り。完了後だけの区分では、実行中の関与の計画に使えない。","○ 正しい。現状（認知、支持、中立、抵抗など）を目標と比較して区分する。","× 誤り。基準のない区分では、関与の計画を統一して行えない。"]},{"id":"pmp-118","type":"mc","chapterIndex":1,"stem":"プロジェクトの実行で、チームの作業の進捗を可視化する方法として最も適切なものはどれか。","options":["個人の報告を一度だけ集計して行い、日々の状態は共有しない。","作業の完了後に一覧を作成し、途中の状態は示さず、遅れの兆しも把握せず、改善の検討も行わず、関係者への報告も行わない。","チームの外部にだけ公開し、チーム内では共有せず、作業の進め方の改善にも使わず、進捗の数値も示さない。","カンバンボードで作業の状態を示すと、仕掛り中の作業と滞留を把握し、作業の流れを改善できる。"],"correctIndex":3,"explanations":["× 誤り。日々の状態を共有しないと、滞留を早く発見できない。","× 誤り。完了後だけでは、途中の遅れに対応できない。","× 誤り。チーム内で共有しないと、協働による改善が生まれない。","○ 正しい。カンバンで状態を示すと、仕掛りと滞留を把握して流れを改善できる。"]},{"id":"pmp-119","type":"mc","chapterIndex":1,"stem":"調達計画で買手が作成する文書として最も適切なものはどれか。","options":["提案依頼書や見積依頼書などの調達文書は、必要な要件と選定の基準を売手に示し、比較可能な提案を得るために用いる。","売手が一方的に作成し、買手は確認しなくてよく、要件の内容も買手の判断で後から変えてよく、契約書の条項も含めず、比較の基準も示さない。","契約の締結後に作成し、要件は含めず、売手の提案の比較にも用いず、選定の基準も示さず、評価の基準も設けず、社内の承認も得ず、記録も残さない。","社内の承認にのみ用い、売手には提示せず、比較可能な提案を得るためにも使わず、価格の交渉にも用いず、契約の条件も定めない。"],"correctIndex":0,"explanations":["○ 正しい。要件と選定基準を示し、比較可能な提案を得るために用いる。","× 誤り。買手が要件を示さないと、比較可能な提案が得られない。","× 誤り。契約の前に要件を示す必要があり、締結後の作成では遅すぎる。","× 誤り。売手に提示しないと、提案を得る目的を果たせない。"]},{"id":"pmp-120","type":"mc","chapterIndex":1,"stem":"変更管理で、変更の影響分析に含めるべき項目として最も適切なものはどれか。","options":["コストだけを分析すればよく、スケジュールや品質は対象外とする。","スコープ、スケジュール、コスト、品質、リスク、関係者への影響を含めて、変更の影響を総合的に分析する。","変更を提出した担当者の作業量だけを分析する。","分析の必要がない小規模な変更については省略する。"],"correctIndex":1,"explanations":["× 誤り。コストだけでは、スケジュールや品質への影響を見落とす。","○ 正しい。スコープ、スケジュール、コスト、品質、リスク、関係者への影響を総合的に分析する。","× 誤り。担当者の作業量だけでは、プロジェクト全体への影響を捉えられない。","× 誤り。小規模な変更でも、影響の分析は必要である。"]},{"id":"pmp-121","type":"mc","chapterIndex":1,"stem":"コミュニケーション方法を選ぶ際の基準として最も適切なものはどれか。","options":["すべての情報を同じ方法で伝え、緊急度や機密性は考慮しない。","情報の方法は、受け手の希望や理解の度合いに関係なく、送り手の都合だけで決め、事後の確認は行わない。","情報の緊急度、機密性、受け手の数と所在、伝達の目的を考慮して、適切な方法を選ぶ。","情報の方法は、プロジェクトの完了後に決め、実行中は決めない。"],"correctIndex":2,"explanations":["× 誤り。同じ方法だと、緊急性や機密性に対応できない。","× 誤り。受け手の希望を無視すると、情報が届きにくくなる。","○ 正しい。緊急度、機密性、受け手、目的を考慮して方法を選ぶ。","× 誤り。実行中に方法を決めないと、情報の伝達が遅れる。"]},{"id":"pmp-122","type":"mc","chapterIndex":1,"stem":"完了後にスポンサーが成果物を受け入れる際の確認事項として最も適切なものはどれか。","options":["受入れは、担当者の感想だけで決め、基準との照合は行わない。","受入れは、完成した成果物の見た目だけを確認し、機能の検証は省略して、受入れの記録も残さない。","受入れは、契約の締結前に行うため、完成した成果物は対象外とし、完了後の確認も行わず、担当者の記録も残さない。","受入基準を満たしているかを確認し、受入れの結果を記録して、必要な是正事項を明確にする。"],"correctIndex":3,"explanations":["× 誤り。基準との照合を省くと、受入れの根拠が残らない。","× 誤り。機能の検証を省くと、要件を満たしたかを判断できない。","× 誤り。受入れは完成した成果物に対して行うもので、締結前は対象にならない。","○ 正しい。受入基準との照合と結果の記録、是正事項の明確化を行う。"]},{"id":"pmp-123","type":"mc","chapterIndex":1,"stem":"リスクの責任者（リスクオーナー）の役割として最も適切なものはどれか。","options":["担当するリスクを監視し、対応策を実施して、状況を報告する責任を負う。","リスクを識別する責任だけを負い、対応や報告は他の人に任せ、自らは状況を確認しない。","プロジェクトの完了まで不要であり、リスクが発生しても対応せず、報告も行わない。","リスクの発生を防ぐために、作業を止める権限を持ち、その判断の理由は記録せず、報告もしない。"],"correctIndex":0,"explanations":["○ 正しい。リスクオーナーは、監視、対応の実施、状況の報告を担う。","× 誤り。識別だけでなく、対応と報告も責任に含まれる。","× 誤り。リスクは完了まで管理し、発生時にも対応する必要がある。","× 誤り。作業を止める権限は、リスクオーナーの役割として一般的ではない。"]},{"id":"pmp-124","type":"mc","chapterIndex":1,"stem":"プロジェクト計画でマイルストーンの役割として最も適切なものはどれか。","options":["作業の詳細な手順を示すもので、担当者の作業時間を記録する。","重要な節目を示す時点であり、進捗を確認し、意思決定を行う区切りとして用いる。","プロジェクトの完了後にのみ設定し、実行中の確認には用いない。","コストの見積りそのものであり、スケジュールの管理には用いない。"],"correctIndex":1,"explanations":["× 誤り。作業の詳細な手順は、WBSや作業計画に示すもので、マイルストーンの役割ではない。","○ 正しい。マイルストーンは節目の時点で、進捗確認と意思決定の区切りになる。","× 誤り。実行中の確認に用いるため、完了後だけに設定するものではない。","× 誤り。コストの見積りは、マイルストーンそのものではない。"]},{"id":"pmp-125","type":"mc","chapterIndex":1,"stem":"資源の制約を考慮してスケジュールを調整する方法として最も適切なものはどれか。","options":["資源の制約は無視し、理論上の最短のスケジュールだけを作成して、それを実行可能な計画として関係者に提示し、資源の不足は後から調整する。","資源の制約は、プロジェクトの完了後に考慮すればよく、計画の段階では不要である。","資源制約を考慮したスケジュールを作成し、資源の過剰な割当てを避けつつ、クリティカルチェーンなどの方法で期間を見直す。","資源の制約は、作業の期間を延ばさずに、資源の数を無制限に増やして対応する。"],"correctIndex":2,"explanations":["× 誤り。資源の制約を無視すると、実行できない計画になる。","× 誤り。計画の段階で考慮しないと、実行時に無理が生じる。","○ 正しい。資源制約を考慮し、過剰な割当てを避けて期間を見直す。","× 誤り。資源を無制限に増やすことは、現実的な対応ではない。"]},{"id":"pmp-126","type":"mc","chapterIndex":1,"stem":"品質のコストの分類として最も適切なものはどれか。","options":["検査の費用だけを含み、予防の費用は含まない。","失敗が発生した後の費用だけを指し、予防や評価の費用は対象外とし、顧客への補償の費用だけを集計する。","顧客の満足度を金額で示したものであり、コストの分類には使わず、品質の評価にも用いず、報告書にも記載しない。","予防、評価、失敗のコストに分けられ、予防と評価に投資することで失敗のコストを減らす。"],"correctIndex":3,"explanations":["× 誤り。予防の費用も品質のコストに含まれる。","× 誤り。予防や評価の費用も、品質のコストの対象である。","× 誤り。品質のコストの分類は、顧客満足の金額換算とは異なる。","○ 正しい。予防、評価、失敗のコストに分け、予防と評価で失敗を減らす。"]},{"id":"pmp-127","type":"mc","chapterIndex":1,"stem":"調達で複数の売手から見積りを取得する目的として最も適切なものはどれか。","options":["複数の見積りを比較して価格と能力を比べ、公平で根拠のある売手の選定につなげる。","見積りを一社だけから取得し、比較は行わずに決めることで、選定の時間を短縮し、手続の負担も減らす。","見積りの取得は、契約の締結の後に行い、選定の判断には用いず、記録も残さず、関係者の承認も得ず、評価の結果も残さない。","見積りは売手の要望どおりに決めるため、比較の対象にはせず、買手の予算との照合も行わない。"],"correctIndex":0,"explanations":["○ 正しい。複数の見積りを比較して、公平で根拠のある選定につなげる。","× 誤り。一社だけでは比較ができず、選定の根拠を示せない。","× 誤り。締結後の見積りでは、選定の判断に使えない。","× 誤り。売手の要望だけで決めると、比較による公平な選定を損なう。"]},{"id":"pmp-128","type":"mc","chapterIndex":1,"stem":"ハイブリッド型で、変更への対応の方法として最も適切なものはどれか。","options":["すべての変更を予測型の方法だけで統制し、アジャイルの柔軟性は使わない。","予測型の部分は変更管理委員会で統制し、アジャイルの部分はバックログの優先順位で柔軟に対応するなど、両方の方法を組み合わせる。","すべての変更をアジャイルの方法だけで決め、予測型の統制は行わない。","変更は、プロジェクトの途中で一切受け付けず、最後まで計画を変えない。"],"correctIndex":1,"explanations":["× 誤り。予測型だけでは、アジャイルの部分の柔軟性を活かせない。","○ 正しい。両方の方法を組み合わせ、部分ごとに適切な統制と柔軟性を使う。","× 誤り。アジャイルだけでは、予測型の部分の統制が失われる。","× 誤り。途中の変更を受け付けないと、適応の要素を持たない。"]},{"id":"pmp-129","type":"mc","chapterIndex":1,"stem":"教訓の文書化に含めるべき内容として最も適切なものはどれか。","options":["担当者の評価だけを記載し、プロジェクトの要因や問題への対応は記載せず、次のプロジェクトで参照できる形にもせず、関係者の評価も含めない。","完了後の一般的な感想だけを記載し、具体的な事例は含めず、数値の根拠も示さない。","成功や失敗の要因、問題とその対応、効果的だった方法、改善の提案を整理し、次のプロジェクトで参照できる形にする。","外部に公開することを前提とし、社内では参照しないようにする。"],"correctIndex":2,"explanations":["× 誤り。担当者の評価だけでは、プロジェクトの要因の学習にならない。","× 誤り。具体的な事例がないと、次の参考にならない。","○ 正しい。要因、問題と対応、効果的な方法、改善案を整理して参照できる形にする。","× 誤り。社内で参照できないと、組織の学習につながらない。"]},{"id":"pmp-130","type":"mc","chapterIndex":1,"stem":"スケジュールを短縮するクラッシングの特徴として最も適切なものはどれか。","options":["作業を並行させて期間を短縮する方法であり、コストは増加せず、手戻りのリスクも生じない。","クリティカルでない作業を削減して期間を短縮する方法であり、クリティカルパスの作業には影響せず、品質への影響も確認しない。","品質の基準を下げることで作業期間を短縮する方法であり、品質の確認も省くため、顧客の満足度は問わない。","資源やコストを追加して作業期間を短縮する方法であり、コストが増加する一方、期間を短縮できる。"],"correctIndex":3,"explanations":["× 誤り。作業の並行はファストトラッキングの特徴で、クラッシングとは異なる。","× 誤り。クリティカルでない作業の削減は、期間の短縮につながらない。","× 誤り。品質の基準を下げる方法は、クラッシングの手法ではない。","○ 正しい。クラッシングは資源やコストを追加して期間を短縮する方法である。"]},{"id":"pmp-131","type":"mc","chapterIndex":1,"stem":"会議の運営を効率的に行うための方法として最も適切なものはどれか。","options":["会議の目的とアジェンダを事前に共有し、決定事項と担当者を記録して、次の行動につなげる。","会議では目的を定めず、参加者が自由に話すことで、決定事項は後から決め、記録も残さず、参加者の役割も決めない。","会議の記録は必要な時にだけ作成し、決定事項は口頭で伝えるだけにして、担当者も明確にせず、次回の日程も決めない。","参加者の人数を最大にし、全員に発言の機会を与えて、結論は出さず、次の行動も決めず、時間の管理も行わない。"],"correctIndex":0,"explanations":["○ 正しい。目的とアジェンダの共有、決定と担当の記録で、次の行動につなげる。","× 誤り。目的がないと、議論が拡散し、決定ができない。","× 誤り。記録がないと、決定事項の実行が確認できない。","× 誤り。結論を出さない会議は、プロジェクトの判断に寄与しない。"]},{"id":"pmp-132","type":"mc","chapterIndex":1,"stem":"統計的プロセス管理（SPC）の考え方として最も適切なものはどれか。","options":["工程の変動は、すべて特殊原因として扱い、統計的な判断は行わない。","管理図を用いて工程の変動を監視し、偶然原因と特殊原因を区別して、工程の安定性を確保する。","工程の変動は、検査の結果だけを見て判断し、工程の推移は監視しない。","工程の安定性は作業者の経験だけに依存するため、統計の手法は用いない。"],"correctIndex":1,"explanations":["× 誤り。変動を一律に特殊原因とみなすと、不要な対応が増える。","○ 正しい。管理図で変動を監視し、偶然と特殊の原因を区別して安定性を確保する。","× 誤り。工程の推移を監視しないと、変動の傾向を捉えられない。","× 誤り。経験だけに依存すると、工程の安定性を客観的に示せない。"]},{"id":"pmp-133","type":"mc","chapterIndex":1,"stem":"スコープのクリープ（範囲の拡大）を防ぐための方法として最も適切なものはどれか。","options":["顧客の要望を最大限に取り込むことで防ぎ、変更は歓迎して、範囲の拡大による影響は後から評価し、要望の数に上限を設けず、すべて受け入れる。","担当者の判断で要望を受け入れ、記録は後でまとめて行う。","スコープ記述書とWBSを基準にして、変更要求を変更管理プロセスで審議し、承認された変更だけを反映する。","プロジェクトの完了後に防げばよく、実行中は範囲の変更を受け付けず、対応も行わない。"],"correctIndex":2,"explanations":["× 誤り。要望を無条件に取り込むと、範囲が際限なく拡大する。","× 誤り。担当者の判断と後の記録では、統制が効かない。","○ 正しい。基準を定め、変更を審議して承認されたものだけを反映すると、範囲の拡大を防げる。","× 誤り。実行中に対応しないと、範囲の拡大が進んでしまう。"]},{"id":"pmp-134","type":"mc","chapterIndex":1,"stem":"プロセスの改善計画を立てる目的として最も適切なものはどれか。","options":["プロセスの改善は、プロジェクトの完了後に行うべきであり、現在の作業には適用せず、次のプロジェクトでも検討しない。","プロセスの改善は、既存のプロセスを維持することを目的とし、変更は行わない。","プロセスの改善は、担当者の個人の作業だけを対象とし、プロセス全体は対象外とし、組織の方針とも切り離して進める。","プロセスの課題を特定し、改善の目標と手順を定めて、現在の作業や次のプロジェクトの効率と品質を高める。"],"correctIndex":3,"explanations":["× 誤り。改善は現在の作業にも適用して、効果を得る必要がある。","× 誤り。維持だけでは、改善の目的を果たせない。","× 誤り。プロセス全体を対象としないと、改善の効果が限られる。","○ 正しい。課題を特定し、改善の目標と手順を定め、効率と品質を高める。"]},{"id":"pmp-135","type":"mc","chapterIndex":2,"stem":"戦略との整合について、最も適切なものはどれか。","options":["プロジェクトの目標は担当部門が決め、戦略との整合は完了後に確認すれば十分である。","戦略目標との整合を定期的に確認する。","戦略目標は経営層だけが把握すればよく、プロジェクトチームへの共有は必要ない。","プロジェクトの目標は個別の成果物を基準に決め、組織の戦略目標とは切り離して管理する。"],"correctIndex":1,"explanations":["× 誤り。戦略との整合を完了後に確認すると、投資の優先順位の誤りを早期に防げない。","○ 正しい。戦略目標との整合は、プロジェクトの方向性を保つため定期的に確認する。","× 誤り。戦略目標を一部の経営層に閉じると、チームの判断が戦略からずれる。","× 誤り。成果物だけを基準にすると、組織の戦略への貢献を評価できない。"]},{"id":"pmp-136","type":"mc","chapterIndex":2,"stem":"ベネフィットの管理として、最も適切なものはどれか。","options":["成果は完了後にまとめて確認すれば十分である。","ベネフィットの実現状況を、定めた測定指標で定期的に確認し、必要に応じて計画を見直す。","ベネフィットは測定しなくてよい。","成果の確認は担当者の感覚に任せる。"],"correctIndex":1,"explanations":["× 誤り。完了後だけの確認では、途中での軌道修正ができない。","○ 正しい。ベネフィットは測定指標で継続的に確認し、計画の見直しにつなげる。","× 誤り。測定しないと、投資の成果が得られたかを判断できない。","× 誤り。主観だけでは、成果を客観的に評価できない。"]},{"id":"pmp-137","type":"mc","chapterIndex":2,"stem":"ビジネスケースの扱いとして、最も適切なものはどれか。","options":["ビジネスケースは承認の時点で一度作成すれば、以後は内容を変えずに使い続けることが望ましい。","一度作成すれば、以後の見直しは不要である。","承認が得られれば、更新は不要になる。","ビジネスケースを更新し、投資を継続する根拠として使う。"],"correctIndex":3,"explanations":["× 誤り。環境や前提が変われば、ビジネスケースは見直して更新する必要がある。","× 誤り。一度作成しただけでは、前提の変化に対応できない。","× 誤り。承認後もベネフィットの確認に用いるため、不要にはならない。","○ 正しい。ビジネスケースは投資継続の判断根拠として、定期的に更新して用いる。"]},{"id":"pmp-138","type":"mc","chapterIndex":2,"stem":"規制やコンプライアンスへの対応として、最も適切なものはどれか。","options":["規制の要求事項は、法務部門の承認を得た後に、各プロジェクトの担当者が個別に判断して対応方法を決めればよい。","規制は確認せず、現場任せでよい。","要求事項を一覧にし、対応状況を確認する。","規制対応は、問題が発生した時点で事後的に行えば十分であり、事前の一覧化や確認までは不要である。"],"correctIndex":2,"explanations":["× 誤り。担当者任せでは、要求事項の抜け漏れを防げない。","× 誤り。規制を確認しないと、違反のリスクを把握できない。","○ 正しい。要求事項を一覧にし、対応状況を確認することで抜け漏れを防げる。","× 誤り。事後対応だけでは、違反による損害や信頼の低下を防げない。"]},{"id":"pmp-139","type":"mc","chapterIndex":2,"stem":"プロジェクトのガバナンスについて、最も適切なものはどれか。","options":["権限は現場の判断に任せ、ガバナンス体制は必要が生じた時点で整備すれば十分とする。","ガバナンス体制と権限を明確にする。","ガバナンスは経営層が個別の案件ごとに都度決めるもので、事前の体制整備は不要である。","ガバナンスは監査部門だけの役割として位置づけ、プロジェクトチームは関与しなくてよい。"],"correctIndex":1,"explanations":["× 誤り。権限を現場任せにすると、重要な判断の責任の所在があいまいになる。","○ 正しい。権限と責任を明確にすることは、ガバナンスの基本である。","× 誤り。事前に体制を整えないと、案件ごとの判断が一貫しなくなる。","× 誤り。ガバナンスは組織全体で担うもので、監査部門だけの役割ではない。"]},{"id":"pmp-140","type":"mc","chapterIndex":2,"stem":"組織の変革管理として、最も適切なものはどれか。","options":["変更を受け入れる組織の準備状況を評価し、必要な研修と支援を計画に含める。","変更は現場が自然に受け入れるため、準備は不要である。","変更の準備は、変更が始まった後に行えば十分である。","組織は変更に抵抗しないため、支援は必要ない。"],"correctIndex":0,"explanations":["○ 正しい。準備状況を評価し、研修や支援を計画に含めることで、変革が定着しやすくなる。","× 誤り。現場が自然に受け入れるとは限らず、準備を省くと抵抗が生じやすい。","× 誤り。変更の後に準備しても、混乱を防ぎにくい。","× 誤り。変更には抵抗が生じることが多く、支援を省くべきではない。"]},{"id":"pmp-141","type":"mc","chapterIndex":2,"stem":"外部環境の把握として、最も適切なものはどれか。","options":["市場や規制の変化は、プロジェクトの範囲に直接関係する場合にのみ確認すればよく、戦略とは切り離して扱うべきである。","外部環境は確認せず、社内情報だけで判断する。","変化は事後に把握すれば足りる。","市場や規制の変化を定期的に把握し、戦略に反映する。"],"correctIndex":3,"explanations":["× 誤り。外部環境を戦略と切り離すと、変化への対応が遅れる。","× 誤り。外部環境を確認しないと、事業機会や脅威を把握できない。","× 誤り。事後に把握するだけでは、戦略の見直しが間に合わない。","○ 正しい。外部環境の変化を定期的に把握し、戦略に反映することが求められる。"]},{"id":"pmp-142","type":"mc","chapterIndex":2,"stem":"利益の管理として、最も適切なものはどれか。","options":["利益の見込みは、投資を承認した時点の数値だけで判断し、以後の実績との比較は必要に応じて行えばよい。","利益は確認せず、投資を進めてよい。","コストとベネフィットの両面から、利益の見込みを定期的に評価する。","利益の管理は、会計部門が年度末にまとめて行えば足り、プロジェクトの途中で評価する必要はない。"],"correctIndex":2,"explanations":["× 誤り。承認時点の数値だけでは、実績との乖離を把握できない。","× 誤り。利益を確認しないと、投資の是非を判断できない。","○ 正しい。コストとベネフィットを定期的に評価すると、利益の見込みの変化を把握できる。","× 誤り。途中で評価しないと、問題の早期発見が遅れる。"]},{"id":"pmp-143","type":"mc","chapterIndex":2,"stem":"法規制への対応として、最も適切なものはどれか。","options":["法規制の要件は、リリースの直前にまとめて確認すれば、通常の品質確認で十分にカバーできる。","法規制の要件を確認する。","法規制は、担当部門が過去の事例をもとに判断し、外部の専門家に確認する必要はない。","法規制の要件は、プロジェクトの範囲外として、関係部門の判断に任せて問題ないとする。"],"correctIndex":1,"explanations":["× 誤り。直前の確認では、設計段階での要件の見落としを防げない。","○ 正しい。法規制の要件を早い段階で確認することは、対応の基本である。","× 誤り。過去の事例だけでは、改正後の要件を把握できない。","× 誤り。関係部門任せにすると、組織全体の責任があいまいになる。"]},{"id":"pmp-144","type":"mc","chapterIndex":2,"stem":"組織変革への対応として、最も適切なものはどれか。","options":["変革の影響を受ける人々に、目的と影響を早期に説明し、意見を反映する場を設ける。","変革の内容は、関係者へ直前に伝えれば十分である。","変革は経営層だけで決めるため、現場への説明は不要である。","説明は文書の配布だけで足りるため、対話の場は設けなくてよい。"],"correctIndex":0,"explanations":["○ 正しい。早期に説明し意見を反映すると、変革への理解と協力が得られやすくなる。","× 誤り。直前の伝達では、準備や理解の時間が不足する。","× 誤り。現場への説明を省くと、変革への抵抗が強まりやすい。","× 誤り。一方向の配布だけでは、疑問や懸念を把握できない。"]},{"id":"pmp-145","type":"mc","chapterIndex":2,"stem":"PMOの役割として、最も適切なものはどれか。","options":["PMOは、各プロジェクトの進捗報告を受けるだけの事務機能とし、優先順位や資源配分の判断には関与させないことが望ましい。","PMOは置かず、案件ごとに判断すればよい。","資源配分は各案件に任せ、全体の調整はしない。","PMOを通じて、案件の優先順位と資源配分を組織全体で調整する。"],"correctIndex":3,"explanations":["× 誤り。事務機能だけでは、組織全体での優先順位付けができない。","× 誤り。PMOがないと、案件間の調整や資源配分が分散しやすい。","× 誤り。案件ごとに任せると、組織全体の資源が最適に配分されない。","○ 正しい。PMOが優先順位と資源配分を調整することで、組織の戦略との整合を保てる。"]},{"id":"pmp-146","type":"mc","chapterIndex":2,"stem":"事業価値の定義として、最も適切なものはどれか。","options":["事業価値は、プロジェクトの完了時点で納品物の数量を数えて定義すれば十分であり、財務面や利用者への効果は考慮しなくてよい。","事業価値は測らず、納品の完了だけを確認する。","事業価値は、財務的な成果と顧客・組織への効果の両面で定義する。","事業価値の定義は、経営層の判断に委ね、プロジェクトチームは納品物の品質の確保だけに集中すべきである。"],"correctIndex":2,"explanations":["× 誤り。納品物の数量だけでは、事業への効果を示せない。","× 誤り。価値を測らないと、投資の成果を判断できない。","○ 正しい。財務面と利用者・組織への効果の両面で定義すると、価値を総合的に評価できる。","× 誤り。経営層任せにすると、チームが価値の実現に責任を持てない。"]},{"id":"pmp-147","type":"mc","chapterIndex":2,"stem":"ステークホルダーの戦略的な期待への対応として、最も適切なものはどれか。","options":["ステークホルダーの戦略的な期待は、プロジェクトの開始後に担当者が個別に確認すれば足り、開始前に整理する必要はない。","期待を整理し、合意する。","戦略的な期待は、経営層が一方的に決めるもので、現場との合意は形式的な手続きとして扱う。","期待は、関係者の立場ごとに別々に扱い、全体で共有する必要はない。"],"correctIndex":1,"explanations":["× 誤り。開始後の確認では、初期の方向性のずれを防げない。","○ 正しい。戦略的な期待を整理して合意することは、プロジェクトの方向性を揃える基本である。","× 誤り。現場との合意を形式化すると、実行段階で齟齬が生じやすい。","× 誤り。関係者間で共有しないと、期待の食い違いを解消できない。"]},{"id":"pmp-148","type":"mc","chapterIndex":2,"stem":"事業継続への対応として、最も適切なものはどれか。","options":["事業継続の要件を確認し、重要な業務の復旧目標と計画を事業戦略と整合させる。","事業継続は、災害が起きてから検討すれば足りる。","復旧目標は、担当者の判断で都度決めればよい。","事業継続は、IT部門だけの課題として扱えば十分である。"],"correctIndex":0,"explanations":["○ 正しい。事業継続の要件を戦略と整合させると、重要業務の復旧を優先的に計画できる。","× 誤り。事後に検討すると、重要業務の復旧が遅れる。","× 誤り。復旧目標が定まらないと、対応の優先順位を決められない。","× 誤り。事業全体の課題であり、IT部門だけでは対応しきれない。"]},{"id":"pmp-149","type":"mc","chapterIndex":2,"stem":"投資案件の優先順位付けとして、最も適切なものはどれか。","options":["投資案件の優先順位は、担当部門が提出した金額の大きさだけで決め、戦略への寄与は報告書の付録として扱えば十分である。","優先順位は決めず、先に着手できるものから進める。","投資は先着順で決め、戦略との関係は見ない。","投資案件の優先順位を、戦略への寄与と実現可能性で比較する。"],"correctIndex":3,"explanations":["× 誤り。金額だけでは、戦略への寄与を反映できない。","× 誤り。優先順位を決めないと、限られた資源を配分できない。","× 誤り。先着順では、戦略的に重要な案件が後回しになる。","○ 正しい。戦略への寄与と実現可能性で比較すると、投資の優先順位を合理的に決められる。"]},{"id":"pmp-150","type":"mc","chapterIndex":2,"stem":"事業上のリスクと機会の扱いとして、最も適切なものはどれか。","options":["事業上のリスクと機会は、プロジェクトの範囲内に限って評価し、戦略目標との関係は、年度の計画策定時に一度だけ確認すればよい。","リスクは評価せず、事業の判断を進める。","事業上のリスクと機会を、戦略目標に照らして定期的に評価する。","リスクは脅威としてのみ扱い、機会の評価は、利益が確定した後に行うことが望ましいとされる。"],"correctIndex":2,"explanations":["× 誤り。戦略との関係を一度だけ確認すると、環境の変化を捉えられない。","× 誤り。リスクを評価しないと、事業への影響を予見できない。","○ 正しい。戦略目標に照らして定期的に評価すると、リスクと機会の両方を捉えられる。","× 誤り。機会を利益確定後に評価すると、事業上の好機を逃しやすい。"]},{"id":"pmp-151","type":"mc","chapterIndex":2,"stem":"組織文化への対応として、最も適切なものはどれか。","options":["組織の文化は、変革の成否に影響しないため、確認は不要であり、手順や規程だけを整備すれば十分である。","組織文化を変革の前提として確認する。","文化は個人の価値観の問題であり、組織としての変革計画の中で扱う必要はない。","組織文化は、変革の終了後に評価すれば足り、計画段階で把握する必要はないと考える。"],"correctIndex":1,"explanations":["× 誤り。文化を無視すると、規程を整えても行動は変わりにくい。","○ 正しい。組織文化を変革の前提として確認すると、施策を実態に合わせられる。","× 誤り。組織としての計画に含めないと、変革が個人任せになる。","× 誤り。計画段階で把握しないと、抵抗の要因に対応できない。"]},{"id":"pmp-152","type":"mc","chapterIndex":2,"stem":"ポートフォリオ管理として、最も適切なものはどれか。","options":["プロジェクトとプログラムのポートフォリオを、戦略目標への寄与で定期的に見直し、資源を再配分する。","ポートフォリオは、一度決めたら変更しない。","案件は数が多いほど良いため、絞り込みは不要である。","見直しは、担当部門の判断で個別に行えばよい。"],"correctIndex":0,"explanations":["○ 正しい。戦略への寄与で定期的に見直すと、限られた資源を重要な案件へ配分できる。","× 誤り。環境の変化に応じた見直しをしないと、戦略との整合が崩れる。","× 誤り。案件を絞り込まないと、資源が分散して成果が上がりにくい。","× 誤り。部門ごとの判断では、組織全体の最適な配分ができない。"]},{"id":"pmp-153","type":"mc","chapterIndex":2,"stem":"法規制違反の疑いが生じた場合の対応として、最も適切なものはどれか。","options":["法規制違反の疑いは、事実関係が確定するまで関係者に共有せず、プロジェクトの担当者が単独で調べて対応を決めることが望ましい。","違反の疑いは様子を見て、事態の推移を待つ。","疑いは個人の判断だけで処理し、報告はしない。","法規制違反の疑いが生じたら、速やかに法務部門へ報告し、対応を決める。"],"correctIndex":3,"explanations":["× 誤り。単独で調べると、事実の把握や組織的な対応が遅れる。","× 誤り。様子見では、被害や違反が拡大するおそれがある。","× 誤り。個人の判断では、組織としての責任ある対応ができない。","○ 正しい。速やかに法務部門へ報告すると、組織として適切な対応を決められる。"]},{"id":"pmp-154","type":"mc","chapterIndex":2,"stem":"重要な意思決定の進め方として、最も適切なものはどれか。","options":["重要な意思決定は、直近の担当者の提案をもとに、会議を開かずに関係者へ回覧して承認を得る方法で行えば、迅速さが確保できる。","意思決定は記録せず、経緯も残さない。","重要な意思決定は、根拠を示した上で、権限を持つ会議体が行う。","意思決定は、先に実行してから承認を得る方法を標準とし、事後の報告で足りるとする。"],"correctIndex":2,"explanations":["× 誤り。回覧のみでは、根拠の検討や権限の確認が不十分になる。","× 誤り。意思決定を記録しないと、後から経緯を検証できない。","○ 正しい。根拠を示したうえで権限を持つ会議体が決めると、決定の妥当性を確保できる。","× 誤り。先に実行すると、承認の前に組織の判断を覆せなくなる。"]},{"id":"pmp-155","type":"mc","chapterIndex":2,"stem":"変革の準備状況の扱いとして、最も適切なものはどれか。","options":["変革の準備度は、変革が始まった後に現場の反応を見て評価するのが効率的であり、事前の評価は不要である。","変革の準備度を事前に評価する。","準備度の評価は、経営層の判断だけで行えば足り、現場への調査は負担になるため省略すべきである。","準備度は、組織の規模に関係なく一律と考えて、評価の手順を標準化せずに進めるのが望ましい。"],"correctIndex":1,"explanations":["× 誤り。変革後の評価では、抵抗への事前の対策が取れない。","○ 正しい。事前に準備度を評価すると、必要な支援や研修を計画に含められる。","× 誤り。現場の状況を調べないと、実態に合った計画を立てられない。","× 誤り。組織の状況に応じた評価をしないと、準備の不足を見落とす。"]},{"id":"pmp-156","type":"mc","chapterIndex":2,"stem":"投資対効果の判断として、最も適切なものはどれか。","options":["投資対効果は、投資の回収期間と期待されるベネフィットを、前提を明示して比較し、継続判断に用いる。","投資対効果は、金額の大きさだけで判断する。","回収期間は考えず、投資額だけで判断する。","効果は、投資後に確認すれば足りる。"],"correctIndex":0,"explanations":["○ 正しい。前提を明示して比較すると、投資の継続や中止の判断に根拠を与えられる。","× 誤り。金額だけでは、得られる効果との関係を判断できない。","× 誤り。回収期間を考えないと、資金繰りへの影響を評価できない。","× 誤り。投資後の確認だけでは、判断の前に投資の妥当性を検討できない。"]},{"id":"pmp-157","type":"mc","chapterIndex":2,"stem":"プロジェクトの終了判断として、最も適切なものはどれか。","options":["戦略上の目的が達成できないことが明らかになっても、投資の回収を優先し、当初の計画どおりに完了させるべきである。","終了は検討せず、現状の計画を続ける。","中止は失敗を意味するので、避けるべきである。","戦略上の目的を達成できないと判断した時点で、プロジェクトの終了を検討する。"],"correctIndex":3,"explanations":["× 誤り。回収を優先して完了させると、戦略に寄与しない投資を続けることになる。","× 誤り。終了を検討しないと、資源の浪費を止められない。","× 誤り。中止は、資源を戦略上重要な案件へ振り向ける判断でもある。","○ 正しい。目的の達成が難しいと判断したら終了を検討すると、資源を適切に配分できる。"]},{"id":"pmp-158","type":"mc","chapterIndex":2,"stem":"戦略を変更する際の進め方として、最も適切なものはどれか。","options":["戦略の変更は、経営層が決定した時点で直ちに計画へ反映すれば足り、影響の整理や関係者との合意は、実行の段階で必要に応じて行えばよい。","戦略は変更せず、当初の計画を維持する。","戦略を変更する際は、変更の理由と影響を整理し、関係者の合意を得てから計画に反映する。","戦略を変更した場合は、既存の計画を変えずに、新しい目標だけを別の計画として並行して進めることが望ましい。"],"correctIndex":2,"explanations":["× 誤り。影響を整理せずに反映すると、計画と実態が食い違う。","× 誤り。環境が変わっても戦略を変えないと、事業の機会を失う。","○ 正しい。理由と影響を整理し合意を得てから反映すると、変更を円滑に進められる。","× 誤り。既存計画を残したまま並行させると、資源が分散して混乱が生じる。"]},{"id":"pmp-159","type":"mc","chapterIndex":2,"stem":"ベンダー市場への対応として、最も適切なものはどれか。","options":["ベンダーの選定は、過去の取引実績だけで決めればよく、市場の変化や新しい選択肢を調べる必要はない。","市場の動向を継続的に把握する。","市場の変化は、競合の製品を購入した後に分析すれば十分であり、市場全体の動向を追う必要はない。","ベンダー市場の動向は、調達が決まった後に確認すれば十分であり、事前の調査や比較は不要と考える。"],"correctIndex":1,"explanations":["× 誤り。過去の実績だけでは、市場の変化への対応を判断できない。","○ 正しい。市場の動向を継続的に把握すると、調達や戦略判断の前提を更新できる。","× 誤り。購入後の分析では、事前の比較検討ができない。","× 誤り。調達後の確認では、より適した選択肢を検討できない。"]},{"id":"pmp-160","type":"mc","chapterIndex":2,"stem":"財務管理として、最も適切なものはどれか。","options":["財務の計画と実績を定期的に比較し、差異の原因を分析して、資金の配分を見直す。","財務の計画は、期末に確認すれば足りる。","差異は分析せず、結果だけを報告すればよい。","資金の配分は、最初に決めたまま変えない。"],"correctIndex":0,"explanations":["○ 正しい。定期的な比較と差異の分析で、資金の配分を実態に合わせられる。","× 誤り。期末だけの確認では、途中での是正が遅れる。","× 誤り。差異の原因を分析しないと、同じ問題を繰り返す。","× 誤り。環境の変化に応じた見直しをしないと、資金の効率が下がる。"]},{"id":"pmp-161","type":"mc","chapterIndex":2,"stem":"ガバナンス委員会の役割として、最も適切なものはどれか。","options":["ガバナンス委員会は、重要な変更や投資判断について、事後の報告を受けるだけにとどめ、承認の権限は担当部門に委ねることが望ましい。","委員会は設置せず、担当部門の判断に任せる。","承認は担当者が単独で行い、記録はしない。","ガバナンス委員会は、重要な変更や投資判断を承認し、その経緯を記録する。"],"correctIndex":3,"explanations":["× 誤り。事後報告だけでは、重要な判断を統制できない。","× 誤り。委員会がないと、判断の責任の所在があいまいになる。","× 誤り。担当者の単独判断では、組織としての統制が効かない。","○ 正しい。委員会が承認し経緯を記録すると、判断の妥当性と説明責任を確保できる。"]},{"id":"pmp-162","type":"mc","chapterIndex":2,"stem":"ベネフィットの測定と報告として、最も適切なものはどれか。","options":["ベネフィットの測定指標は、プロジェクトの完了後に、利用可能なデータをもとに関係者が自由に定めるものとし、事前の定義は必要ない。","報告は不要とし、実現状況は確認しない。","ベネフィットの測定指標を事前に定義し、実現状況を定期的に報告する。","ベネフィットは、測定が難しいものを対象外とし、測定しやすい指標だけを報告に用いることが望ましいとされる。"],"correctIndex":2,"explanations":["× 誤り。事後に指標を定めると、達成の判断基準が曖昧になる。","× 誤り。報告しないと、ベネフィットの実現状況を把握できない。","○ 正しい。指標を事前に定義し定期的に報告すると、実現状況を客観的に判断できる。","× 誤り。測定しやすい指標だけでは、重要な効果を見落とす。"]},{"id":"pmp-163","type":"mc","chapterIndex":2,"stem":"個人データの取扱いへの対応として、最も適切なものはどれか。","options":["個人データの保護は、システムの稼働後に問題が生じたときに対応すれば足り、設計段階で規制を確認する必要はない。","個人データの取扱いを法規制に照らして確認する。","個人データは、担当部門が便利なように利用して構わず、規制の範囲を細かく確認する必要はない。","データ保護の規制は、海外のサービスには適用されないため、国内の基準だけで判断すれば十分である。"],"correctIndex":1,"explanations":["× 誤り。設計段階で確認しないと、後の改修費用や違反のリスクが大きい。","○ 正しい。個人データの取扱いを規制に照らして確認することは、違反を防ぐ基本である。","× 誤り。担当部門の便宜で使うと、目的外利用になるおそれがある。","× 誤り。海外のサービスでも、対象となる場合があり、一律に除外はできない。"]},{"id":"pmp-164","type":"mc","chapterIndex":2,"stem":"組織の学習の仕組みとして、最も適切なものはどれか。","options":["組織として学習する仕組みを作り、プロジェクトで得た教訓を次の案件の計画や標準へ反映する。","教訓は個人の経験として残せば足りる。","教訓の共有は行わず、各自の記録にとどめる。","学習は、失敗したときだけ行えば十分とされる。"],"correctIndex":0,"explanations":["○ 正しい。教訓を組織の標準へ反映すると、次の案件で同じ問題を防げる。","× 誤り。個人の経験にとどめると、組織として活用できない。","× 誤り。共有しないと、同じ失敗が繰り返される。","× 誤り。成功例からも学ばないと、良い実践を広げられない。"]},{"id":"pmp-165","type":"mc","chapterIndex":2,"stem":"プロジェクトの利益計画として、最も適切なものはどれか。","options":["プロジェクトの利益計画は、便益の発生時期にかかわらず、全期間の合計金額だけを示せば足り、費用の見込みを時期ごとに示す必要はない。","利益計画は作成せず、投資の判断を行う。","費用は実績が出た後に、まとめて記録する。","プロジェクトの利益計画は、便益の発生時期と費用の見込みを対応させて策定する。"],"correctIndex":3,"explanations":["× 誤り。時期を対応させないと、資金繰りの判断を誤るおそれがある。","× 誤り。利益計画がないと、投資の効果を事前に評価できない。","× 誤り。費用を後から記録すると、見込みに基づく判断ができない。","○ 正しい。便益と費用の時期を対応させると、利益計画の実現性を確認できる。"]},{"id":"pmp-166","type":"mc","chapterIndex":2,"stem":"競合環境への対応として、最も適切なものはどれか。","options":["競合の動向は、自社の製品と直接競合する企業だけを対象とすればよく、市場全体や代替となる手段の分析は、必要性が低いため省略してよい。","競合は分析せず、自社の方針だけで判断する。","競合の動向を定期的に分析し、自社の強みと弱みを戦略に反映する。","競合の分析は、担当者が公開情報を一度確認すれば十分であり、その後は戦略の見直しに使う必要はない。"],"correctIndex":2,"explanations":["× 誤り。代替手段を含めないと、市場の脅威を見落とす。","× 誤り。競合を分析しないと、自社の位置づけを判断できない。","○ 正しい。競合の動向を定期的に分析し戦略に反映すると、市場での優位性を保てる。","× 誤り。一度の確認だけでは、環境の変化に対応できない。"]},{"id":"pmp-167","type":"mc","chapterIndex":2,"stem":"変革への抵抗への対応として、最も適切なものはどれか。","options":["変革への抵抗は、意思の弱さによるものとして扱い、説明や対話の場を設ける必要はないと考える。","変革への抵抗の理由を把握する。","抵抗が表れたら、対象者を配置転換して、変革の進行を優先させることが望ましいと判断する。","抵抗は、変革の終了後に自然に解消されるため、途中で対応を検討する必要はないと考える。"],"correctIndex":1,"explanations":["× 誤り。意思の問題と決めつけると、懸念の原因を把握できない。","○ 正しい。抵抗の理由を把握すると、対象者に合った支援や説明を計画できる。","× 誤り。配置転換で抑えると、組織の信頼と協力を損なう。","× 誤り。途中で対応しないと、抵抗が定着して変革が進まない。"]},{"id":"pmp-168","type":"mc","chapterIndex":2,"stem":"ビジネスケースの管理として、最も適切なものはどれか。","options":["ビジネスケースは、前提や環境の変化を反映して定期的に更新し、投資継続の判断に用いる。","ビジネスケースは、承認時点の内容を保持する。","前提の変化は考慮しなくてよい。","更新は、投資が失敗した後に行えば足りる。"],"correctIndex":0,"explanations":["○ 正しい。前提の変化を反映して更新すると、投資継続の判断を現実に即して行える。","× 誤り。前提が変わっても承認時の内容だけでは、判断を誤るおそれがある。","× 誤り。前提の変化を考慮しないと、投資の妥当性を評価できない。","× 誤り。失敗後の更新では、損失を防ぐ判断ができない。"]},{"id":"pmp-169","type":"mc","chapterIndex":2,"stem":"内部統制と法令遵守の確認として、最も適切なものはどれか。","options":["内部統制と法令遵守の状況は、問題が指摘されたときにのみ確認すればよく、定期的な監査は、担当部門の負担を増やすため不要とされる。","監査は行わず、現場の自己点検だけで足りる。","報告は担当部門が任意の時期に行えばよい。","内部統制と法令遵守の状況を、定期的に監査部門が確認し、結果を経営層へ報告する。"],"correctIndex":3,"explanations":["× 誤り。指摘時のみの確認では、問題の早期発見ができない。","× 誤り。監査を行わないと、統制の有効性を確認できない。","× 誤り。任意の報告では、経営層が状況を把握できない。","○ 正しい。定期的な確認と経営層への報告は、統制の有効性を保つ基本である。"]},{"id":"pmp-170","type":"mc","chapterIndex":2,"stem":"組織の意思決定ルールとして、最も適切なものはどれか。","options":["意思決定のルールは、担当者ごとの経験に基づいて個別に運用するのが柔軟であり、明文化すると判断が硬直化するため、文書化は最小限にとどめるべきである。","ルールは作らず、個々の判断に任せる。","権限と判断基準を明文化し、組織全体で共有する。","意思決定のルールは、経営層だけが把握していればよく、現場への共有は、判断に直接関係する一部の担当者に限定してよい。"],"correctIndex":2,"explanations":["× 誤り。担当者ごとの運用では、判断が一貫せず説明責任を果たせない。","× 誤り。ルールがないと、組織としての判断の一貫性を保てない。","○ 正しい。権限と判断基準を明文化し共有すると、判断の一貫性と説明責任を確保できる。","× 誤り。現場への共有を制限すると、判断の前提を現場が理解できない。"]},{"id":"pmp-171","type":"mc","chapterIndex":2,"stem":"製品の市場投入の判断として、最も適切なものはどれか。","options":["製品の市場投入は、開発が完了した時点で直ちに行うことが原則であり、市場の需要や競合の動きを確認する必要はない。","市場投入の時期を、市場の需要に合わせて決める。","市場投入の時期は、社内の準備状況だけで決めればよく、外部の需要や競合の状況を考慮する必要はない。","投入時期は、経営層の希望する日付に合わせて一律に設定し、市場の状況による見直しは行わないことが望ましい。"],"correctIndex":1,"explanations":["× 誤り。需要を確認しないと、売れない時期に投入するおそれがある。","○ 正しい。市場の需要に合わせて投入時期を決めると、事業の成果を高めやすい。","× 誤り。外部の状況を考慮しないと、競合に対して不利になるおそれがある。","× 誤り。市場の状況で見直さないと、投入の機会を逃すおそれがある。"]},{"id":"pmp-172","type":"mc","chapterIndex":2,"stem":"組織のリスク選好の扱いとして、最も適切なものはどれか。","options":["組織のリスク選好を経営層が明確にし、それに沿って個々の投資やプロジェクトのリスク許容範囲を定める。","リスク選好は、現場の判断に任せる。","リスクは、すべて避けるべきと考える。","許容範囲は、案件ごとに都度決めればよい。"],"correctIndex":0,"explanations":["○ 正しい。リスク選好を明確にすると、投資判断の基準を組織全体で揃えられる。","× 誤り。現場任せでは、組織としての判断基準が揃わない。","× 誤り。すべて避けると、事業上の機会を取れなくなる。","× 誤り。案件ごとに決めると、組織全体で一貫した判断ができない。"]},{"id":"pmp-173","type":"mc","chapterIndex":2,"stem":"成果の運用への移管として、最も適切なものはどれか。","options":["プロジェクトの成果の運用への移管は、開発チームが完了を宣言した後に、運用担当者が必要に応じて引き受けるものとし、事前の合意は必要ない。","移管は行わず、開発チームで運用も続ける。","責任は後から決め、移管の時期は後で調整する。","プロジェクトの成果を運用へ移管する時期と責任を、事前に関係者と合意する。"],"correctIndex":3,"explanations":["× 誤り。事前の合意がないと、移管後の責任が曖昧になる。","× 誤り。移管しないと、成果が事業の価値に結びつかない。","× 誤り。責任を後で決めると、運用の混乱が生じやすい。","○ 正しい。移管の時期と責任を事前に合意すると、成果を運用で確実に活かせる。"]},{"id":"pmp-174","type":"mc","chapterIndex":2,"stem":"事業価値の継続として、最も適切なものはどれか。","options":["事業の価値は、導入が完了した時点で確定するため、その後の確認や改善は、新たな投資が必要になった場合に限り行えばよい。","価値は確認せず、導入の成功だけで判断する。","事業の価値は、導入後も継続的に確認し、必要な改善を行うことで維持する。","導入後の価値の確認は、利用者の満足度調査の結果だけで判断し、財務上の効果は評価の対象に含めないことが望ましい。"],"correctIndex":2,"explanations":["× 誤り。導入後の確認を省くと、価値の低下に気づけない。","× 誤り。確認しないと、事業の価値が維持されているか判断できない。","○ 正しい。導入後も継続的に確認し改善すると、価値を維持できる。","× 誤り。財務上の効果を除くと、事業の価値を総合的に評価できない。"]},{"id":"pmp-175","type":"mc","chapterIndex":2,"stem":"持続可能性への対応として、最も適切なものはどれか。","options":["持続可能性への影響は、事業の利益に直接関係しない場合には評価対象から外し、法令で求められた場合にのみ検討すればよい。","持続可能性への影響を評価する。","環境や社会への影響は、プロジェクトの範囲外として扱い、担当部門が個別に判断することが望ましいとされる。","持続可能性の評価は、投資の承認後に、関係者の要望があった場合にのみ行えば十分であると考える。"],"correctIndex":1,"explanations":["× 誤り。利益と無関係として外すと、事業上のリスクを見落とす。","○ 正しい。持続可能性への影響を評価すると、事業の長期的なリスクと機会を把握できる。","× 誤り。範囲外として扱うと、組織としての責任ある判断ができない。","× 誤り。承認後の評価では、投資判断に反映できない。"]},{"id":"pmp-176","type":"mc","chapterIndex":2,"stem":"業界の規制変更への対応として、最も適切なものはどれか。","options":["業界の規制の変更を定期的に確認し、自社の事業計画と製品の要件へ速やかに反映する。","規制の変更は、施行された後に対応すれば足りる。","規制は業界ごとに違うため、確認しなくてよい。","規制の変更は、経営層が把握していれば十分である。"],"correctIndex":0,"explanations":["○ 正しい。規制の変更を定期的に確認し計画へ反映すると、違反や機会の逸失を防げる。","× 誤り。施行後の対応では、準備期間を活かせず混乱が生じる。","× 誤り。自社に関係する規制を把握しないと、対応の要否を判断できない。","× 誤り。経営層だけの把握では、現場の製品や業務への反映が遅れる。"]},{"id":"pmp-177","type":"mc","chapterIndex":2,"stem":"組織の方針の扱いとして、最も適切なものはどれか。","options":["組織の方針は、策定した部門だけが把握していればよく、プロジェクトの判断基準として周知する必要はなく、必要な場合に限って個別に参照すればよい。","方針は周知せず、各部門の判断に任せる。","方針は個人の裁量で扱い、統一はしていない。","組織の方針を、戦略目標と整合させ、プロジェクトの判断基準として周知する。"],"correctIndex":3,"explanations":["× 誤り。周知しないと、現場の判断が方針から外れる。","× 誤り。周知がないと、組織の判断基準が共有されない。","× 誤り。個人の裁量では、組織としての一貫性を保てない。","○ 正しい。方針を戦略と整合させて周知すると、判断基準を組織で揃えられる。"]},{"id":"pmp-178","type":"mc","chapterIndex":2,"stem":"新規事業の評価として、最も適切なものはどれか。","options":["新規事業は、担当部門が有望だと考える案件を対象に、事業の規模や収益性を詳しく評価せずに、早期に投資を開始して成果を見極める方法が効率的であるとされる。","新規事業は評価せず、勘で投資を決める。","市場規模・収益性・戦略適合性を評価し、投資の判断を行う。","新規事業の評価は、起業家の経験と熱意を中心に判断し、市場規模や収益性は、事業が始まった後に確認すれば十分である。"],"correctIndex":2,"explanations":["× 誤り。詳細な評価を省くと、収益性の低い事業に投資するおそれがある。","× 誤り。評価しないと、投資の妥当性を判断できない。","○ 正しい。市場規模・収益性・戦略適合性を評価すると、投資の判断に根拠を与えられる。","× 誤り。開始後の確認では、投資の前に収益性の見込みを判断できない。"]},{"id":"pmp-179","type":"mc","chapterIndex":2,"stem":"経営層への報告として、最も適切なものはどれか。","options":["経営層への報告は、問題が解決した後にまとめて行えば足り、進行中の重要な課題を途中で報告する必要はない。","重要な事業上の課題を経営層へ報告する。","報告の内容は、担当者が良い結果だけを選んで伝え、課題は経営層の関心があった場合にのみ報告すればよい。","報告は年に一度の定例会議で足り、重要な課題も次回の会議まで待つ。"],"correctIndex":1,"explanations":["× 誤り。解決後の報告では、経営層が判断の機会を失う。","○ 正しい。重要な課題を経営層へ報告すると、迅速な判断と資源の投入が可能になる。","× 誤り。課題を選んで伝えると、経営層が事業の実態を誤って判断する。","× 誤り。次回まで待つと、課題への対応が遅れて事業に影響する。"]},{"id":"pmp-180","type":"mc","chapterIndex":2,"stem":"事業環境の変化への対応として、最も適切なものはどれか。","options":["事業環境、戦略、組織の変化を統合的に捉え、プロジェクトの価値が継続して実現されるよう、定期的に計画と体制を見直す。","事業環境の変化は、プロジェクトの範囲外とする。","計画は一度定めたら変更しない。","体制の見直しは、問題が発生した時点で行えばよい。"],"correctIndex":0,"explanations":["○ 正しい。環境・戦略・組織の変化を統合して見直すと、価値の実現を継続して支えられる。","× 誤り。範囲外として扱うと、変化による価値の低下を防げない。","× 誤り。計画を変更しないと、環境の変化に対応できない。","× 誤り。問題が起きてからでは、価値の実現に遅れが生じる。"]}];
+  const CHAPTERS = ["People（チームのリード・支援、ステークホルダーの関与、紛争の解決）","Process（計画・実行・監視・変更対応、予測型・アジャイル・ハイブリッド）","Business Environment（組織の戦略、コンプライアンス、価値の実現）"];
+  const BASE_CHAPTER_COUNT = 3;   // これ以降の章は新シラバス仮問題集（deck:'extra3'）用
+// GAS_WEBAPP_URL / EXAM_ID / EXAM_SHORT_TITLE / TRACKING_EXAM_ID / QUESTIONS / CHAPTERS は build_html.js が
+// ビルド時にこのファイルの直前へ注入する。QUESTIONS は {id, type:'mc'|'tf'|'mc-multi', chapterIndex, stem, ...}
+// の配列。TRACKING_EXAM_ID は成績記録シート名（<TRACKING_EXAM_ID>_<mode>）専用のIDで、
+// 同じexam.id配下に複数の問題集（quiz/quiz2）がある場合に成績を分離するため EXAM_ID とは別に持つ
+// （EXAM_ID はチャットへ戻る遷移先ページなので exam.id のまま変えない）。
+// 'mc-multi' は「すべて選びなさい」形式（正解が複数）。見た目は 'mc' と同じ選択肢ボタンだが、
+// クリックのたびにトグル選択（複数選択可）になり、正解は correctIndexes（配列）で持つ。
+
+const MODE_LABEL = { mc: '模擬試験', tf: '一問一答', extra: '追加問題', extra2: '追加問題2', extra3: '新シラバス仮問題', review: '復習' };
+// 成績記録（QuizTracking.js）のシートを分けるための mode 変換。
+// 'extra'（追加問題、別ソースの問題集）は既存の 模擬試験(seiseiai_mc) と混在しないよう
+// 'mc2' という別モード名で記録する。'extra2'（3つ目の問題集）は同様に'mc3'。
+// 'review'（復習モード）は章別推移表には記録せず、専用の復習ログへ書く（recordResults参照）。
+const TRACKING_MODE = { mc: 'mc', tf: 'tf', extra: 'mc2', extra2: 'mc3', extra3: 'mc4', review: 'review' };
+
+// 復習モードの「卒業」条件。復習でこの回数だけ連続正解したら、既定の出題対象から外す
+// （「記録にある全部」を選べば卒業ぶんも出題できる）。バックエンド QuizReview.js は
+// 生の連続正解数(streak)だけを返し、閾値の判断はこの画面側で持つ。
+const GRADUATE_STREAK = 2;
+// 復習の範囲「最近間違えた問題」が遡る日数。
+const RECENT_MISS_DAYS = 14;
+
+let mode = null;             // 'mc' | 'tf' | 'extra' | 'extra2' | 'extra3' | 'review'
+let modePool = [];           // モードごとの出題プール（下記参照）
+let scopeChapterIndex = null; // null = 全部、それ以外は対象chapterIndex
+let scopeGroup = null;        // null = 章全体、それ以外は章の中のテーマ別グループ名
+let questions = [];          // 範囲確定時に modePool を全部 or 該当章でfilterしたもの
+let idx = 0;
+let selectedOption = null;   // mc: 0-3 の数値、tf: true/false、mc-multi: 選択中indexの配列、未選択は null（mc-multiは[]）
+let revealed = false;
+let sessionResults = [];     // [{id, chapterIndex, correct, selectedOption}]
+let skippedCount = 0;        // 回答せずに飛ばした問題数（正答率の母数には入れない）
+
+// 復習モード用の状態。reviewEntries はバックエンド apiGetReviewPool の戻り
+// [{id, mode, missCount, lastMissAt, reviewCount, streak, lastReviewAt}]。
+let reviewEntries = [];
+let reviewEntryById = {};
+let reviewScopeKey = null;   // 'active' | 'repeat' | 'recent' | 'all' | chapterIndex(数値)
+let reviewMissingCount = 0;  // 記録にあるが今の問題集に見つからない問題数（ID未記録の旧データなど）
+
+(function initCounts() {
+  document.getElementById('mcCount').textContent = QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).length;
+  document.getElementById('tfCount').textContent = QUESTIONS.filter((q) => q.type === 'tf' && !q.deck).length;
+  document.getElementById('extraCount').textContent = QUESTIONS.filter((q) => q.deck === 'extra').length;
+  document.getElementById('extra2Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra2').length;
+  document.getElementById('extra3Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra3').length;
+  // 問題が1問も無いモードのカードは出さない（FP3のように問題集が1本だけの資格向け）。
+  [['tfCard', 'tfCount'], ['extraCard', 'extraCount'], ['extra2Card', 'extra2Count'], ['extra3Card', 'extra3Count']].forEach(([card, count]) => {
+    if (!Number(document.getElementById(count).textContent)) document.getElementById(card).style.display = 'none';
+  });
+  // 模擬試験カードの選択肢数表記（FP3は3択）。選択肢数が混在するときは「3〜4択」のように範囲で出す。
+  const sizes = Array.from(new Set(QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).map((q) => q.options.length)));
+  if (sizes.length) {
+    const lo = Math.min.apply(null, sizes), hi = Math.max.apply(null, sizes);
+    document.getElementById('mcKind').textContent = (lo === hi ? lo : lo + '〜' + hi) + '択';
+  }
+  // 問題集1本だけの資格は「模擬試験」ではなく exams.js の quiz.mcTitle で呼び替える。
+  if (typeof MC_TITLE === 'string' && MC_TITLE) {
+    MODE_LABEL.mc = MC_TITLE;
+    document.getElementById('mcTitle').textContent = MC_TITLE;
+  }
+})();
+
+function showScreen(id) {
+  ['screenMode', 'screenScope', 'screenQuestion', 'screenSummary'].forEach((s) => {
+    document.getElementById(s).style.display = s === id ? '' : 'none';
+  });
+}
+
+function chooseMode(m) {
+  if (m === 'review') { startReview(); return; }
+  const pool = m === 'extra' || m === 'extra2' || m === 'extra3'
+    ? QUESTIONS.filter((q) => q.deck === m)
+    : QUESTIONS.filter((q) => q.type === m && !q.deck);
+  if (!pool.length) { alert('このモードの問題がまだ登録されていません。'); return; }
+  mode = m;
+  modePool = pool;
+  renderScopeScreen();
+}
+
+// ── 復習モード（間違えた問題だけの再学習） ────────────────────────────────
+// 出題プールはスプレッドシートの記録（<examId>_<mode>_ミス、全モードぶん）から作る。
+// 端末のlocalStorageは使わない: このページはGASのサンドボックスiframe（*.googleusercontent.com）
+// で配信されるため保存先が端末・ブラウザごとにバラバラになり、スマホとPCで復習状況が
+// 食い違ってしまう。記録は既にスプレッドシートにあるのでそれを唯一の正とする。
+async function startReview() {
+  const card = document.getElementById('reviewCard');
+  const desc = document.getElementById('reviewCount');
+  const prevDesc = desc.textContent;
+  card.disabled = true;
+  desc.textContent = '記録を読み込み中...';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+    });
+    if (!data.ok) {
+      alert('復習リストを取得できませんでした: ' + (data.error || ''));
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    reviewEntries = data.entries || [];
+    reviewEntryById = {};
+    reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+
+    const pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+    reviewMissingCount = reviewEntries.length - pool.length;
+    if (!pool.length) {
+      alert(reviewEntries.length
+        ? '記録にある問題が今の問題集に見つかりませんでした（問題IDの無い古い記録のみです）。'
+        : 'まだ間違えた問題の記録がありません。\n各モードを解いたあとサマリー画面で「この回の結果を記録」を押すと、ここに溜まっていきます。');
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    mode = 'review';
+    modePool = pool;
+    desc.textContent = pool.filter((q) => !isGraduated(q)).length + '問が未克服';
+    renderScopeScreen();
+  } catch (err) {
+    alert('通信エラー: ' + (err && err.message ? err.message : err));
+    desc.textContent = prevDesc;
+  } finally {
+    card.disabled = false;
+  }
+}
+
+// 復習プールの1問あたりの状態を引く小物。記録に無い問題（通常は起きない）は0扱い。
+function isGraduated(q) {
+  const e = reviewEntryById[q.id];
+  return !!e && e.streak >= GRADUATE_STREAK;
+}
+function missCountOf(q) {
+  const e = reviewEntryById[q.id];
+  return e ? e.missCount : 0;
+}
+function lastMissTimeOf(q) {
+  const e = reviewEntryById[q.id];
+  return e && e.lastMissAt ? new Date(e.lastMissAt).getTime() : 0;
+}
+
+// 復習の範囲キー → 出題対象の絞り込み条件。
+function reviewFilter(key) {
+  if (key === 'all') return function () { return true; };
+  if (key === 'repeat') return function (q) { return !isGraduated(q) && missCountOf(q) >= 2; };
+  if (key === 'recent') {
+    const since = Date.now() - RECENT_MISS_DAYS * 24 * 60 * 60 * 1000;
+    return function (q) { return !isGraduated(q) && lastMissTimeOf(q) >= since; };
+  }
+  if (typeof key === 'number') return function (q) { return !isGraduated(q) && q.chapterIndex === key; };
+  return function (q) { return !isGraduated(q); }; // 'active'（既定）
+}
+
+function reviewScopeLabel(key) {
+  if (key === 'all') return '記録にある全部';
+  if (key === 'repeat') return '2回以上間違えた問題';
+  if (key === 'recent') return '最近' + RECENT_MISS_DAYS + '日で間違えた問題';
+  if (typeof key === 'number') return chapterLabelText(key);
+  return '未克服の問題';
+}
+
+// 復習モードでは色々なデッキの問題が混ざるので、その問題がどの問題集のものかを示す。
+function deckLabelOf(q) {
+  if (q.deck === 'extra') return '追加問題';
+  if (q.deck === 'extra2') return '追加問題2';
+  if (q.deck === 'extra3') return '新シラバス仮問題';
+  return q.type === 'tf' ? '一問一答' : '模擬試験';
+}
+
+// モード確定後、「全部」か「章ごとにチャレンジ」かを選ぶ画面を組み立てる。
+function renderScopeScreen() {
+  if (mode === 'review') { renderReviewScopeScreen(); return; }
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">📚 全部</div><div class="scope-all-desc">' + modePool.length + '問すべて出題</div>';
+  allBtn.onclick = () => chooseScope(null);
+  el.appendChild(allBtn);
+
+  const chapterIndexes = Array.from(new Set(modePool.map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとにチャレンジ';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const count = modePool.filter((q) => q.chapterIndex === ci).length;
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + count + '問</span>';
+      btn.onclick = () => chooseScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+
+    // 章の下のテーマ別グループ（問題に group が付いているときだけ）。
+    if (modePool.some((q) => q.group)) {
+      const gHeading = document.createElement('div');
+      gHeading.className = 'scope-chapter-heading';
+      gHeading.textContent = 'テーマ別にチャレンジ';
+      el.appendChild(gHeading);
+      chapterIndexes.forEach((ci) => {
+        const inChapter = modePool.filter((q) => q.chapterIndex === ci && q.group);
+        const names = [];
+        inChapter.slice().sort((a, b) => (a.groupIndex || 0) - (b.groupIndex || 0)).forEach((q) => { if (names.indexOf(q.group) < 0) names.push(q.group); });
+        if (!names.length) return;
+        const sub = document.createElement('div');
+        sub.className = 'scope-note';
+        sub.textContent = chapterLabelText(ci);
+        el.appendChild(sub);
+        const gList = document.createElement('div');
+        gList.className = 'scope-chapter-list';
+        names.forEach((name) => {
+          const n = inChapter.filter((q) => q.group === name).length;
+          const btn = document.createElement('button');
+          btn.className = 'scope-chapter-btn';
+          btn.innerHTML = '<span class="name">' + escapeHtml(name) + '</span><span class="count">' + n + '問</span>';
+          btn.onclick = () => chooseScope(ci, name);
+          gList.appendChild(btn);
+        });
+        el.appendChild(gList);
+      });
+    }
+  }
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲選択画面。章ではなく「未克服／繰り返しミス／最近／全部」で切る。
+function renderReviewScopeScreen() {
+  document.getElementById('headerSub').textContent = '復習　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const countOf = (key) => modePool.filter(reviewFilter(key)).length;
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">🔁 未克服の問題</div><div class="scope-all-desc">'
+    + countOf('active') + '問・間違えたまま克服できていない問題</div>';
+  allBtn.onclick = () => chooseReviewScope('active');
+  el.appendChild(allBtn);
+
+  const presets = [
+    { key: 'repeat', name: '🔥 2回以上間違えた問題' },
+    { key: 'recent', name: '📅 最近' + RECENT_MISS_DAYS + '日で間違えた問題' },
+    { key: 'all', name: '📚 記録にある全部（克服済みも含む）' },
+  ];
+  const presetList = document.createElement('div');
+  presetList.className = 'scope-chapter-list';
+  presets.forEach((p) => {
+    const n = countOf(p.key);
+    const btn = document.createElement('button');
+    btn.className = 'scope-chapter-btn';
+    btn.disabled = n === 0;
+    btn.innerHTML = '<span class="name">' + escapeHtml(p.name) + '</span><span class="count">' + n + '問</span>';
+    btn.onclick = () => chooseReviewScope(p.key);
+    presetList.appendChild(btn);
+  });
+  el.appendChild(presetList);
+
+  // 章ごと（未克服のぶんだけ）。0問の章はボタン自体を出さない。
+  const chapterIndexes = Array.from(new Set(modePool.filter(reviewFilter('active')).map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとに復習（未克服ぶん）';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const n = countOf(ci);
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + n + '問</span>';
+      btn.onclick = () => chooseReviewScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+  }
+
+  const note = document.createElement('div');
+  note.className = 'scope-note';
+  note.textContent = '復習で' + GRADUATE_STREAK + '回連続で正解した問題は「克服」として既定の出題から外れます。'
+    + (reviewMissingCount > 0 ? '（記録のうち' + reviewMissingCount + '問は今の問題集に無いため対象外）' : '');
+  el.appendChild(note);
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲確定。ミスが多い問題・最近間違えた問題から先に出す。
+function chooseReviewScope(key) {
+  const pool = modePool.filter(reviewFilter(key));
+  if (!pool.length) { alert('この条件に当てはまる問題がありません。'); return; }
+  reviewScopeKey = key;
+  scopeChapterIndex = typeof key === 'number' ? key : null;
+  scopeGroup = null;
+  questions = pool.slice().sort((a, b) => (missCountOf(b) - missCountOf(a)) || (lastMissTimeOf(b) - lastMissTimeOf(a)));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = '復習　' + reviewScopeLabel(key) + '（' + questions.length + '問）';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function chooseScope(chapterIndex, group) {
+  scopeChapterIndex = chapterIndex;
+  scopeGroup = group || null;
+  questions = chapterIndex == null ? modePool : modePool.filter((q) => q.chapterIndex === chapterIndex && (!scopeGroup || q.group === scopeGroup));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　' + (chapterIndex == null ? '全部' : chapterLabelText(chapterIndex) + (scopeGroup ? '／' + scopeGroup : ''));
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function restartMode() {
+  if (mode === 'review') { chooseReviewScope(reviewScopeKey); return; }
+  chooseScope(scopeChapterIndex, scopeGroup);
+}
+
+// 今のセッションで間違えた問題だけを、その場でもう一度出題する（記録を待たない簡易復習）。
+// 記録ベースの本格的な復習はモード選択の「🔁 復習」。
+function retryWrongInSession() {
+  const wrong = sessionResults.filter((r) => !r.correct)
+    .map((r) => questions.find((q) => q.id === r.id))
+    .filter(Boolean);
+  if (!wrong.length) return;
+  questions = wrong;
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent =
+    (mode === 'review' ? '復習' : MODE_LABEL[mode]) + '　間違えた' + wrong.length + '問をもう一度';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function backToScopeSelect() {
+  renderScopeScreen();
+}
+
+function backToModeSelect() {
+  mode = null;
+  modePool = [];
+  scopeChapterIndex = null;
+  scopeGroup = null;
+  document.getElementById('headerSub').textContent = 'モードを選んでください';
+  showScreen('screenMode');
+}
+
+function chapterLabelText(chapterIndex) {
+  if (chapterIndex == null || !CHAPTERS[chapterIndex]) return '';
+  // BASE_CHAPTER_COUNT 以降は新シラバス仮問題集の章（旧シラバスの章と名前が重なるので「新」を付ける）
+  if (chapterIndex >= BASE_CHAPTER_COUNT) return '新シラバス第' + (chapterIndex - BASE_CHAPTER_COUNT + 1) + '章：' + CHAPTERS[chapterIndex];
+  return '第' + (chapterIndex + 1) + '章：' + CHAPTERS[chapterIndex];
+}
+
+function renderQuestion() {
+  const q = questions[idx];
+  selectedOption = q.type === 'mc-multi' ? [] : null;
+  revealed = false;
+
+  // 復習モードは色々なデッキが混ざるので、どの問題集の何問目かと通算ミス回数も出す。
+  const progressLabel = mode === 'review'
+    ? '復習（' + deckLabelOf(q) + '）　' + (idx + 1) + ' / ' + questions.length + '　通算' + missCountOf(q) + '回ミス'
+    : MODE_LABEL[mode] + '　' + (idx + 1) + ' / ' + questions.length;
+  document.getElementById('progress').textContent = progressLabel;
+  document.getElementById('chapterLabel').textContent = chapterLabelText(q.chapterIndex) + (q.group ? '／' + q.group : '');
+  document.getElementById('stem').textContent = q.stem + (q.type === 'mc-multi' ? '（複数選択可）' : '');
+
+  const optionsEl = document.getElementById('options');
+  optionsEl.innerHTML = '';
+
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    q.options.forEach((text, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = '(' + (i + 1) + ') ' + text;
+      btn.onclick = () => selectOption(i);
+      optionsEl.appendChild(btn);
+    });
+  } else {
+    const trueBtn = document.createElement('button');
+    trueBtn.className = 'option-btn tf-btn';
+    trueBtn.textContent = '○ 正しい';
+    trueBtn.onclick = () => selectOption(true);
+    const falseBtn = document.createElement('button');
+    falseBtn.className = 'option-btn tf-btn';
+    falseBtn.textContent = '× 誤り';
+    falseBtn.onclick = () => selectOption(false);
+    optionsEl.appendChild(trueBtn);
+    optionsEl.appendChild(falseBtn);
+  }
+
+  // 「回答」ボタンは複数選択（mc-multi）専用。mc / tf は選択した時点で即判定するため出さない。
+  const answerBtn = document.getElementById('answerBtn');
+  answerBtn.disabled = true;
+  answerBtn.style.display = q.type === 'mc-multi' ? '' : 'none';
+  document.getElementById('questionActions').style.display = '';
+  document.getElementById('revealArea').style.display = 'none';
+}
+
+// 回答せずに次の問題へ飛ばす。スキップした問題は sessionResults に入れないので
+// 正答率の母数にも、間違えた問題の記録にも入らない（＝ミス扱いにはしない）。
+function skipQuestion() {
+  if (revealed) return;
+  skippedCount++;
+  saveProgress(idx + 1);
+  nextQuestion();
+}
+
+// mc / tf は「選択＝回答」で、選択肢を押した時点でそのまま正誤を表示する（回答ボタンは出さない）。
+// mc-multi（すべて選びなさい）は複数選んでから確定する必要があるため、従来どおり
+// トグル選択 →「回答」ボタンで reveal() する。
+function selectOption(v) {
+  if (revealed) return;
+  const q = questions[idx];
+
+  if (q.type !== 'mc-multi') {
+    selectedOption = v;
+    reveal();
+    return;
+  }
+
+  const i = selectedOption.indexOf(v);
+  if (i === -1) selectedOption.push(v);
+  else selectedOption.splice(i, 1);
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, j) => {
+    btn.classList.toggle('selected', selectedOption.includes(j));
+  });
+  document.getElementById('answerBtn').disabled = selectedOption.length === 0;
+}
+
+function sameIndexSet(a, b) {
+  if (a.length !== b.length) return false;
+  const sortedA = a.slice().sort();
+  const sortedB = b.slice().sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+// ── 効果音（正解＝ピンポン／不正解＝ブブー） ─────────────────────────────────────
+// 音声ファイルは使わず Web Audio で合成する。鳴らすのは回答の瞬間（利用者のクリック直後）なので
+// ブラウザの自動再生制限にかからない。失敗しても回答の処理は止めない。ON/OFFは端末ごとの好みなので
+// localStorage に覚える（読めない環境ではONのまま）。
+let soundOn = true;
+let audioCtx = null;
+try { soundOn = localStorage.getItem('quizSound') !== 'off'; } catch (e) { /* 読めなければON */ }
+
+function getAudioCtx() {
+  if (audioCtx) return audioCtx;
+  const AC = typeof AudioContext !== 'undefined' ? AudioContext
+    : (typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null);
+  if (!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+
+// 1音: 立ち上がりを素早く、あとは指数的に減衰させる（ぷつっというノイズを避ける）。
+function playTone(ctx, start, freq, dur, type, peak) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
+function playResultSound(correct) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const t = ctx.currentTime;
+    // 音量: 同時に鳴る音の合計が 1.0 を超えない範囲（超えると割れる）。
+    if (correct) {
+      // ピン（高）→ポーン（低）。倍音を足してベルらしくする。
+      playTone(ctx, t, 1175, 0.3, 'sine', 0.65);
+      playTone(ctx, t, 2350, 0.2, 'sine', 0.18);
+      playTone(ctx, t + 0.18, 880, 0.6, 'sine', 0.65);
+      playTone(ctx, t + 0.18, 1760, 0.35, 'sine', 0.18);
+    } else {
+      // ブッ、ブー。少しずらした低いのこぎり波2本でブザーらしいざらつきを出す。
+      [150, 157].forEach((f) => {
+        playTone(ctx, t, f, 0.16, 'sawtooth', 0.31);
+        playTone(ctx, t + 0.22, f, 0.5, 'sawtooth', 0.31);
+      });
+    }
+  } catch (e) { /* 音が鳴らなくても学習の邪魔をしない */ }
+}
+
+function updateSoundBtn() {
+  const btn = document.getElementById('soundBtn');
+  if (!btn) return;
+  btn.textContent = soundOn ? '🔊 音' : '🔇 音';
+  btn.title = soundOn ? '効果音ON（押すとOFF）' : '効果音OFF（押すとON）';
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('quizSound', soundOn ? 'on' : 'off'); } catch (e) { /* 保存できなくても今回は有効 */ }
+  updateSoundBtn();
+  if (soundOn) playResultSound(true);   // ONにしたときに音を確かめられるよう、ピンポンを鳴らす
+}
+updateSoundBtn();
+
+function reveal() {
+  if (selectedOption === null || revealed) return;
+  if (Array.isArray(selectedOption) && selectedOption.length === 0) return;
+  revealed = true;
+
+  const q = questions[idx];
+  const correct = q.type === 'mc' ? selectedOption === q.correctIndex
+    : q.type === 'mc-multi' ? sameIndexSet(selectedOption, q.correctIndexes)
+    : selectedOption === q.correct;
+  sessionResults.push({ id: q.id, chapterIndex: q.chapterIndex, correct, selectedOption });
+  saveProgress(idx + 1);   // 回答した時点で保存（次へを押す前に閉じても、次の問題から再開できる）
+  playResultSound(correct);
+
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, i) => {
+    btn.disabled = true;
+    btn.classList.remove('selected');
+    const isCorrectChoice = q.type === 'mc' ? i === q.correctIndex
+      : q.type === 'mc-multi' ? q.correctIndexes.includes(i)
+      : (i === 0) === q.correct;
+    const isSelectedChoice = q.type === 'mc' ? i === selectedOption
+      : q.type === 'mc-multi' ? selectedOption.includes(i)
+      : (i === 0) === selectedOption;
+    if (isCorrectChoice) btn.classList.add('correct');
+    else if (isSelectedChoice) btn.classList.add('incorrect');
+  });
+
+  const revealOptions = document.getElementById('revealOptions');
+  revealOptions.innerHTML = '';
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    // バッジは「選択肢として選ぶべきか(correctIndex/correctIndexes)」ではなく、解説文が本来持つ○/×
+    // （その文が事実として正しいか）をそのまま使う。「最も不適切なものはどれか」形式の設問では
+    // 正解の選択肢が「事実として誤り（×）」であるため、correctIndexだけで○/×を決めると意味が逆転する。
+    q.explanations.forEach((text, i) => {
+      const row = document.createElement('div');
+      row.className = 'option-explain';
+      const m = text.match(/^([○×])\s*/);
+      const fallbackCorrect = q.type === 'mc-multi' ? q.correctIndexes.includes(i) : i === q.correctIndex;
+      const badge = m ? m[1] : (fallbackCorrect ? '○' : '×');
+      row.innerHTML = '<span class="option-badge">' + badge + '</span>' + escapeHtml(text.replace(/^[○×]\s*/, ''));
+      revealOptions.appendChild(row);
+    });
+  } else {
+    const row = document.createElement('div');
+    row.className = 'option-explain';
+    row.innerHTML = '<span class="option-badge">' + (q.correct ? '○ 正しい' : '× 誤り') + '</span><br>' + escapeHtml(q.explanation.replace(/^[○×]\s*/, ''));
+    revealOptions.appendChild(row);
+  }
+
+  document.getElementById('questionActions').style.display = 'none';
+  document.getElementById('revealArea').style.display = '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 選択肢のindex（mc/mc-multi）やbool（tf）を、スプレッドシート出力・アドバイス用に
+// 人が読めるテキストへ変換する。
+function answerText(q, val) {
+  if (q.type === 'mc') return val == null ? '（未回答）' : q.options[val];
+  if (q.type === 'mc-multi') return (val || []).map((i) => q.options[i]).join(' / ');
+  return val ? '正しい' : '誤り';
+}
+
+function buildAskPrompt(q, selected) {
+  // ラベルは問題タイプではなく、現在解いているモード（MODE_LABEL）から決める。
+  // mc3（追加問題2）もtype:'mc'なので、type起点だと「模擬試験」と誤表示されてしまうため。
+  // 復習モードは複数デッキが混ざるので、その問題自身の出自（deckLabelOf）を使う。
+  const deckLabel = mode === 'review' ? deckLabelOf(q) : (MODE_LABEL[mode] || '問題集');
+  if (q.type === 'mc') {
+    const selfAnswerLine = selected != null && selected !== q.correctIndex
+      ? '\n自分は(' + (selected + 1) + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + (q.correctIndex + 1) + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  if (q.type === 'mc-multi') {
+    const selectedList = (selected || []).map((i) => i + 1).join(', ');
+    const correctList = q.correctIndexes.map((i) => i + 1).join(', ');
+    const selfAnswerLine = selected != null && !sameIndexSet(selected, q.correctIndexes)
+      ? '\n自分は(' + selectedList + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題（複数選択）について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + correctList + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  const selfAnswerLine = selected != null && selected !== q.correct
+    ? '\n自分は「' + (selected ? '正しい' : '誤り') + '」と回答して間違えました。なぜそれが誤りかも教えてください。'
+    : '';
+  return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の文の正誤について教えてください。\n\n' +
+    '問題文：' + q.stem + '\n' +
+    '正解：' + (q.correct ? '正しい' : '誤り') + selfAnswerLine +
+    '\nこの論点の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+}
+
+function askInChat() {
+  const q = questions[idx];
+  // GASのHtmlServiceはページをiframe（サンドボックス）内に読み込むため、
+  // location.href だとiframe内だけが遷移してしまう（top.location.hrefが必要）。
+  // さらに相対URLはiframeの内部配信元（googleusercontent.com）を基準に解決
+  // されてしまうため、GAS_WEBAPP_URLを前置した絶対URLにする必要がある。
+  // チャットの「元の問題に戻る」ボタン用に、戻り先（この問題を開き直すURL）を一緒に渡す。
+  // 復習モードは記録の読み込みが要るので、その問題が属する通常モード（出自のデッキ）へ戻す。
+  const backMode = mode === 'review' ? (q.deck || q.type) : mode;
+  let backUrl = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '-quiz&resume=' + encodeURIComponent(q.id) + '&m=' + encodeURIComponent(backMode);
+  if (mode !== 'review' && scopeChapterIndex != null) backUrl += '&c=' + scopeChapterIndex;
+  if (mode !== 'review' && scopeGroup) backUrl += '&g=' + encodeURIComponent(scopeGroup);
+  top.location.href = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '&ask=' + encodeURIComponent(buildAskPrompt(q, selectedOption))
+    + '&back=' + encodeURIComponent(backUrl);
+}
+
+// チャットの「元の問題に戻る」から開かれたとき、?resume=<問題ID>&m=<モード>[&c=<章>][&g=<グループ>] の問題を開き直す。
+// 出題順は固定（シャッフルなし）なので、同じ範囲を作り直して該当の位置へ移れば続きから解ける。
+function initResumeParam() {
+  if (typeof google === 'undefined' || !google.script || !google.script.url || !google.script.url.getLocation) return;
+  google.script.url.getLocation(function (loc) {
+    const p = (loc && loc.parameter) || {};
+    if (!p.resume || !p.m) return;
+    const target = QUESTIONS.find((q) => q.id === p.resume);
+    if (!target) return;
+    chooseMode(p.m);
+    if (mode !== p.m) return;
+    const c = p.c != null && p.c !== '' ? Number(p.c) : null;
+    chooseScope(Number.isInteger(c) ? c : null, p.g || null);
+    let at = questions.findIndex((q) => q.id === target.id);
+    if (at < 0) { chooseScope(null, null); at = questions.findIndex((q) => q.id === target.id); }
+    if (at < 0) return;
+    idx = at;
+    renderQuestion();
+  });
+}
+initResumeParam();
+
+// ── 中断→再開 ─────────────────────────────────────────────────────────
+// 1問回答／スキップするたびに、いまの出題セッションの途中経過をバックエンド（UserProperties）へ送る。
+// 次に開いたとき、モード選択画面の先頭に「続きから再開」を出し、中断した次の問題から続けられる。
+// 1資格につき1枠（最後に解いていたセッション）。端末をまたいで再開できる。最後まで解くと消える。
+// 状態は小さく詰める（UserProperties は1値約9KB上限）: q=出題順のID列、a=[[ID, 正誤(1/0), 選んだ答え]…]、i=次に解く位置。
+let pendingProgress = null;
+
+function hasGoogleRun() {
+  return typeof google !== 'undefined' && google && google.script && google.script.run;
+}
+
+function saveProgress(nextIdx) {
+  if (!hasGoogleRun() || !mode || !questions.length) return;
+  const state = {
+    v: 1, t: Date.now(), mode: mode, c: scopeChapterIndex, g: scopeGroup, r: reviewScopeKey,
+    h: document.getElementById('headerSub').textContent,
+    q: questions.map((q) => q.id).join(','), i: nextIdx,
+    a: sessionResults.map((r) => [r.id, r.correct ? 1 : 0, r.selectedOption]), sk: skippedCount,
+  };
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiSaveQuizProgress({ examId: TRACKING_EXAM_ID, state: state });
+  } catch (e) { /* 保存に失敗しても出題は続ける */ }
+}
+
+function clearProgress() {
+  pendingProgress = null;
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiClearQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 無視 */ }
+}
+
+// 保存された途中経過が、今の問題集でそのまま復元できるか（問題が差し替わっていたら諦める）。
+function isResumableProgress(s) {
+  if (!s || s.v !== 1 || typeof s.q !== 'string' || !Array.isArray(s.a) || !Number.isInteger(s.i)) return false;
+  const ids = s.q.split(',');
+  if (s.i < 0 || s.i >= ids.length) return false;
+  const known = {};
+  QUESTIONS.forEach((q) => { known[q.id] = true; });
+  return ids.every((id) => known[id]) && s.a.every((r) => Array.isArray(r) && known[r[0]]);
+}
+
+function offerResume(s) {
+  if (!isResumableProgress(s)) return;
+  pendingProgress = s;
+  const total = s.q.split(',').length;
+  document.getElementById('resumeText').textContent =
+    '📌 途中の問題集があります：' + (s.h || '') + '　' + (s.i + 1) + '問目から（全' + total + '問・回答済み' + s.a.length + '問）';
+  document.getElementById('resumeBanner').style.display = '';
+}
+
+(function initProgress() {
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) { if (res && res.ok && res.state) offerResume(res.state); })
+      .withFailureHandler(function () {})
+      .apiLoadQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 再開バナーが出ないだけ */ }
+})();
+
+function discardProgress() {
+  document.getElementById('resumeBanner').style.display = 'none';
+  clearProgress();
+}
+
+async function resumeProgress() {
+  const s = pendingProgress;
+  if (!s || !isResumableProgress(s)) { discardProgress(); return; }
+  const btn = document.getElementById('resumeBtn');
+  btn.disabled = true;
+  try {
+    let pool;
+    if (s.mode === 'review') {
+      // 復習は問題ごとの通算ミス回数・卒業判定が画面に出るので、記録を読み直してから復元する。
+      const data = await new Promise(function (resolve, reject) {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+      });
+      if (!data.ok) { alert('復習の記録を取得できませんでした: ' + (data.error || '')); return; }
+      reviewEntries = data.entries || [];
+      reviewEntryById = {};
+      reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+      pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+      reviewMissingCount = reviewEntries.length - pool.length;
+    } else {
+      pool = s.mode === 'extra' || s.mode === 'extra2' || s.mode === 'extra3'
+        ? QUESTIONS.filter((q) => q.deck === s.mode)
+        : QUESTIONS.filter((q) => q.type === s.mode && !q.deck);
+    }
+    const byId = {};
+    QUESTIONS.forEach((q) => { byId[q.id] = q; });
+    mode = s.mode;
+    modePool = pool;
+    scopeChapterIndex = s.c == null ? null : s.c;
+    scopeGroup = s.g || null;
+    reviewScopeKey = s.r == null ? null : s.r;
+    questions = s.q.split(',').map((id) => byId[id]);
+    idx = s.i;
+    sessionResults = s.a.map((r) => ({ id: r[0], chapterIndex: byId[r[0]].chapterIndex, correct: !!r[1], selectedOption: r[2] }));
+    skippedCount = s.sk || 0;
+    pendingProgress = null;
+    document.getElementById('resumeBanner').style.display = 'none';
+    document.getElementById('headerSub').textContent = s.h || MODE_LABEL[mode] || '';
+    showScreen('screenQuestion');
+    renderQuestion();
+  } catch (err) {
+    alert('再開できませんでした: ' + (err && err.message ? err.message : err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function nextQuestion() {
+  idx++;
+  if (idx >= questions.length) showSummary();
+  else renderQuestion();
+}
+
+// CHAPTERS の全章を常に含めて返す（今回未出題の章は total:0）。
+// スプレッドシート側は最初の記録時に受け取った章名で行を確定するため、
+// 章の集合が回によってブレると2回目以降の記録で行が見つからなくなる。
+// 常に全章を送ることでこれを防ぐ。
+function aggregateByChapter(results) {
+  const byIndex = {};
+  results.forEach((r) => {
+    if (!byIndex[r.chapterIndex]) byIndex[r.chapterIndex] = { correct: 0, total: 0 };
+    byIndex[r.chapterIndex].total++;
+    if (r.correct) byIndex[r.chapterIndex].correct++;
+  });
+  // 新シラバス仮問題集（extra3）は新シラバスの章だけ、それ以外の問題集は旧シラバスの章だけを送る
+  // （新しい成績シートに旧章の行が並んだり、既存シートの章の集合が変わって行が見つからなくなるのを防ぐ）。復習は全章。
+  const inScope = (i) => mode === 'review' || (mode === 'extra3' ? i >= BASE_CHAPTER_COUNT : i < BASE_CHAPTER_COUNT);
+  return CHAPTERS.map((label, i) => ({
+    chapterIndex: i,
+    chapterLabel: i >= BASE_CHAPTER_COUNT ? chapterLabelText(i) : label,
+    correct: (byIndex[i] && byIndex[i].correct) || 0,
+    total: (byIndex[i] && byIndex[i].total) || 0,
+  })).filter((c) => inScope(c.chapterIndex));
+}
+
+function showSummary() {
+  clearProgress();   // 最後まで解いたので、途中経過は不要
+  showScreen('screenSummary');
+  const total = sessionResults.length;
+  const correct = sessionResults.filter((r) => r.correct).length;
+  const wrongCount = total - correct;
+  const pct = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
+  document.getElementById('summaryScore').textContent =
+    correct + ' / ' + total + '（' + pct + '%）' + (skippedCount > 0 ? '　スキップ ' + skippedCount + '問' : '');
+
+  const byChapter = aggregateByChapter(sessionResults);
+  const chaptersEl = document.getElementById('summaryChapters');
+  chaptersEl.innerHTML = '';
+  byChapter.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'summary-chapter-row';
+    const scoreText = c.total > 0
+      ? c.correct + '/' + c.total + '（' + Math.round((c.correct / c.total) * 1000) / 10 + '%）'
+      : '未出題';
+    row.innerHTML = '<span class="name">' + escapeHtml(c.chapterLabel) + '</span><span class="score">' + scoreText + '</span>';
+    chaptersEl.appendChild(row);
+  });
+
+  document.getElementById('recordStatus').textContent = '';
+  const recordBtn = document.getElementById('recordBtn');
+  // 全問スキップ（回答0問）のときは記録しても中身が無いので押させない。
+  recordBtn.disabled = total === 0;
+  recordBtn.textContent = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+
+  // 間違えた問題があるときだけ、その場で解き直すボタンを出す。
+  const retryBtn = document.getElementById('retryWrongBtn');
+  retryBtn.style.display = wrongCount > 0 ? '' : 'none';
+  retryBtn.textContent = '🔁 間違えた' + wrongCount + '問だけもう一度';
+
+  const note = document.getElementById('summaryNote');
+  if (mode === 'review') {
+    note.textContent = '復習の結果は「' + TRACKING_EXAM_ID + '_復習ログ」に記録され、'
+      + GRADUATE_STREAK + '回連続で正解した問題は次回から「克服」として出題対象から外れます'
+      + '（章別の正答率推移シートには影響しません）。';
+    note.style.display = '';
+  } else {
+    note.style.display = 'none';
+    note.textContent = '';
+  }
+
+  document.getElementById('adviceArea').style.display = 'none';
+  document.getElementById('adviceStatus').textContent = '';
+  document.getElementById('adviceBtn').disabled = false;
+  document.getElementById('adviceBtn').textContent = '🎯 学習アドバイスを見る';
+}
+
+// 今回の結果（章別正答率・間違えた問題）と、過去に蓄積した「ミス」シートの履歴を
+// バックエンドで突き合わせ、Geminiに弱点分野・復習優先度・次のアクションをまとめさせる。
+async function getAdvice() {
+  const btn = document.getElementById('adviceBtn');
+  const status = document.getElementById('adviceStatus');
+  const area = document.getElementById('adviceArea');
+  btn.disabled = true;
+  btn.textContent = 'アドバイスを作成中...';
+  status.textContent = '';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiQuizAdvice({
+          examId: EXAM_ID,
+          trackingExamId: TRACKING_EXAM_ID,
+          mode: TRACKING_MODE[mode] || mode,
+          chapters: aggregateByChapter(sessionResults),
+          wrongAnswers: buildWrongAnswers(),
+        });
+    });
+    if (data.ok) {
+      area.textContent = data.advice;
+      area.style.display = '';
+      btn.textContent = '🎯 学習アドバイスを見る';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || 'アドバイスの取得に失敗しました');
+      btn.textContent = '🎯 学習アドバイスを見る';
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.textContent = '🎯 学習アドバイスを見る';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 間違えた問題だけを、問題文・自分の回答・正解を添えたスプレッドシート出力用の形へ整形する。
+function buildWrongAnswers() {
+  return sessionResults.filter((r) => !r.correct).map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+// 復習モードの記録用。正解した問題も含めて全問を送る（連続正解＝克服の判定に必要なため）。
+function buildReviewResults() {
+  return sessionResults.map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      deckLabel: deckLabelOf(q),
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      correct: r.correct,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+async function recordResults() {
+  const btn = document.getElementById('recordBtn');
+  const status = document.getElementById('recordStatus');
+  const labelWhenIdle = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+  btn.disabled = true;
+  btn.textContent = '記録中...';
+  status.textContent = '';
+
+  const byChapter = aggregateByChapter(sessionResults);
+  try {
+    // fetchではなく google.script.run を使う（理由は chat-app.js の callBackend 参照）。
+    // 復習モードは章別の正答率推移シートに混ぜない（出題が間違えた問題に偏っていて
+    // 推移のグラフが本来の実力より低く歪むため）。専用の復習ログへ全問を書く。
+    const data = await new Promise(function (resolve, reject) {
+      const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      if (mode === 'review') {
+        runner.apiRecordReviewLog({
+          examId: TRACKING_EXAM_ID,
+          results: buildReviewResults(),
+          attemptAt: new Date().toISOString(),
+        });
+        return;
+      }
+      runner.apiRecordQuizResult({
+        examId: TRACKING_EXAM_ID,
+        mode: TRACKING_MODE[mode] || mode,
+        chapters: byChapter,
+        wrongAnswers: buildWrongAnswers(),
+        attemptAt: new Date().toISOString(),
+      });
+    });
+    if (data.ok) {
+      status.textContent = '✅ 記録しました';
+      btn.textContent = '記録済み';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || '記録に失敗しました');
+      btn.disabled = false;
+      btn.textContent = labelWhenIdle;
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.disabled = false;
+    btn.textContent = labelWhenIdle;
+  }
+}
+
+</script>
+</body>
+</html>

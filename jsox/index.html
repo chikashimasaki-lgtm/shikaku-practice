@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>J-SOX問題集（仮問題）</title>
+<meta name="robots" content="noindex,nofollow">
+<script>
+(function () {
+  function make(ok, fail) {
+    return new Proxy({}, { get: function (_, name) {
+      if (name === "withSuccessHandler") return function (f) { return make(f, fail); };
+      if (name === "withFailureHandler") return function (f) { return make(ok, f); };
+      return function () {
+        var reading = /^(apiLoad|apiGet)/.test(String(name));
+        setTimeout(function () {
+          if (reading) { if (ok) ok(null); }
+          else if (fail) fail(new Error("公開版では記録・AI助言は使えません"));
+        }, 0);
+      };
+    } });
+  }
+  window.google = { script: { run: make(null, null) } };
+})();
+</script>
+  <style>
+    :root {
+      --theme-color: #1f4f3f;
+      --theme-color-dark: #122e25;
+    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: var(--theme-color-dark);
+  padding: 0;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.container {
+  background: white;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--theme-color) 0%, var(--theme-color-dark) 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-icon { font-size: 32px; }
+
+.header-text { min-width: 0; flex: 1 1 140px; }   /* ボタンに押されてタイトルが1文字幅に潰れ、縦書きのように見えるのを防ぐ */
+.header-text h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; writing-mode: horizontal-tb; }
+.header-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-btn:hover { background: rgba(255,255,255,0.3); }
+
+.quiz-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { width: 100%; max-width: 520px; margin: 0 auto; }
+
+/* --- モード選択画面 --- */
+/* カード数が増えても幅が細くなりすぎないよう、flexではなくgridで自動折り返しする
+   （4つ目の「追加問題2」追加時にスマホで窮屈にならないための変更）。 */
+.mode-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.mode-card {
+  min-width: 0;
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.mode-card:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 復習モードのカードだけ、出題元の問題集カードと見分けられるよう薄く色を敷く。 */
+.review-card {
+  background: #fffaf2;
+  border-color: #f0d9b5;
+}
+.review-card:hover { border-color: #e0a75e; }
+.mode-card:disabled { opacity: 0.6; cursor: wait; }
+
+.mode-icon { font-size: 36px; margin-bottom: 8px; }
+.mode-title { font-size: 17px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.mode-desc { font-size: 13px; color: #888; }
+
+/* --- 範囲選択画面（全部 / 章ごとにチャレンジ） --- */
+.back-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.back-link:hover { color: var(--theme-color); }
+
+.scope-select {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-all-btn {
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  margin-bottom: 8px;
+}
+
+.scope-all-btn:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.scope-all-title { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.scope-all-desc { font-size: 13px; color: #888; }
+
+.scope-chapter-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  margin: 4px 0 2px;
+}
+
+.scope-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scope-chapter-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  background: #f8f9ff;
+  border: 1.5px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scope-chapter-btn:hover { border-color: var(--theme-color); }
+
+.scope-chapter-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.scope-chapter-btn:disabled:hover { border-color: #e6e8ee; }
+
+/* 範囲選択画面の下に出す補足（復習モードの「克服」ルールの説明など） */
+.scope-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.scope-chapter-btn .name { flex: 1; padding-right: 12px; }
+.scope-chapter-btn .count { flex-shrink: 0; color: var(--theme-color); font-weight: 700; font-size: 13px; }
+
+/* --- 出題画面 --- */
+.progress {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.chapter-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--theme-color);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.question-card {
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stem {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #222;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option-btn:hover { border-color: var(--theme-color); }
+
+.option-btn.selected {
+  border-color: var(--theme-color);
+  background: #f0f0ff;
+  font-weight: 600;
+}
+
+.option-btn.tf-btn {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 回答後の表示状態 */
+.option-btn.correct {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.option-btn.incorrect {
+  border-color: #c62828;
+  background: #fdecea;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-badge {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.option-explain {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.answer-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.answer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 回答（複数選択のときだけ表示）とスキップを縦に並べる操作行。
+   mc / tf は選択した時点で判定するため、この行にはスキップだけが残る。 */
+.question-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skip-btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: white;
+  color: #888;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.skip-btn:hover { border-color: var(--theme-color); color: var(--theme-color); }
+
+.reveal-area { margin-top: 20px; }
+
+.reveal-options { margin-bottom: 16px; }
+
+.reveal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.action-btn:hover { border-color: var(--theme-color); }
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+}
+
+/* --- 終了サマリー画面 --- */
+#screenSummary { text-align: center; }
+#screenSummary h2 { font-size: 22px; color: #333; margin-bottom: 16px; }
+
+.summary-score {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--theme-color);
+  margin-bottom: 20px;
+}
+
+.summary-chapters {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.summary-chapter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.summary-chapter-row .name { color: #333; }
+.summary-chapter-row .score { color: var(--theme-color); font-weight: 700; }
+
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 間違えた問題だけを解き直すボタン。記録ボタンの次に置いて目に入るようにする。 */
+.action-btn.retry-wrong {
+  border-color: #f0d9b5;
+  background: #fffaf2;
+  color: #a1670f;
+  font-weight: 700;
+}
+.action-btn.retry-wrong:hover { border-color: #e0a75e; }
+
+.summary-note {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.record-status,
+.advice-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #888;
+  min-height: 18px;
+}
+
+.advice-area {
+  margin-top: 12px;
+  text-align: left;
+  white-space: pre-wrap;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.quiz-body::-webkit-scrollbar { width: 5px; }
+.quiz-body::-webkit-scrollbar-track { background: transparent; }
+.quiz-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+/* --- PCブラウザ（幅900px以上）: 画面幅を広く使う ---
+   以前は .screen が max-width:520px の中央寄せで、PCでは画面の中央に細い1列が出るだけだった（2026-09-20 に変更）。
+   スマホ（600px以下）の指定とは範囲が重ならない。行が長くなりすぎないよう、上限は 1120px（1400px以上は 1240px）。
+   ボタン類は横いっぱいに伸ばさず、中央に寄せた幅に留める。 */
+@media (min-width: 900px) {
+  .header { padding: 18px 40px; }
+  .header-text h1 { font-size: 20px; }
+  .header-text p { font-size: 13px; }
+  .header-btn { font-size: 12px; padding: 7px 14px; }
+
+  .quiz-body { padding: 32px 48px; }
+  .screen { max-width: 1120px; }
+
+  /* モード選択: カードを横に並べて広く使う（4枚なら1行） */
+  .mode-select { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+  .mode-card { padding: 30px 20px; }
+  .mode-icon { font-size: 40px; }
+  .mode-title { font-size: 18px; }
+  .mode-desc { font-size: 14px; }
+
+  /* 範囲選択: 章のボタンを2列に（章が多くても縦に長くなりすぎない） */
+  .scope-chapter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+  .scope-chapter-btn { font-size: 15px; }
+
+  /* 出題: 問題文・選択肢を広く、文字も一段大きく */
+  .question-card { padding: 28px 36px; }
+  .stem { font-size: 18px; line-height: 1.8; }
+  .options { gap: 12px; }
+  .option-btn { font-size: 16px; padding: 14px 20px; }
+  .answer-btn, .action-btn, .skip-btn { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .question-actions { align-items: center; }
+  .question-actions .answer-btn, .question-actions .skip-btn { width: 100%; }
+  .summary-note, .scope-note { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .reveal-actions { align-items: stretch; }
+
+  /* 終了サマリー: 章別の結果を2列に */
+  .summary-chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+  .summary-chapter-row { font-size: 14.5px; padding: 12px 16px; }
+  .summary-actions { align-items: center; }
+  .summary-actions .action-btn { width: 100%; }
+}
+
+@media (min-width: 1400px) {
+  .screen { max-width: 1240px; }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0; }
+  .container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+  .header { padding: 12px 14px; gap: 8px 10px; flex-wrap: wrap; }   /* 狭い画面ではボタン類を2行目へ折り返す */
+  .header-icon { font-size: 28px; }
+  .header-text h1 { font-size: 16px; }
+  .header-text p { display: none; }
+  .header-actions { gap: 6px; flex-wrap: wrap; flex-basis: 100%; margin-left: 0; }
+  .header-btn { font-size: 11px; padding: 6px 10px; }
+  .quiz-body { padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); }
+  .stem { font-size: 16.5px; }
+  .option-btn { font-size: 16px; }
+  .mode-select { gap: 10px; }
+  .mode-card { padding: 16px 8px; }
+  .mode-icon { font-size: 26px; margin-bottom: 4px; }
+  .mode-title { font-size: 14px; margin-bottom: 2px; }
+  .mode-desc { font-size: 11px; }
+}
+
+@media (max-height: 480px) {
+  .quiz-body { padding-top: 14px; }
+  .mode-card { padding: 12px 8px; }
+  .mode-icon { font-size: 22px; margin-bottom: 2px; }
+}
+
+/* --- 中断した問題集の再開バナー（モード選択画面の先頭） --- */
+.resume-banner {
+  border: 2px solid var(--theme-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.resume-text { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 10px; }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.resume-actions .action-btn { flex: 1 1 140px; width: auto; }
+
+  </style>
+<style>#askBtn,#adviceBtn{display:none !important}</style>
+</head>
+<body>
+<div style="background:#fff4d6;color:#5b4300;padding:10px 14px;font-size:14px;line-height:1.6;border-bottom:1px solid #e6c96b">
+<strong>非公式・個人作成の仮問題です。</strong>金融庁・企業会計審議会（内部統制報告制度）の公式の試験・規格とは無関係で、公式の出題・難度とは一致しません。事実関係は公式テキストで未照合です。この公開版では成績・途中経過は保存されません。
+</div>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">📊</div>
+    <div class="header-text">
+      <h1>J-SOX問題集（仮問題）</h1>
+      <p id="headerSub">モードを選んでください</p>
+    </div>
+    <div class="header-actions">
+      
+      
+      
+      <button type="button" class="header-btn" id="soundBtn" onclick="toggleSound()">🔊 音</button>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quizBody">
+    <div class="screen" id="screenMode">
+      <div class="resume-banner" id="resumeBanner" style="display:none;">
+        <div class="resume-text" id="resumeText"></div>
+        <div class="resume-actions">
+          <button class="action-btn primary" id="resumeBtn" onclick="resumeProgress()">▶ 続きから再開</button>
+          <button class="action-btn" onclick="discardProgress()">破棄</button>
+        </div>
+      </div>
+      <div class="mode-select">
+        <button class="mode-card" onclick="chooseMode('mc')">
+          <div class="mode-icon">📝</div>
+          <div class="mode-title" id="mcTitle">模擬試験</div>
+          <div class="mode-desc"><span id="mcCount">0</span>問・<span id="mcKind">4択</span></div>
+        </button>
+        <button class="mode-card" id="tfCard" onclick="chooseMode('tf')">
+          <div class="mode-icon">⭕</div>
+          <div class="mode-title">一問一答</div>
+          <div class="mode-desc"><span id="tfCount">0</span>問・正誤判定</div>
+        </button>
+        <button class="mode-card" id="extraCard" onclick="chooseMode('extra')">
+          <div class="mode-icon">📘</div>
+          <div class="mode-title">追加問題</div>
+          <div class="mode-desc"><span id="extraCount">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra2Card" onclick="chooseMode('extra2')">
+          <div class="mode-icon">📗</div>
+          <div class="mode-title">追加問題2</div>
+          <div class="mode-desc"><span id="extra2Count">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra3Card" onclick="chooseMode('extra3')">
+          <div class="mode-icon">🆕</div>
+          <div class="mode-title">新シラバス仮問題</div>
+          <div class="mode-desc"><span id="extra3Count">0</span>問・4択（2027年2月〜の追加分）</div>
+        </button>
+        <button class="mode-card review-card" id="reviewCard" onclick="chooseMode('review')">
+          <div class="mode-icon">🔁</div>
+          <div class="mode-title">復習</div>
+          <div class="mode-desc" id="reviewCount">間違えた問題だけ</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen" id="screenScope" style="display:none;">
+      <button class="back-link" onclick="backToModeSelect()">← モード選択に戻る</button>
+      <div class="scope-select" id="scopeSelect"></div>
+    </div>
+
+    <div class="screen" id="screenQuestion" style="display:none;">
+      <div class="progress" id="progress"></div>
+      <div class="chapter-label" id="chapterLabel"></div>
+      <div class="question-card">
+        <p class="stem" id="stem"></p>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="question-actions" id="questionActions">
+        <button class="answer-btn" id="answerBtn" onclick="reveal()" disabled>回答</button>
+        <button class="skip-btn" id="skipBtn" onclick="skipQuestion()">回答せずに次へ →</button>
+      </div>
+      <div class="reveal-area" id="revealArea" style="display:none;">
+        <div class="reveal-options" id="revealOptions"></div>
+        <div class="reveal-actions">
+          <button class="action-btn" id="askBtn" style="display:none !important" onclick="askInChat()">🤖 チャットに詳しく聞く</button>
+          <button class="action-btn primary" id="nextBtn" onclick="nextQuestion()">次の問題へ →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenSummary" style="display:none;">
+      <h2>お疲れさまでした！</h2>
+      <div class="summary-score" id="summaryScore"></div>
+      <div class="summary-chapters" id="summaryChapters"></div>
+      <div class="summary-actions">
+        <button class="action-btn primary" id="recordBtn" onclick="recordResults()">この回の結果を記録</button>
+        <button class="action-btn retry-wrong" id="retryWrongBtn" onclick="retryWrongInSession()" style="display:none;">🔁 間違えた問題だけもう一度</button>
+        <button class="action-btn" id="adviceBtn" style="display:none !important" onclick="getAdvice()">🎯 学習アドバイスを見る</button>
+        <button class="action-btn" onclick="restartMode()">もう一度</button>
+        <button class="action-btn" onclick="backToScopeSelect()">別の範囲へ</button>
+        <button class="action-btn" onclick="backToModeSelect()">別のモードへ</button>
+      </div>
+      <div class="summary-note" id="summaryNote" style="display:none;"></div>
+      <div class="record-status" id="recordStatus"></div>
+      <div class="advice-status" id="adviceStatus"></div>
+      <div class="advice-area" id="adviceArea" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_WEBAPP_URL = '';
+  const EXAM_ID = 'jsox';
+  const EXAM_SHORT_TITLE = 'J-SOX';
+  const TRACKING_EXAM_ID = 'jsox';
+  const MC_TITLE = '問題集';
+  const QUESTIONS = [{"id":"jsox-1","type":"mc","chapterIndex":0,"stem":"内部統制の目的として、基準が示す4つの目的に含まれないものはどれか。","options":["利益の最大化","業務の有効性及び効率性を高め、経営資源を無駄なく活用すること","財務報告を含む、組織内外に対する報告の信頼性を確保すること","資産の取得、使用及び処分を、適切な手続に従って管理し、資産を保全すること"],"correctIndex":0,"explanations":["○ 利益の最大化は、基準が示す4つの目的（業務の有効性・効率性、報告の信頼性、法令等の遵守、資産の保全）に含まれない。","× 業務の有効性及び効率性は、基準が示す4つの目的の一つであり、経営資源の活用もこれに含まれる。","× 報告の信頼性は、基準が示す4つの目的の一つであり、財務報告を含む。","× 資産の保全は、基準が示す4つの目的の一つであり、資産の管理と結び付く。"]},{"id":"jsox-2","type":"mc","chapterIndex":1,"stem":"基準が示す内部統制の基本的要素のうち、経営者の基本的な姿勢や組織の気風を基盤として示すものはどれか。","options":["リスクの評価と対応は、目標の達成を阻害するリスクを識別・分析・対応する要素であり、経営者の姿勢を基盤とするものではない。","統制環境","情報と伝達は、必要な情報を把握して組織内外に伝えるための要素であり、組織の気風を基盤とするものではない。","モニタリングは、内部統制が有効に機能しているかを継続的に評価するプロセスであり、組織の基盤を示す要素ではない。"],"correctIndex":1,"explanations":["× リスクの評価と対応は、目標の達成を阻害するリスクの識別・分析・対応を指す。","○ 統制環境は、経営者の姿勢や組織の気風を決定し、内部統制の基盤となる要素である。","× 情報と伝達は、必要な情報を把握し、組織内外へ伝えることを指す。","× モニタリングは、内部統制が有効に機能しているかを継続的に評価するプロセスを指す。"]},{"id":"jsox-3","type":"mc","chapterIndex":0,"stem":"内部統制の限界に関する記述として、基準の考え方に最も合うものはどれか。","options":["内部統制を整備すれば、不正や誤謬は完全に防止できると、経営者は考えてよく、評価で不正の可能性を検討する必要はない。","内部統制は自動的に機能するため、経営者は判断や確認を行う必要がないと考えてよく、担当者の関与も不要である。","内部統制は、判断の誤りや共謀などにより有効に機能しなくなることがある。","内部統制の費用は、便益を考慮せず一律に最小化することが、常に最も望ましい運用である。"],"correctIndex":2,"explanations":["× 内部統制には限界があり、不正や誤謬の完全な防止は保証されない。","× 内部統制の整備と運用には、経営者の判断が必要であり、自動的には機能しない。","○ 内部統制には、判断の誤り、怠慢、共謀などにより機能しなくなる限界がある。","× 内部統制の費用は、便益と比較して合理的であることが求められる。"]},{"id":"jsox-4","type":"mc","chapterIndex":0,"stem":"金融商品取引法の内部統制報告制度において、経営者が評価の対象とする内部統制として正しいものはどれか。","options":["全業務の統制","法令の遵守のみ","情報システムのみ","財務報告に係る内部統制"],"correctIndex":3,"explanations":["× 評価の対象は業務活動全般ではなく、財務報告に係る内部統制である。","× 法令遵守だけでは、評価対象となる財務報告に係る内部統制の範囲を満たさない。","× 情報システムは評価の一部になりうるが、それだけが評価対象ではない。","○ 内部統制報告制度の評価対象は、財務報告に係る内部統制である。"]},{"id":"jsox-5","type":"mc","chapterIndex":0,"stem":"経営者の責任に関する記述として正しいものはどれか。","options":["財務報告に係る内部統制を整備し、運用し、その有効性を評価する責任を負う。","内部統制の評価は監査人が独立して行うため、経営者は評価の過程には一切関与しなくてよいとされている。","監査人の監査があるため、経営者の責任は免除される。","内部統制の整備は任意であり、経営者に法的な責任は生じない。"],"correctIndex":0,"explanations":["○ 経営者は、財務報告に係る内部統制の整備・運用・評価の責任を負う。","× 評価の主体は経営者であり、監査人は評価を監査する立場にある。","× 監査人の監査があっても、経営者の責任は免除されない。","× 内部統制報告制度の下では、経営者は内部統制報告書の作成を義務付けられている。"]},{"id":"jsox-6","type":"mc","chapterIndex":1,"stem":"統制環境に関する記述として最も適切なものはどれか。","options":["統制環境は、個々の業務プロセスにおける具体的な統制活動そのものであり、それらを束ねる基盤ではない。","経営者の誠実性や倫理観、取締役会・監査役等の役割は統制環境に含まれる。","統制環境は、ITの利用に関する統制のみを指す。","統制環境は、外部監査人がその内容を独立に評価し、有効性を最終的に判断しなければ、有効とは認められない。"],"correctIndex":1,"explanations":["× 個々の業務プロセスの統制活動は、統制環境ではなく統制活動の説明である。","○ 統制環境は、誠実性・倫理観、経営理念、取締役会・監査役等の機能を含む基盤である。","× ITへの対応は別の基本的要素であり、統制環境の定義ではない。","× 統制環境の有効性は経営者が評価する対象であり、外部監査人だけが判断するわけではない。"]},{"id":"jsox-7","type":"mc","chapterIndex":2,"stem":"リスクの評価と対応の説明として最も適切なものはどれか。","options":["リスクは評価せず、発生した後に、その都度対応を検討すればよいとされ、事前の識別は行わなくてもよい。","リスクは、経営者が単独で決定し、担当者や関係部門には一切伝えず、判断の経緯も記録しない。","リスクは、財務報告の目標に影響する事象を識別・分析・評価し、対応を決定する。","リスクは、重要性が低いと考えられる場合には、識別や評価の対象から一律に除外してよい。"],"correctIndex":2,"explanations":["× 発生前の識別と評価が必要であり、発生後の対応だけでは不十分である。","× リスク情報は関係者と共有される必要があり、経営者の単独判断では足りない。","○ リスクの評価と対応は、目標に影響する事象の識別・分析・評価と、対応の決定である。","× 重要性は評価の要素であり、識別の段階で一律に除外するものではない。"]},{"id":"jsox-8","type":"mc","chapterIndex":0,"stem":"基準が定める内部統制の基本的要素の数として正しいものはどれか。","options":["4つ（COSOの原則に基づく数）","5つ（従来のCOSOの要素数）","7つ（基準の要素と監査項目の数を含む）","6つ"],"correctIndex":3,"explanations":["× 4つは基準の要素数ではない。","× 5つは従来のCOSOの要素数であり、基準の要素数ではない。","× 7つは基準の要素数ではない。","○ 基準は6つ（統制環境、リスクの評価と対応、統制活動、情報と伝達、モニタリング、ITへの対応）とする。"]},{"id":"jsox-9","type":"mc","chapterIndex":4,"stem":"モニタリングの説明として最も適切なものはどれか。","options":["内部統制が有効に機能しているかを、日常的監視や独立的評価により継続的に評価するプロセス","内部統制の評価は年に一度だけ行えばよく、その結果は外部監査人のみが確認すればよく、経営者は内容を確認しなくてよい。","モニタリングは、統制活動そのものを廃止する手続である。","モニタリングは、経営者の承認が不要な活動である。"],"correctIndex":0,"explanations":["○ モニタリングは、日常的監視と独立的評価により、内部統制の有効性を継続的に評価する。","× 評価の主体は経営者であり、外部監査人だけが行うわけではない。","× モニタリングは統制活動の廃止ではなく、統制活動の有効性を確認するものである。","× モニタリングの結果は経営者への報告と承認の対象となる。"]},{"id":"jsox-10","type":"mc","chapterIndex":7,"stem":"内部統制の有効性の判断に関する記述として正しいものはどれか。","options":["有効性は、内部統制が設計されていれば、運用状況にかかわらず判断でき、評価の時間も短くてよい。","有効性の判断には、整備（設計）と運用の両方の状況の評価が必要である。","有効性は、統制の件数が多ければ判断できる。","有効性は、過去に不備がなければ、現在の運用状況を確認せずに、常に有効と判断してよい。"],"correctIndex":1,"explanations":["× 設計だけでは、運用の有効性は確認できない。","○ 内部統制の評価は、整備状況と運用状況の両面から行う。","× 統制の件数の多さは、有効性の証拠にならない。","× 過去に不備がなくても、現在の運用状況の評価は必要である。"]},{"id":"jsox-11","type":"mc","chapterIndex":8,"stem":"内部統制報告書の性格として正しいものはどれか。","options":["監査人が単独で作成する報告書であり、経営者は作成にも内容の確認にも関与しない。","取締役会が年に一度提出する業務報告書であり、財務報告の評価結果は含まれない。","経営者が、財務報告に係る内部統制の評価結果を記載した報告書","税務当局に提出する納税申告書であり、内部統制の評価結果を記載する欄がある。"],"correctIndex":2,"explanations":["× 内部統制報告書の作成主体は経営者である。","× 内部統制報告書は、取締役会の業務報告書ではない。","○ 内部統制報告書は、経営者が財務報告に係る内部統制の評価結果を記載するものである。","× 内部統制報告書は、税務申告とは別の制度に基づく報告書である。"]},{"id":"jsox-12","type":"mc","chapterIndex":0,"stem":"内部統制の目的のうち「資産の保全」の説明として最も適切なものはどれか。","options":["資産を取得する投資判断を支援すること","資産の時価を最大化して投資効率を高めること","資産の帳簿価額を増加させること","資産の横領や不正な使用などを防止し、資産を保全すること"],"correctIndex":3,"explanations":["× 投資判断の支援は、内部統制の目的ではない。","× 誤り。資産の保全は不正や横領の防止が中心で、時価の最大化は目的ではない。","× 帳簿価額の増加は、内部統制の目的ではない。","○ 資産の保全は、横領や不正な使用を防止し、資産を守ることを目的とする。"]},{"id":"jsox-13","type":"mc","chapterIndex":0,"stem":"基準における内部統制の定義として正しいものはどれか。","options":["業務の有効性・効率性、報告の信頼性、法令等の遵守、資産の保全の目的の達成に合理的な保証を得るためのプロセス","経営者が利益を確保するため、業務の実施状況にかかわらず、すべての業務活動を継続的に管理し、その結果を取締役会へ報告する仕組みのこと。","監査人が財務諸表の正確性を保証するための手続","取締役会が経営者を監督するための制度"],"correctIndex":0,"explanations":["○ 基準は、内部統制を4つの目的の達成に合理的な保証を得るためのプロセスと定義する。","× 利益の確保そのものは、内部統制の定義に含まれない。","× 監査人の手続は、内部統制の定義ではない。","× 取締役会の監督は統制環境の一部であり、内部統制の定義そのものではない。"]},{"id":"jsox-14","type":"mc","chapterIndex":6,"stem":"「ITへの対応」の説明として最も適切なものはどれか。","options":["ITは多くの業務に関わるため、内部統制と無関係であり、評価の対象からは除外してよい。","ITへの対応は、ITの環境への対応と、ITの利用及び統制からなる。","ITへの対応は、ITを全く利用しない業務のみに適用される。","ITへの対応は、監査人が単独で実施し、経営者は利用状況の確認や評価に関与しない。"],"correctIndex":1,"explanations":["× ITは多くの業務に関わるため、内部統制と無関係とはいえない。","○ 基準は、ITへの対応をITの環境への対応と、ITの利用及び統制に分けて整理する。","× ITへの対応は、ITを利用する業務に適用される。","× ITへの対応の実施主体は経営者であり、監査人だけではない。"]},{"id":"jsox-15","type":"mc","chapterIndex":0,"stem":"内部統制を整備する際の経営者の基本姿勢として最も適切なものはどれか。","options":["内部統制は費用のかかる負担なので、文書化は最小限にとどめ、詳細な記録は必要に応じて作成すればよい。","内部統制の評価は外部に任せ、社内では評価の結果を確認せず、そのまま受け入れるだけでよい。","全社的な目的に沿って内部統制を整備し、その有効性を継続的に確認する。","内部統制は重要な取引のみに適用し、それ以外の取引や業務については、統制の整備や評価を行う必要はない。"],"correctIndex":2,"explanations":["× 文書化は評価が可能となる水準で行う必要があり、最小限では不十分な場合がある。","× 評価は経営者が責任を負うものであり、外部に任せきりにはできない。","○ 内部統制は目的に沿って整備し、継続的に有効性を確認する必要がある。","× 内部統制は、全社的な取引・業務に適用して整備する必要がある。"]},{"id":"jsox-16","type":"mc","chapterIndex":3,"stem":"基本的要素のうち、「必要な情報を識別・把握・処理し、組織内外に伝える」ものはどれか。","options":["統制活動は、方針と手続を実施する要素であり、情報の識別や伝達を担うものではない。","モニタリングは、有効性を継続的に評価する要素であり、情報の伝達を担うものではない。","統制環境は、組織の基盤となる要素であり、情報の伝達は統制環境の役割ではない。","情報と伝達"],"correctIndex":3,"explanations":["× 統制活動は、方針と手続を実施する要素である。","× モニタリングは、有効性を継続的に評価する要素である。","× 統制環境は、組織の基盤となる要素である。","○ 情報と伝達は、必要な情報を識別・把握・処理し、組織内外へ伝える要素である。"]},{"id":"jsox-17","type":"mc","chapterIndex":0,"stem":"次のうち、COSO（2013年版）の5つの構成要素の一つでないものはどれか。","options":["ITへの対応","統制環境（コントロール環境）と経営者の姿勢","統制活動（コントロール・アクティビティ）","情報と伝達（インフォメーション・アンド・コミュニケーション）"],"correctIndex":0,"explanations":["○ ITへの対応は、COSO 2013の5要素には含まれず、基準が6要素の一つとして加えたものである。","× 誤り。統制環境は COSO の5つの構成要素の一つであり、組織の気風や経営者の姿勢を含む。","× 統制活動はCOSO 2013の構成要素である。","× 情報と伝達はCOSO 2013の構成要素である。"]},{"id":"jsox-18","type":"mc","chapterIndex":0,"stem":"基本的要素の関係として最も適切なものはどれか。","options":["6つの要素は、それぞれ独立して評価でき、相互に関係させる必要はないと一般に考えられている。","6つの要素は相互に関連し、内部統制を一体として構成する。","統制活動だけが他の要素を統制する。","モニタリングは他の要素から独立し、単独で内部統制全体の有効性を決める役割を担うものとされる。"],"correctIndex":1,"explanations":["× 基本的要素は相互に関係し、独立したものではない。","○ 基本的要素は相互に関連し、一体として内部統制を構成する。","× 統制活動だけが他の要素を統制するわけではない。","× モニタリングは他の要素の機能を評価する役割であり、単独で有効性を決めるものではない。"]},{"id":"jsox-19","type":"mc","chapterIndex":7,"stem":"内部統制の限界に関連する評価上の考え方として、基準の趣旨に最も合うものはどれか。","options":["内部統制を整備すれば、経営者の不正は完全に防げるため、評価で不正の可能性を検討する必要はない。","内部統制の限界は、評価の対象外とし、結果の解釈にも一切影響させないことが、評価の客観性を保つうえで望ましい。","内部統制の評価は、限界を考慮して合理的な保証を得ることを目的とする。","内部統制が有効であれば、将来に発生するリスクもすべて防げるため、評価後のリスク見直しは不要である。"],"correctIndex":2,"explanations":["× 経営者の不正を含め、内部統制による完全な防止は保証されない。","× 限界は評価において考慮すべき事項であり、評価の対象外ではない。","○ 評価は絶対的な保証ではなく、合理的な保証を得ることを目的とする。","× 将来のリスクは、内部統制によって完全には防げない。"]},{"id":"jsox-20","type":"mc","chapterIndex":0,"stem":"内部統制の目的のうち「報告の信頼性」の説明として最も適切なものはどれか。","options":["財務情報以外の報告を除外する。","税務申告書の作成と提出だけを指す。","社内の会議資料や議事録のメモだけを指す。","財務諸表を含む、組織内外への報告の信頼性を指す。"],"correctIndex":3,"explanations":["× 報告の信頼性は、財務情報以外の報告を除外するものではない。","× 誤り。報告の信頼性は、税務申告書だけでなく、財務情報全般の信頼性を含む。","× 誤り。報告の信頼性は、社内の一部の資料に限らず、財務情報全般を対象とする。","○ 報告の信頼性は、財務諸表を含む組織内外への報告の信頼性を指す。"]},{"id":"jsox-21","type":"mc","chapterIndex":1,"stem":"取締役会の役割に関する記述として最も適切なものはどれか。","options":["取締役会は、業務執行と内部統制の基本方針を監督する役割を担う。","取締役会は、内部統制に関与しないため、評価や方針決定の場に出席する必要はないとされている。","取締役会は監査役の職務を兼ねる。","取締役会は、個別の取引の承認のみを行う。"],"correctIndex":0,"explanations":["○ 取締役会は経営者の職務執行を監督し、内部統制の基本方針に関与する。","× 内部統制の基本方針の決定と監督は取締役会の役割であり、関与しないとはいえない。","× 監査役の職務は、取締役会の職務とは別の役割である。","× 取締役会の役割は、個別の取引の承認に限られない。"]},{"id":"jsox-22","type":"mc","chapterIndex":1,"stem":"統制環境における経営者の誠実性や倫理観の位置づけとして正しいものはどれか。","options":["誠実性や倫理観は、統制環境に影響しないものであり、経営者の姿勢とは区別して評価すべきものとされている。","経営者の誠実性や倫理観は、統制環境の重要な要素である。","倫理観は従業員の問題であり、経営者の姿勢や組織の気風には一切関係がなく、評価の対象とする必要もない。","統制環境は、財務諸表の作成手続のみを指す。"],"correctIndex":1,"explanations":["× 誠実性や倫理観は、統制環境に大きく影響する。","○ 経営者の誠実性や倫理観は、統制環境の基盤となる要素である。","× 倫理観は経営者の姿勢として組織全体に影響する。","× 統制環境は、財務諸表の作成手続に限られない。"]},{"id":"jsox-23","type":"mc","chapterIndex":1,"stem":"組織構造と権限・責任の明確化に関する記述として最も適切なものはどれか。","options":["権限と責任は曖昧なままにしておくことで、担当者が状況に応じて柔軟に判断でき、業務効率が高まる。","権限・責任の所在は、個人の裁量に委ね、その都度、担当者同士の話し合いで決めて運用すればよい。","職務分掌を定め、権限と責任を明確にし、承認ルートを定める。","権限は一人の経営者に集中させることで、意思決定を迅速化し、組織全体の効率を最大化できる。"],"correctIndex":2,"explanations":["× 曖昧な権限は、統制上のリスクを高める。","× 権限は規程で明確に定める必要がある。","○ 職務分掌と権限・責任の明確化は、統制環境の要素である。","× 権限の集中は牽制が働かなくなるリスクがある。"]},{"id":"jsox-24","type":"mc","chapterIndex":1,"stem":"人的資源に関する方針として最も適切なものはどれか。","options":["人事評価は、統制の対象外とする。","能力の低い者を配置しても、統制に影響はない。","人材の能力を無視して配置する。","必要な能力を持つ人材の採用・育成・評価を適切に行う。"],"correctIndex":3,"explanations":["× 人事評価は、統制環境の一部であり、統制の対象外ではない。","× 人材の能力は、統制の有効性に影響する。","× 人材の能力は、配置上の重要な要素である。","○ 人的資源の方針は、統制環境の要素である。"]},{"id":"jsox-25","type":"mc","chapterIndex":1,"stem":"監査役（監査委員会）の役割として最も適切なものはどれか。","options":["取締役の職務執行を監査し、内部統制システムの整備状況を監視・検証する。","業務執行を担当し、内部統制の評価は行わず、評価に関する記録は必要な範囲で作成すればよい。","会計監査人の代わりに財務諸表を作成する。","内部統制に関与せず、取締役の報酬のみを決める。"],"correctIndex":0,"explanations":["○ 監査役は、職務執行の監査を通じて、内部統制の整備状況を監視する。","× 監査役は、業務執行を担当しない。","× 財務諸表の作成は経営者の責任である。","× 報酬の決定が監査役の役割の中心ではない。"]},{"id":"jsox-26","type":"mc","chapterIndex":4,"stem":"内部監査部門の位置づけとして最も適切なものはどれか。","options":["業務執行部門の一部として、自己の業務の適切性を監査し、結果は担当部門内で完結させる。","経営者から独立し、内部統制の有効性を評価・報告する。","外部監査人の代わりに財務諸表を監査し、その結果を経営者へ直接報告する役割を担う。","内部統制の整備を監査部門だけで行う。"],"correctIndex":1,"explanations":["× 内部監査は自己の業務を監査するものではなく、独立性が求められる。","○ 内部監査部門は経営者から独立して評価・報告する役割を担う。","× 財務諸表の監査は公認会計士等の役割である。","× 誤り。内部統制の整備は経営者が責任を負い、監査部門だけで行うものではない。"]},{"id":"jsox-27","type":"mc","chapterIndex":1,"stem":"統制環境に関する記述として最も適切なものはどれか。","options":["統制環境は、組織内外の要因の影響を受けない独立した仕組みであり、外部環境の変化にも左右されない。","統制環境の評価は不要であり、経営者の姿勢や取締役会の機能は、過去の実績から判断して確認すれば足りる。","経営者の姿勢・取締役会・監査役の機能を含め、組織全体の基盤となる。","統制環境は、取引処理のみに関わるものであり、経営者の姿勢や取締役会の機能とは直接の関係がない。"],"correctIndex":2,"explanations":["× 統制環境は、組織内外の要因の影響を受けうる。","× 統制環境も評価の対象である。","○ 統制環境は組織全体の基盤であり、経営者の姿勢や取締役会の機能を含む。","× 統制環境は、取引処理だけに関わるものではない。"]},{"id":"jsox-28","type":"mc","chapterIndex":1,"stem":"倫理規程に関する記述として最も適切なものはどれか。","options":["倫理規程は、従業員の私生活にのみ適用する。","倫理規程に違反しても、統制上の影響はないとされる。","倫理規程は、形式的に作成すればよい。","倫理規程の周知・遵守の仕組みは、統制環境の一要素である。"],"correctIndex":3,"explanations":["× 倫理規程は、業務上の行動にも適用される。","× 倫理規程への違反は、統制上の不備となりうる。","× 倫理規程には、周知と遵守の仕組みが必要である。","○ 倫理規程の運用は、統制環境の重要な要素である。"]},{"id":"jsox-29","type":"mc","chapterIndex":1,"stem":"経営者の関与に関する記述として最も適切なものはどれか。","options":["経営者は内部統制に責任を持ち、整備・運用し、基本方針を示す。","経営者は内部統制に関与せず、担当者に任せる。","経営者は、評価結果を確認する必要はない。","経営者は、統制の有効性を判断しないことで、評価の客観性を確保できる。"],"correctIndex":0,"explanations":["○ 経営者は、整備・運用の責任を負い、基本方針を示す。","× 担当者への委任でも、経営者の責任は免れない。","× 評価結果の確認は、経営者の責任である。","× 判断の放棄は、客観性の確保にはならない。"]},{"id":"jsox-30","type":"mc","chapterIndex":1,"stem":"統制環境の評価に関する記述として最も適切なものはどれか。","options":["統制環境は定性的要素が中心であるため、数値の根拠がなく、評価の対象としては扱うことができない。","統制環境は評価の対象であり、その状況を検討して評価する。","統制環境は評価の対象外である。","統制環境は、財務諸表の数値のみで評価し、経営者の姿勢や取締役会の機能は評価の対象から外すこととする。"],"correctIndex":1,"explanations":["× 統制環境は定性的要素を含むが、評価できないわけではない。","○ 統制環境は評価の対象となり、その状況を検討して評価する。","× 統制環境は評価の対象外ではない。","× 統制環境は、数値のみでは評価できない。"]},{"id":"jsox-31","type":"mc","chapterIndex":2,"stem":"リスクの識別に関する記述として最も適切なものはどれか。","options":["財務報告の目標に影響する事象を網羅的に識別する。","重要でないと判断したリスクは、識別の段階で記録せず、対象から外してよい。","過去に発生したリスクと、その発生原因だけを識別対象とし、将来のリスクは扱わない。","経営者の個人的判断だけで識別対象を絞り込み、担当者の意見は一切反映させない。"],"correctIndex":0,"explanations":["○ 財務報告の目標に影響する事象は、網羅的に識別する必要がある。","× 重要性の低いものも識別対象になりうる。重要性は評価段階で判断する。","× 将来のリスクも識別の対象である。","× 識別は組織的な手続で行う必要がある。"]},{"id":"jsox-32","type":"mc","chapterIndex":2,"stem":"リスクの分析・評価に関する記述として最も適切なものはどれか。","options":["分析は影響度のみで行えば十分である。","分析は、発生可能性と影響度の両面から行う。","分析は、一度行えば以後見直さない。","分析は一人の担当者だけでよい。"],"correctIndex":1,"explanations":["× 発生可能性も考慮する必要があり、影響度のみでは不十分である。","○ 発生可能性と影響度の両面から分析する必要がある。","× リスクは環境の変化に応じて見直す必要がある。","× 分析は組織的に行う必要がある。"]},{"id":"jsox-33","type":"mc","chapterIndex":2,"stem":"リスク対応に関する記述として最も適切なものはどれか。","options":["リスクを認識した場合には、事業への影響の大小にかかわらず、必ず回避する方針を取り、対応を先送りしない。","リスクを認識しても、対応の検討や記録を一切行わない。","回避・低減・移転・受容のいずれかを、リスクの内容に応じて判断する。","他部門に伝えず、担当部門で処理する。"],"correctIndex":2,"explanations":["× 回避は選択肢の一つであり、必ずしも必要ではない。","× 誤り。リスクを認識したら、対応を検討して記録することが求められる。","○ リスク対応は、回避・低減・移転・受容のいずれかを内容に応じて判断する。","× リスク情報は関係部門と共有する必要がある。"]},{"id":"jsox-34","type":"mc","chapterIndex":2,"stem":"不正リスクの識別に関する記述として最も適切なものはどれか。","options":["不正リスクは評価の対象外とし、財務報告の作成においては、誤謬の識別方法のみを適用して十分である。","不正リスクは、経営者の誠実性とは無関係である。","不正リスクは、一般的な誤謬と同じ扱いで十分であり、特別な識別や評価の手続を追加する必要はない。","不正リスクは、動機・機会・正当化の観点から識別する。"],"correctIndex":3,"explanations":["× 不正リスクも評価の対象である。","× 経営者の誠実性は、不正リスクと関係する。","× 不正は意図的な行為であり、誤謬とは区別して扱う必要がある。","○ 不正リスクは、動機・機会・正当化の観点から識別する。"]},{"id":"jsox-35","type":"mc","chapterIndex":2,"stem":"重要な虚偽表示のリスクの識別に関する記述として最も適切なものはどれか。","options":["勘定科目や取引の性質などから、重要な虚偽表示のリスクを識別する。","リスクは金額の大きさのみで判断し、取引の性質や内容は検討しなくてよい。","リスクは、監査人が識別すれば足りるため、経営者は識別の過程に関与する必要はない。","リスクは年度末にのみ識別し、期中の取引や変更の影響は、次年度の評価に反映させればよい。"],"correctIndex":0,"explanations":["○ 勘定科目や取引の性質からリスクを識別することが基本となる。","× 金額の大きさだけでは、リスクは判断できない。","× リスクの識別は、経営者が責任を負う。","× リスク識別は、継続的に行う必要がある。"]},{"id":"jsox-36","type":"mc","chapterIndex":2,"stem":"見積りに伴うリスクに関する記述として最も適切なものはどれか。","options":["見積りは判断を含まないため、リスクは低い。","見積りは、経営者の判断を含むため、リスクが高くなりうる。","見積りは、常に正確であり評価不要である。","見積りのリスクは、計算の正確さのみで判断する。"],"correctIndex":1,"explanations":["× 見積りには経営者の判断が含まれるため、リスクが低いとはいえない。","○ 見積りは判断を含むため、虚偽表示のリスクがある。","× 見積りは常に正確とはいえず、評価が必要である。","× 見積りのリスクは、判断の妥当性も含めて評価する。"]},{"id":"jsox-37","type":"mc","chapterIndex":2,"stem":"リスク評価の見直しに関する記述として最も適切なものはどれか。","options":["環境の変化は、リスク評価に影響しないので無視する。","業務内容の変更は、評価に反映しない。","組織や業務の変化に応じて、リスクを見直す。","リスク評価は一度行えば足りる。"],"correctIndex":2,"explanations":["× 環境の変化はリスク評価に影響するため、無視してはならない。","× 業務内容の変更は、リスク評価に反映する必要がある。","○ 組織や業務の変化に応じて、リスクを見直す必要がある。","× リスク評価は継続的に見直す必要があり、一度で終わるものではない。"]},{"id":"jsox-38","type":"mc","chapterIndex":2,"stem":"リスクと統制の関係に関する記述として最も適切なものはどれか。","options":["リスクの大きさに関係なく、統制は一律に設定すれば、評価や管理の手間が省けるため、効率的である。","リスクに対応する統制は、評価の対象に含める必要はなく、統制の有効性は別途の検討のみで判断してよい。","統制は、リスクと無関係に設計する。","リスクに対応する統制を、リスクの大きさに応じて設計する。"],"correctIndex":3,"explanations":["× 統制は一律ではなく、リスクに応じて設計する。","× リスクに対応する統制は、評価に含める必要がある。","× 統制はリスクと関連づけて設計する必要がある。","○ リスクに応じた統制設計が必要である。"]},{"id":"jsox-39","type":"mc","chapterIndex":2,"stem":"リスク評価の結果の取扱いとして最も適切なものはどれか。","options":["リスク評価の結果は、関係部門と共有し、全社的な対応につなげる。","リスク評価の結果は、経営者のみに留め、関係部門には詳細を伝えず、必要な指示だけを出す。","リスク評価の結果は、外部へ報告しない限り共有する必要はなく、内部での共有は任意とされる。","リスク評価の結果は、担当部門のみで管理し、他部門の確認や承認は要しないとされる。"],"correctIndex":0,"explanations":["○ 関係部門との共有は、全社的な対応に必要である。","× 経営者のみに留めると、関係部門の対応が遅れる。","× 外部への報告の有無にかかわらず、内部での共有が必要である。","× 担当部門のみでは、全社的な対応ができない。"]},{"id":"jsox-40","type":"mc","chapterIndex":2,"stem":"財務報告の目標の設定に関する記述として最も適切なものはどれか。","options":["財務報告の目標を明確にする必要はない。","財務報告の目標は、リスク評価の基礎として明確に設定する。","目標は、評価が終わった後に事後的に決定する。","目標は、担当者ごとに異なるものを設定する。"],"correctIndex":1,"explanations":["× 財務報告の目標の明確化は必要である。","○ 財務報告の目標は、リスク評価の出発点として明確に設定する必要がある。","× 誤り。財務報告の目標は、評価を始める前に設定しておく必要がある。","× 目標は組織として統一する必要がある。"]},{"id":"jsox-41","type":"mc","chapterIndex":3,"stem":"情報と伝達の説明として最も適切なものはどれか。","options":["必要な情報を識別・把握し、組織内外に適切に伝達する仕組み","情報は担当者のみに留め、他部門へは伝えない。","情報は必要性に関係なく全社に公開し、経路や相手を限定せず、誰でも自由に閲覧できるようにする。","情報は、監査人にのみ伝え、経営者には伝えない。"],"correctIndex":0,"explanations":["○ 情報と伝達は、必要な情報を識別し、組織内外へ伝える仕組みである。","× 誤り。必要な情報は、関係する部門に適切に伝達する必要がある。","× 情報は必要性に応じて伝達するものである。","× 誤り。監査人だけに伝えて経営者に伝えないと、経営者が統制を判断できない。"]},{"id":"jsox-42","type":"mc","chapterIndex":3,"stem":"経営者への報告に関する記述として最も適切なものはどれか。","options":["経営者への報告は、良い情報のみを選んで行い、不備の情報は担当者の判断で省略してよいとされる。","経営者への報告は、不備の情報を含めて適時に行う。","経営者への報告は、不要である。","経営者への報告は、年に一度のみ行い、それ以外の時期には報告の必要はないとされている。"],"correctIndex":1,"explanations":["× 不備の情報を除いて報告すると、経営者の判断を誤らせるおそれがある。","○ 不備の情報を含めて、適時に報告する必要がある。","× 経営者への報告は必要である。","× 適時性の観点から、年1回の報告では不十分である。"]},{"id":"jsox-43","type":"mc","chapterIndex":3,"stem":"外部への情報伝達に関する記述として最も適切なものはどれか。","options":["外部への情報伝達は、法令上の要件に関係なく行わず、必要と判断した場合のみ例外的に行う。","外部への情報伝達は、一律に全てを公開し、利害関係者の区別や開示の時期は考慮しなくてよい。","外部への情報伝達は、法令や利害関係者への開示要件に従って行う。","外部への情報伝達は、担当者の判断のみで行い、組織としての承認や記録を残す必要はない。"],"correctIndex":2,"explanations":["× 法令上の要件を満たす必要があり、関係なく行わないわけではない。","× 全てを公開するわけではなく、開示要件に従う必要がある。","○ 外部への情報伝達は、法令や利害関係者への開示要件に従って行う。","× 外部への情報伝達は、組織的な判断に基づく必要がある。"]},{"id":"jsox-44","type":"mc","chapterIndex":3,"stem":"内部通報制度に関する記述として最も適切なものはどれか。","options":["内部通報は、経営者に対してのみ受け付ける。","内部通報は、従業員の不利益を前提とする。","内部通報は、統制の対象外とする。","内部通報は、不正の発見に有効な情報伝達の経路として機能させる。"],"correctIndex":3,"explanations":["× 通報の経路は複数あることが望ましく、経営者のみに限定すると機能しにくい。","× 内部通報は、従業員の不利益を前提とするものではない。","× 内部通報は、統制の対象である。","○ 内部通報は、不正の早期発見に役立つ情報伝達の経路である。"]},{"id":"jsox-45","type":"mc","chapterIndex":3,"stem":"情報の品質に関する記述として最も適切なものはどれか。","options":["情報は、正確性・適時性などの品質を確保する。","情報は、正確でなくても伝達すればよく、後から誤りがあれば、その時点で訂正すれば足りる。","情報の品質は、受け手が判断する。","情報の品質は、問題にならない。"],"correctIndex":0,"explanations":["○ 情報の品質は、内部統制の有効性に影響する。","× 情報は正確である必要があり、不正確なまま伝達してはならない。","× 情報の品質を確保する責任は、送り手にある。","× 情報の品質は、内部統制上の重要な要素である。"]},{"id":"jsox-46","type":"mc","chapterIndex":6,"stem":"情報システムと情報の利用に関する記述として最も適切なものはどれか。","options":["情報システムは、統制の評価に関係しないため、評価の対象からは除外し、業務の記録も手作業で管理すればよい。","情報システムは、業務上の情報を適切に記録・処理する手段として利用する。","情報システムの利用は、業務と切り離して管理する。","情報システムは、経営者のみが利用し、現場の業務担当者は利用せず、記録も経営者だけが保持する。"],"correctIndex":1,"explanations":["× 情報システムは、統制の評価の対象となりうる。","○ 情報システムは、業務上の情報処理の手段として重要である。","× 情報システムは、業務と連動して管理する必要がある。","× 情報システムの利用者は、業務上必要な者である。"]},{"id":"jsox-47","type":"mc","chapterIndex":3,"stem":"情報の伝達の経路に関する記述として最も適切なものはどれか。","options":["伝達は、上位者から下位者への一方向のみとする。","伝達は行わず、個人の判断と経験だけに任せて業務を進める。","伝達は、上下・横方向の双方向で行う。","伝達は、文書化せずに口頭のみで行い、記録も残さないことが望ましい。"],"correctIndex":2,"explanations":["× 一方向のみでは、現場の情報が上がらず不十分である。","× 個人の判断に任せると、統制上の問題が生じる。","○ 伝達は、上下・横方向の双方向で行う必要がある。","× 重要な情報は文書化することも必要である。"]},{"id":"jsox-48","type":"mc","chapterIndex":3,"stem":"不備に関する情報の伝達として最も適切なものはどれか。","options":["不備情報は、重要でなければ伝達しない。","不備情報は、担当者のみで保管する。","不備情報は、発生した部署の判断で処理する。","不備情報は、関係者に適時に伝達し、是正につなげる。"],"correctIndex":3,"explanations":["× 重要性にかかわらず、不備情報は伝達が必要である。","× 不備情報は、関係者と共有する必要がある。","× 不備情報は、組織的な判断に基づいて処理する必要がある。","○ 不備情報は、適時に伝達し、是正につなげることが重要である。"]},{"id":"jsox-49","type":"mc","chapterIndex":3,"stem":"部署間の情報共有に関する記述として最も適切なものはどれか。","options":["情報は、部署間で共有し、全体の統制に活かす。","情報は、部署ごとに秘匿して共有しない。","情報は、共有せずに個人の記憶に頼り、必要が生じた場合は、その都度、担当者が判断して対応する。","情報は、部署内でのみ扱えばよい。"],"correctIndex":0,"explanations":["○ 部署間の共有は、全体の統制に寄与する。","× 誤り。部署ごとに情報を秘匿すると、全体の統制に活かせない。","× 個人の記憶に頼ると、情報が正しく残らない。","× 誤り。部署内に限ると、他部門のリスクや不備を把握できない。"]},{"id":"jsox-50","type":"mc","chapterIndex":3,"stem":"経営者と取締役会の情報のやり取りとして最も適切なものはどれか。","options":["取締役会は、経営者から情報を受けず、担当者からの報告のみに基づいて監督の判断を行うことができる。","取締役会に対して、経営者は必要な情報を提供する。","取締役会は、情報を要求しない。","取締役会は、情報を担当者からのみ受け、経営者からの情報提供は、必要に応じて行えば足りるとされている。"],"correctIndex":1,"explanations":["× 経営者は取締役会に必要な情報を提供する必要がある。","○ 必要な情報の提供は、取締役会の監督に欠かせない。","× 情報を要求することも、取締役会の監督の一部である。","× 担当者からのみでは、取締役会の監督が十分にできない場合がある。"]},{"id":"jsox-51","type":"mc","chapterIndex":4,"stem":"モニタリングの基本的な組み合わせとして最も適切なものはどれか。","options":["日常的監視と独立的評価を組み合わせて行う。","日常的監視のみで十分であり、独立的評価は行う必要がないとされている。","独立的評価のみで十分であり、日常的監視は必要ないとされている。","モニタリングは、内部統制の有効性の確認に不要なため、行わなくてもよい。"],"correctIndex":0,"explanations":["○ 日常的監視と独立的評価の組み合わせが基本である。","× 独立的評価も必要であり、日常的監視だけでは不十分である。","× 日常的監視も必要であり、独立的評価だけでは不十分である。","× モニタリングは内部統制の有効性を確認するために必要である。"]},{"id":"jsox-52","type":"mc","chapterIndex":4,"stem":"独立的評価に関する記述として最も適切なものはどれか。","options":["業務担当者が行う。","業務から独立した者が行う。","評価は行わない。","不要である。"],"correctIndex":1,"explanations":["× 業務担当者の自己評価は、独立性がないため客観性に欠ける。","○ 業務から独立した者が行うことで、客観性を確保する。","× 評価対象は、重要性などに基づいて選ぶ。","× 独立的評価は、内部統制の有効性の確認に必要である。"]},{"id":"jsox-53","type":"mc","chapterIndex":4,"stem":"不備の識別と報告に関する記述として最も適切なものはどれか。","options":["不備は、発見しても報告しない。","不備は、影響が軽微なら報告を省略する。","不備は、速やかに識別・評価し、経営者に報告する。","不備は、年度末にまとめて報告しても、是正期限を守れれば、特段の問題はないとされている。"],"correctIndex":2,"explanations":["× 不備は発見したら報告が必要である。","× 誤り。軽微であっても不備は識別・評価し、報告する必要がある。","○ 不備は、速やかに識別・評価し、経営者に報告する必要がある。","× 年度末にまとめて報告すると、是正が遅れるおそれがある。"]},{"id":"jsox-54","type":"mc","chapterIndex":4,"stem":"モニタリングの結果の取扱いとして最も適切なものはどれか。","options":["結果は評価のみで行い、是正の必要性は個別の判断に委ね、経営者への報告は省略してよいとされている。","結果は経営者の判断にのみ任せ、関係者との共有や記録は、必要と判断された場合に限って行うものとする。","結果は記録せず、口頭で伝える。","結果は是正の必要性を含めて経営者に報告し、改善につなげる。"],"correctIndex":3,"explanations":["× モニタリングの結果に基づき、必要な是正を行う必要がある。","× 結果は関係者と共有する必要があり、経営者の判断のみには任せない。","× 結果は記録として残す必要がある。","○ 改善につなげることが、モニタリングの目的である。"]},{"id":"jsox-55","type":"mc","chapterIndex":4,"stem":"日常的監視の例として最も適切なものはどれか。","options":["経営者が、業務の実施状況を日常的に確認する。","経営者は、業務を一切確認せず、結果の報告も受けずに、担当者の判断のみで業務を進めさせる。","経営者は、年に一度の決算時にのみ確認し、それ以外の時期は業務の状況に関与しない。","経営者は、部下の報告を信用し、業務の実施状況を確認せずに、そのまま承認する。"],"correctIndex":0,"explanations":["○ 業務の実施状況の日常的な確認は、日常的監視の例である。","× 業務の確認は、日常的監視として必要である。","× 年1回の確認では、日常的監視として不十分である。","× 確認をせずに部下の報告を信用するのは、統制上不十分である。"]},{"id":"jsox-56","type":"mc","chapterIndex":4,"stem":"内部監査部門の役割として最も適切なものはどれか。","options":["不備を指摘せず、報告も行わず、次期の評価に任せる。","内部統制の有効性を独立的に評価し、結果を経営者と取締役会へ報告する。","経営者の指示に従い、評価結果を変える。","外部監査人の作業を代わりに行う。"],"correctIndex":1,"explanations":["× 誤り。内部監査部門は、不備を指摘して経営者と取締役会へ報告する役割を担う。","○ 内部監査は、内部統制の有効性を独立的に評価し、結果を報告する役割を担う。","× 評価結果を経営者の指示で変えることは、独立性を損なう。","× 外部監査人の作業の代行は、内部監査の役割ではない。"]},{"id":"jsox-57","type":"mc","chapterIndex":4,"stem":"チェックリストによる自己点検に関する記述として最も適切なものはどれか。","options":["チェックリストは無意味である。","チェックリストを用いれば、担当者の責任は免除され、評価結果の検証は監査人に委ねることができる。","チェックリストは、業務担当者の自己点検に有効な手段の一つである。","チェックリストは、評価結果の代わりになる。"],"correctIndex":2,"explanations":["× チェックリストは、自己点検の手段として意味がある。","× チェックリストの利用によって、担当者の責任は免除されない。","○ チェックリストは、業務担当者の自己点検に有効な手段の一つである。","× チェックリストは、独立的な評価結果の代わりにはならない。"]},{"id":"jsox-58","type":"mc","chapterIndex":4,"stem":"モニタリングの対象に関する記述として最も適切なものはどれか。","options":["モニタリングは、統制活動のみを対象とし、他の基本的要素は、必要に応じて個別に評価すればよい。","モニタリングは、統制環境を対象とせず、経営者の姿勢や取締役会の機能は評価の範囲外とする。","モニタリングは、リスクの評価を対象としない。","モニタリングは、内部統制の基本的要素の全体を対象とする。"],"correctIndex":3,"explanations":["× 統制活動だけが対象ではなく、他の要素も対象となる。","× 統制環境もモニタリングの対象である。","× リスクの評価もモニタリングの対象である。","○ モニタリングは、内部統制の基本的要素の全体を対象とする。"]},{"id":"jsox-59","type":"mc","chapterIndex":4,"stem":"評価の頻度に関する記述として最も適切なものはどれか。","options":["継続的に行う必要がある。","一度行えば、その後の運用状況の変化にかかわらず、十分であるとされている。","年1回の評価だけで、期中の運用の変化や不備の有無を十分に確認できる。","評価は特段必要なく、内部統制の有効性の確認も省略してよい。"],"correctIndex":0,"explanations":["○ 内部統制は継続的に評価する必要がある。","× 一度の評価では、継続的な有効性は確認できない。","× 年1回のみでは、変化への対応が遅れるおそれがある。","× 評価は、内部統制の有効性の確認に必要である。"]},{"id":"jsox-60","type":"mc","chapterIndex":4,"stem":"改善の仕組みに関する記述として最も適切なものはどれか。","options":["不備が見つかっても、改善は行わない。","不備を是正し、再発防止の仕組みを整備する。","不備は、次年度の評価まで持ち越す。","不備は、記録を残さずに処理する。"],"correctIndex":1,"explanations":["× 不備が見つかれば、改善を行う必要がある。","○ 不備の是正と再発防止の仕組みの整備が必要である。","× 誤り。不備は、発見した時点で是正し、再発防止の仕組みを整備する必要がある。","× 誤り。不備を記録しないと、是正や再発防止の検討ができない。"]},{"id":"jsox-61","type":"mc","chapterIndex":5,"stem":"売上の計上に関する統制として、最も適切なものはどれか。","options":["受注時点で売上を計上すると、出荷前に取消しとなる受注が含まれるため、受注から出荷までの期間が短い取引に限って、受注時点の計上を認める運用とする。","出荷指図書と出荷実績を照合し、出荷の事実に基づいて計上されていることを確認する仕組みを設ける。","売上の計上は月末に担当者がまとめて行い、締め後の出荷分は翌月に回す。","売掛金の残高が増えた時点で、売上を計上する。"],"correctIndex":1,"explanations":["× 誤り。受注時点では財貨の移転がなく、取消しを含むため、売上の計上の根拠とならない。","○ 正しい。出荷の事実と売上計上の対応を証憑の照合により統制することが、財務報告の信頼性に資する。","× 誤り。月末一括の計上は期間帰属の誤りを生じやすく、統制として不十分である。","× 誤り。売掛金の増加は売上計上の結果であり、計上の根拠とはならない。"]},{"id":"jsox-62","type":"mc","chapterIndex":5,"stem":"仕入先マスタの登録・変更に関する統制として、最も適切なものはどれか。","options":["仕入先マスタの登録は、支払担当者が行い、承認は不要とする。","仕入先マスタの変更は、購買部門の担当者が取引先からの口頭の依頼を受けて、その場で実施し、変更の記録は後日まとめて作成する。","仕入先マスタの登録・変更は、入力担当と承認担当を分離し、承認の証跡を保存する。","仕入先マスタは一度登録すれば、取引先の情報が変わっても変更は行わないこととし、台帳の内容は定期的に見直さない。"],"correctIndex":2,"explanations":["× 誤り。登録に承認がないと、架空または不正な仕入先の登録を防げない。","× 誤り。口頭の依頼では証跡が残らず、記録も後日となるため、統制として不十分である。","○ 正しい。職務分離と承認の証跡により、不正な仕入先の登録・変更を防止・発見できる。","× 誤り。仕入先の情報は変更されうるため、変更時の統制を省くことはできない。"]},{"id":"jsox-63","type":"mc","chapterIndex":5,"stem":"期末の棚卸差異への対応に関する統制として、最も適切なものはどれか。","options":["棚卸差異は、在庫数量を実地棚卸の結果に合わせて修正すれば、差異の発生原因を分析する必要はないとする。","帳簿上の在庫数量と実地棚卸の数量に差異があっても、帳簿の修正は行わず、差異の金額が重要でない限りそのまま放置する。","実地棚卸は期末のみに行えば足り、期中に在庫の差異を確認する必要はなく、期末の結果だけで在庫残高を確定させる。","実地棚卸と帳簿の差異を調査し、原因を分析したうえで会計処理に反映する。"],"correctIndex":3,"explanations":["× 誤り。原因の分析を省くと、横領や管理の不備を見逃す。","× 誤り。重要でない差異でも放置すると、在庫の過大計上を招く。","× 誤り。期末のみの棚卸では、期中の在庫管理の不備を発見しにくい。","○ 正しい。差異の調査と原因分析を経て会計処理することが、在庫の実在性に関する統制となる。"]},{"id":"jsox-64","type":"mc","chapterIndex":5,"stem":"固定資産の取得に関する統制として、最も適切なものはどれか。","options":["固定資産の取得は、稟議による承認と、発注・検収・支払の各段階の承認を経て、資産台帳へ登録する。","固定資産の取得は、発注済みの段階で固定資産台帳に登録し、検収は後日まとめて行う。","固定資産の取得は現場担当者の判断で行い、事後に承認を得る。","取得価額は請求書の金額をそのまま用いるため、付随費用は計上しない。"],"correctIndex":0,"explanations":["○ 正しい。承認段階の分離と台帳登録により、不正な取得や計上の誤りを防止できる。","× 誤り。検収前の台帳登録は、実在しない資産の計上を招く。","× 誤り。取得の判断を事後承認に回すと、統制として機能しない。","× 誤り。取得価額には、原則として付随費用を含める。"]},{"id":"jsox-65","type":"mc","chapterIndex":5,"stem":"減価償却費の計上に関する統制として、最も適切なものはどれか。","options":["減価償却の方法や耐用年数は、担当者が資産ごとに任意に変更できる。","減価償却の方法・耐用年数の変更は、理由の妥当性を承認し、変更の影響と開示の要否を検討する。","減価償却費は、税務上の金額をそのまま会計上の金額とする。","減価償却は期末の一括計算のみとし、期中に取得した資産は、取得の時期や償却の開始日にかかわらず計上しないものとする。"],"correctIndex":1,"explanations":["× 誤り。会計方針の変更を任意に行えると、利益操作の余地が生じる。","○ 正しい。変更の妥当性を承認し影響を検討することは、会計方針の継続性と適切な開示に資する。","× 誤り。会計上の減価償却は、税務上の計算とは独立して判断するのが原則である。","× 誤り。期中に取得した資産も、取得の時期に応じて償却の対象となる。"]},{"id":"jsox-66","type":"mc","chapterIndex":5,"stem":"固定資産の減損に関する統制として、最も適切なものはどれか。","options":["減損の兆候の判定は、業績が好調な事業については省略することができる。","減損の判定は、経営者が年度末にまとめて行い、判定の理由や計算の根拠は記録に残さず、結論のみを報告する。","減損の兆候の有無を定期的に検討し、判定の根拠と結論を文書化して承認を受ける。","減損損失は、判定の結果を翌期に計上するのが原則であり、減損の兆候が生じた期間には判定の結果を反映しない。"],"correctIndex":2,"explanations":["× 誤り。好調な事業でも兆候の検討は必要であり、省略の根拠にはならない。","× 誤り。理由を残さない判定は、検証できず、統制として不十分である。","○ 正しい。兆候の検討と判定根拠の文書化・承認により、判断の妥当性を担保できる。","× 誤り。減損損失は、判定した期間に計上するのが原則である。"]},{"id":"jsox-67","type":"mc","chapterIndex":5,"stem":"経費精算に関する統制として、最も適切なものはどれか。","options":["少額の経費は、領収書がなくても、申請者の自己申告と金額の上限の範囲内で精算できる運用とし、承認は省略する。","経費の承認は申請者本人が行い、上長の確認は不要とし、精算の内容は経理部門が月末にまとめて事後に確認する運用とする。","精算の承認は、申請の都度ではなく年度末に一括して行い、その間に行われた支出の内容は、承認までの期間は確認しない。","経費の申請と承認を分離し、領収書等の証憑と照合して、業務目的との関係を承認者が確認する。"],"correctIndex":3,"explanations":["× 誤り。証憑がなく承認も省くと、不正な経費を防止・発見できない。","× 誤り。申請者本人の承認では、牽制が働かない。","× 誤り。事後の一括承認では、適時の是正ができない。","○ 正しい。職務分離と証憑の照合により、不正や不適切な経費の計上を防止・発見できる。"]},{"id":"jsox-68","type":"mc","chapterIndex":5,"stem":"人事給与プロセスの統制として、最も適切なものはどれか。","options":["従業員マスタの変更（入社・昇給・退職など）は、人事部門の承認と給与計算部門の照合を経て反映する。","給与計算の担当者は、マスタの変更権限と支払の実行権限を兼ねてよい。","退職者の情報は、退職日から一定期間が経過してから給与マスタへ反映する。","給与計算の結果は、担当者が確認すれば、上長の確認は不要とする。"],"correctIndex":0,"explanations":["○ 正しい。マスタ変更の承認と照合により、架空の従業員や誤支給を防止できる。","× 誤り。マスタ変更と支払実行の権限が一人に集中すると、不正を防げない。","× 誤り。退職者の反映が遅れると、誤支給の原因となる。","× 誤り。計算結果の上長による確認を省くと、誤りを発見できない。"]},{"id":"jsox-69","type":"mc","chapterIndex":5,"stem":"会計上の見積りに関する統制として、最も適切なものはどれか。","options":["見積りの前提や仮定は、経営者の判断であるため、記録を残す必要はなく、その根拠を監査人に説明する必要もない。","見積りの前提・仮定と計算過程を記録し、根拠の妥当性を経営者が確認する。","見積りは前期の数値をそのまま用いるのが、最も確実である。","見積りの金額は、監査人が決めた金額を事後的に採用する。"],"correctIndex":1,"explanations":["× 誤り。前提の記録がなければ、見積りの妥当性を検証できない。","○ 正しい。前提と計算過程を記録し経営者が確認することで、見積りの恣意性を抑えられる。","× 誤り。前期の数値の踏襲は、状況の変化を反映しない。","× 誤り。見積りは経営者が行うものであり、監査人が決めるものではない。"]},{"id":"jsox-70","type":"mc","chapterIndex":5,"stem":"手作業による仕訳（総勘定元帳への直接入力を含む）に関する統制として、最も適切なものはどれか。","options":["仕訳の入力は担当者の裁量で随時行うため、事後の承認は不要とする。","期末の仕訳は件数が多いため抽出せず、すべてについて承認を省略し、期末後に担当者が必要に応じて内容を確認する。","入力者と承認者を分け、期末や経営者の判断に関わる仕訳は重点的に確認する。","仕訳の修正は、元の仕訳を残さず上書きすることで管理し、修正の理由や修正前の金額は別途の記録として残さない運用とする。"],"correctIndex":2,"explanations":["× 誤り。事後の承認を省くと、誤りや不正な仕訳を発見できない。","× 誤り。期末の仕訳は誤りや不正の発生リスクが高く、承認を省略できない。","○ 正しい。職務分離と重点的な確認により、不適切な仕訳を防止・発見できる。","× 誤り。元の仕訳を残さない修正は、修正の経緯を追跡できなくなる。"]},{"id":"jsox-71","type":"mc","chapterIndex":5,"stem":"資金の管理に関する統制として、最も適切なものはどれか。","options":["銀行の残高確認は、担当者が作成した残高証明の写しや社内の資料で代えてよく、銀行からの直接の確認は、取引量が少ない口座では省略してよい。","預金の入出金は、同一の担当者が記帳と照合を行い、照合の結果は担当者の判断で必要な場合にのみ上長へ報告する運用とする。","小口現金は、残高が不足した時点で補充し、月末の実査は省略して、帳簿の残高をもって現金の残高とみなす運用とする。","預金の入出金は、記帳と照合の担当を分け、定期的に銀行残高と帳簿残高を照合して差異を調査する。"],"correctIndex":3,"explanations":["× 誤り。担当者作成の写しでは、銀行の記録との独立した照合にならない。","× 誤り。記帳と照合を同一人が行うと、不正や誤りを見逃しやすい。","× 誤り。月末の実査を省略すると、現金の実在性を確かめられない。","○ 正しい。職務分離と定期的な照合により、資金の不正や誤りを防止・発見できる。"]},{"id":"jsox-72","type":"mc","chapterIndex":5,"stem":"借入金に関する統制として、最も適切なものはどれか。","options":["借入の契約条件（財務制限条項を含む）を管理し、遵守状況を定期的に確認して、必要な開示や分類に反映する。","借入金は契約の締結時のみ確認し、以後の契約条件は管理しない。","借入金の利息は、支払時に費用処理すれば、未払計上は不要とする。","借入金の残高は帳簿残高のみを根拠として確認し、金融機関との照合は省略する。"],"correctIndex":0,"explanations":["○ 正しい。財務制限条項の遵守状況の確認は、財務諸表の表示や開示の適切性に関わる。","× 誤り。契約条件の継続的な管理がないと、違反を見逃す。","× 誤り。利息は発生主義により、期間に応じて計上する必要がある。","× 誤り。金融機関との照合を省略すると、帳簿残高の正確性を確かめられない。"]},{"id":"jsox-73","type":"mc","chapterIndex":5,"stem":"売掛金の管理に関する統制として、最も適切なものはどれか。","options":["与信限度額は、営業担当者が顧客との関係に応じて随時引き上げてよい。","与信限度額の設定と変更は与信管理部門が審査し承認する。また、滞留債権は定期的に一覧化して回収状況を確認する。","売掛金の残高は回収予定を基準に計上し、入金の確認は省略して、期末の残高は営業担当者が報告する数値をそのまま採用する。","貸倒れの見積りは発生した時点でのみ行い、期中の見積りは行わない。"],"correctIndex":1,"explanations":["× 誤り。営業担当者が独断で限度額を変更できると、与信リスクを管理できない。","○ 正しい。与信審査と承認の分離、滞留債権の管理により、貸倒リスクを適切に統制できる。","× 誤り。回収予定を基準にすると、実際の入金と乖離し、実在性を確認できない。","× 誤り。貸倒れの見積りは、期中においても債権の状況に基づいて行う必要がある。"]},{"id":"jsox-74","type":"mc","chapterIndex":5,"stem":"売上の返品・値引に関する統制として、最も適切なものはどれか。","options":["返品・値引は、営業担当者の判断で処理し、事後の報告は不要とする。","返品・値引は、月末に一括して売上から控除し、個別の承認は省略して、担当者が取りまとめた金額を期末の売上から差し引く運用とする。","返品・値引の処理は、根拠となる証憑と承認を求め、売上計上の期間の適切性を確認する。","返品・値引は、翌期の売上から控除すれば、当期の売上の正確性には影響しないため、発生の時期にかかわらず処理を翌期に回してよい。"],"correctIndex":2,"explanations":["× 誤り。承認のない処理は、売上の過大計上や不正を見逃す。","× 誤り。個別承認を省くと、個々の返品の妥当性を確認できない。","○ 正しい。証憑と承認、期間帰属の確認により、売上の正確性を担保できる。","× 誤り。期間帰属を誤ると、当期の売上の正確性に影響する。"]},{"id":"jsox-75","type":"mc","chapterIndex":5,"stem":"棚卸資産の評価に関する統制として、最も適切なものはどれか。","options":["評価損は、期末の時価が取得原価を下回った場合でも、担当者の判断で計上を翌期以降に延ばし、次期の決算でまとめて認識してよい運用とする。","評価方法は毎期、最も利益が出る方法を担当者が選択して変更し、変更の理由や影響額は記録せず、期末の決算数値にのみ反映させる。","滞留在庫は評価損の対象外として、そのまま資産計上し、販売の見込みや保管の状況にかかわらず、取得原価で在庫残高を維持する。","滞留在庫や陳腐化の状況を定期的に把握し、収益性の低下の有無を評価して、評価損の計上の要否を判定する。"],"correctIndex":3,"explanations":["× 誤り。収益性の低下が明らかな場合、評価損は当期に計上する必要がある。","× 誤り。評価方法の恣意的な変更は、利益操作にあたる。","× 誤り。滞留在庫は収益性の低下の兆候であり、評価の検討対象である。","○ 正しい。滞留や陳腐化の把握と評価損の判定は、在庫の評価の適切性を担保する統制となる。"]},{"id":"jsox-76","type":"mc","chapterIndex":5,"stem":"期末の実地棚卸の立会に関して、最も適切なものはどれか。","options":["実地棚卸の立会は、在庫管理部門とは独立した者が行い、カウントの結果と帳簿を照合する。","実地棚卸の立会は、在庫を管理する担当者自身が行い、結果の報告のみを行う。","実地棚卸は期末前の一定日に行い、期末時点の在庫は帳簿残高で確定させる。","実地棚卸の結果に差異があっても、一定額未満であれば修正しない。"],"correctIndex":0,"explanations":["○ 正しい。独立した立会と照合により、在庫の実在性を確かめられる。","× 誤り。担当者自身による確認では、自己確認となり牽制が働かない。","× 誤り。期末時点の在庫は、実地で確認するか、期末までの増減を適切に把握する必要がある。","× 誤り。差異は金額にかかわらず原因を調べ、必要に応じて修正する必要がある。"]},{"id":"jsox-77","type":"mc","chapterIndex":5,"stem":"固定資産の除却・売却に関する統制として、最も適切なものはどれか。","options":["除却の対象となる資産は、現場の判断で廃棄してから台帳で処理する。","除却・売却は承認を受けたうえで、台帳の減少と損益の計上を適時に行い、実物の確認を行う。","売却益は代金の入金時に一括して計上し、台帳の更新は年度末にまとめて行う。","遊休資産は、いつ売却されるか不明なため、減損や除却の検討を行わず、保有の継続を前提として、毎期の帳簿価額を取得原価のまま維持する。"],"correctIndex":1,"explanations":["× 誤り。承認と実物確認のない廃棄では、資産の実在性を管理できない。","○ 正しい。承認、台帳の更新、実物の確認により、資産の実在性と損益の適切性を担保できる。","× 誤り。売却損益は、売却の事実に基づき適時に計上する必要がある。","× 誤り。遊休資産は減損の兆候となりうるため、検討を省略できない。"]},{"id":"jsox-78","type":"mc","chapterIndex":5,"stem":"決算・財務報告のプロセスに関する統制として、最も適切なものはどれか。","options":["決算の締め日は各部門が任意に決めてよく、統一しない。","決算の数値は経理部門のみが確認すれば足り、経営者への報告や確認は、決算の内容に重要な変更がない限り不要とする。","決算の手順と締め日を定め、重要な数値の確認と経営者への報告の過程を文書化する。","財務諸表の作成は、前期の数値を基に、担当者が判断で修正して行い、修正の根拠は作成者の記憶に基づいて確認し、文書には残さない。"],"correctIndex":2,"explanations":["× 誤り。締め日が統一されないと、期間帰属の誤りを生じやすい。","× 誤り。経営者の確認を省くと、財務報告に対する経営者の責任が果たせない。","○ 正しい。手順・締め日の統一と文書化により、財務報告プロセスの統制が機能する。","× 誤り。根拠のない修正は、財務諸表の信頼性を損なう。"]},{"id":"jsox-79","type":"mc","chapterIndex":5,"stem":"税金費用の計算に関する統制として、最も適切なものはどれか。","options":["税効果会計の計算は、税務申告書の数値をそのまま用い、一時差異の把握を省略し、税率の変更の影響も計算に反映しない運用とする。","税金の計算は、担当者が前期の税額を基に推定し、その結果を検証せず、差異が生じた場合も、次期の申告で調整すればよいとする。","税務上の調整事項は、担当者の判断で処理し、根拠資料は保存せず、申告書に記載された金額のみを記録として残す運用とする。","税金費用の計算は、税務上の調整事項と一時差異を網羅的に把握し、計算の根拠を検証する。"],"correctIndex":3,"explanations":["× 誤り。一時差異の把握を省くと、税効果の計上が不適切になる。","× 誤り。検証のない推定は、税金費用の誤りを見逃す。","× 誤り。根拠資料のない調整は、税務上の説明責任を果たせない。","○ 正しい。網羅的な把握と検証により、税金費用の計算の正確性を担保できる。"]},{"id":"jsox-80","type":"mc","chapterIndex":5,"stem":"退職給付に関する統制として、最も適切なものはどれか。","options":["退職給付債務の計算の基礎となるデータ（年齢・勤続・給与など）を検証し、数理計算の前提の妥当性を経営者が確認する。","退職給付債務は前期の金額をそのまま用い、計算の基礎データは検証しない。","数理計算上の前提（割引率など）は、担当者が任意に変更できる。","退職給付の計算は外部の専門家に任せるため、経営者の確認は不要とする。"],"correctIndex":0,"explanations":["○ 正しい。基礎データと前提の検証・確認により、債務の計算の信頼性を担保できる。","× 誤り。前期の数値の踏襲は、状況の変化を反映しない。","× 誤り。前提の任意変更は、恣意的な見積りにつながる。","× 誤り。外部の専門家を利用しても、経営者は前提と結果に責任を負う。"]},{"id":"jsox-81","type":"mc","chapterIndex":5,"stem":"外貨建取引の換算に関する統制として、最も適切なものはどれか。","options":["外貨建取引は、取引時の為替レートを担当者が任意に選択する。","換算レートは社内で定めた基準に従い、為替差損益の計算根拠を検証する。","外貨建の債権債務は、決算日に換算せず、取引時のレートのまま計上し、為替の変動による差額は、期末の損益には反映させない。","為替差損益は入金・支払時にのみ計上し、期末の換算は省略する。"],"correctIndex":1,"explanations":["× 誤り。任意のレート選択は、換算の恣意性を生む。","○ 正しい。基準に従ったレートと計算根拠の検証により、換算の正確性を担保できる。","× 誤り。外貨建の債権債務は、原則として決算日の為替相場で換算する。","× 誤り。期末換算を省略すると、未実現の為替差損益を把握できない。"]},{"id":"jsox-82","type":"mc","chapterIndex":5,"stem":"関連当事者との取引に関する統制として、最も適切なものはどれか。","options":["関連当事者の範囲は、取引が重要でなければ把握しなくてよい。","関連当事者との取引は、事業上の必要性があれば、承認と条件の確認を省略してよく、取引の内容は決算の時点で取りまとめて報告する。","関連当事者の範囲を網羅的に把握し、取引の条件や承認を確認して、必要な開示を行う。","関連当事者との取引は一般の取引と区別せず、取引の条件や金額にかかわらず、担当者の判断で開示は不要とし、社内の承認記録も残さない運用とする。"],"correctIndex":2,"explanations":["× 誤り。重要性にかかわらず、範囲は網羅的に把握する必要がある。","× 誤り。承認と条件の確認を省くと、不当な取引条件を見逃す。","○ 正しい。範囲の把握、条件の確認、開示により、関連当事者取引の適切性を担保できる。","× 誤り。関連当事者との取引は、開示の要否を検討する必要がある。"]},{"id":"jsox-83","type":"mc","chapterIndex":5,"stem":"非定型・不随的な取引（期末の大口取引など）に関する統制として、最も適切なものはどれか。","options":["非定型取引は、通常の取引と同じ手続で処理し、特別な確認は行わず、取引の金額や性質にかかわらず、担当者が定められた様式で記録を作成する。","非定型取引は経営者の判断で処理することが認められており、他者の確認は不要とし、処理の結果は取締役会への報告事項として取り扱う。","非定型取引は、期末後に処理して期中の財務諸表には影響させず、取引の内容や金額を確認する手続を、翌期の監査の時点まで行わず、決算に関する資料の保存も省略する運用とする。","非定型取引は、事業上の合理性と会計処理の妥当性を、経営者以外の者も含めて検討し、承認の記録を残す。"],"correctIndex":3,"explanations":["× 誤り。非定型取引は通常の手続では把握しきれず、特別な確認が必要である。","× 誤り。経営者だけの判断では、経営者による不正や誤りを防げない。","× 誤り。期間帰属を操作する目的で処理を後ろ倒しにすることは、不適切である。","○ 正しい。合理性の検討と承認の記録により、非定型取引のリスクを統制できる。"]},{"id":"jsox-84","type":"mc","chapterIndex":5,"stem":"業務プロセスの評価で、業務記述書（フローチャート等）を作成する目的として、最も適切なものはどれか。","options":["業務の流れと統制ポイントを明らかにし、統制の設計の有効性を評価できるようにすることにある。","業務の効率化の提案を行うことを主目的とする。","監査人の監査報酬を決定する根拠とする。","従業員の人事評価の基準とする。"],"correctIndex":0,"explanations":["○ 正しい。業務の流れと統制ポイントの把握が、統制の設計の評価の基礎となる。","× 誤り。効率化は副次的な効果であり、評価の目的ではない。","× 誤り。監査報酬と業務記述書は直接の関係がない。","× 誤り。業務記述書は業務の統制を把握するための文書であり、人事評価の基準ではない。"]},{"id":"jsox-85","type":"mc","chapterIndex":5,"stem":"発注に関する統制として、最も適切なものはどれか。","options":["発注は、担当者が予算の残りを確認せずに行い、事後に予算超過が判明した場合にのみ、その内容を調べて対応を検討する運用とする。","発注は、予算や必要性を確認したうえで、権限のある者の承認を経て行う。","緊急の発注は承認を省略してよく、事後の報告も不要とする。","発注の承認は、発注を依頼した者自身が行ってよい。"],"correctIndex":1,"explanations":["× 誤り。予算の確認を省くと、超過や不必要な支出を防げない。","○ 正しい。権限者の承認と必要性・予算の確認により、不正な発注を防止できる。","× 誤り。緊急時も、事後の承認と報告は必要である。","× 誤り。依頼者自身の承認は自己承認となり、牽制が働かない。"]},{"id":"jsox-86","type":"mc","chapterIndex":5,"stem":"収益認識（顧客との契約から生じる収益）に関する統制として、最も適切なものはどれか。","options":["契約の内容は、営業担当者の説明に基づいて会計処理を行い、契約書の確認は省略する。","収益は、代金の入金時にのみ計上し、入金の前に履行が完了している取引についても、入金を確認するまでは計上しない運用とする。","契約ごとに履行義務と取引価格を識別し、収益を認識する時点や金額の根拠を、契約書に基づき検証する。","収益は、契約の金額の全額を契約締結時に計上し、履行義務の充足の状況や、引渡し後の返品・値引きの見込みにかかわらず、一括で認識する。"],"correctIndex":2,"explanations":["× 誤り。契約書の確認を省くと、履行義務や取引条件を正しく把握できない。","× 誤り。入金時のみの計上は、履行の完了の時点で収益を認識する原則と異なる。","○ 正しい。契約に基づく履行義務の識別と検証により、収益認識の正確性を担保できる。","× 誤り。収益は履行義務の充足に応じて認識する必要がある。"]},{"id":"jsox-87","type":"mc","chapterIndex":5,"stem":"仮払金（立替払）の精算に関する統制として、最も適切なものはどれか。","options":["仮払金は精算期限を設けず、必要なときまで残してよく、精算が遅れている残高は、担当者が判断して次期以降の処理に回す運用とする。","仮払金の精算は担当者の自己申告のみとし、証憑は求めず、支払の目的や金額が業務上妥当であるかどうかは、後日まとめて確認する運用とする。","仮払金は期末に一括して費用に振り替えるため、期中の残高の確認や精算の管理は省略し、担当者への精算の督促も行わず、前期末の残高をそのまま引き継ぐ運用とする。","仮払金は精算期限を定めて管理し、期末までに精算の状況を確認して、未精算の残高を適切に処理する。"],"correctIndex":3,"explanations":["× 誤り。精算期限がないと、未精算の残高が滞留し、管理できない。","× 誤り。証憑のない精算は、不適切な支出を見逃す。","× 誤り。期中の管理を省くと、滞留や不正を早期に発見できない。","○ 正しい。期限管理と期末の確認により、仮払金の残高の適切性を担保できる。"]},{"id":"jsox-88","type":"mc","chapterIndex":5,"stem":"固定資産台帳の管理に関する統制として、最も適切なものはどれか。","options":["固定資産台帳は、資産の取得・移動・除却を反映し、定期的に台帳と実物の照合を行う。","固定資産台帳は、取得時に一度登録すれば、以後の更新は不要とする。","固定資産台帳は経理部門のみが管理し、現場の確認は行わない。","固定資産の実物の確認は、台帳に記載された金額を基に行う。"],"correctIndex":0,"explanations":["○ 正しい。台帳の更新と実物の照合により、資産の実在性と網羅性を担保できる。","× 誤り。更新が行われないと、台帳と実態が乖離する。","× 誤り。現場の確認を省くと、実在しない資産や未登録の資産を把握できない。","× 誤り。実物の確認は、金額ではなく資産そのものを対象に行う必要がある。"]},{"id":"jsox-89","type":"mc","chapterIndex":5,"stem":"従業員の退職時の統制として、最も適切なものはどれか。","options":["退職者のシステムアクセス権は、本人の退職後しばらく残してもよい。","退職者のアクセス権の削除、貸与品の回収、退職者のマスタへの反映を、適時に行い確認する。","退職者の業務引継ぎは、必要に応じて行えばよく、記録は残さない。","退職者の支払の承認権限は、本人の申し出があるまで保持させ、退職後も承認の対象となる取引の金額や相手先にかかわらず、従来の範囲で承認を続けさせてよい。"],"correctIndex":1,"explanations":["× 誤り。退職後のアクセス権の残存は、不正利用のリスクを生む。","○ 正しい。アクセス権・貸与品・マスタの適時な処理により、退職に伴うリスクを統制できる。","× 誤り。引継ぎの記録を残さないと、業務の継続性や責任の所在を確認できない。","× 誤り。退職者に権限を残すことは、不適切なリスクを生む。"]},{"id":"jsox-90","type":"mc","chapterIndex":5,"stem":"在庫の入出庫の記録に関する統制として、最も適切なものはどれか。","options":["入出庫は記録をまとめて月末に行い、日々の出庫記録は省略する。","入出庫の数量は、担当者の記憶に基づいて、必要と思われる時点でまとめて記録し、証憑の添付や数量の確認は、差異が生じた場合にのみ行う。","入出庫は事実が発生した時点で証憑に基づき記録し、在庫の帳簿と実数の差異を定期的に確認する。","入庫は請求書を受け取った時点で記録し、実際の入庫は確認せず、請求額と発注額が一致していれば、在庫の数量は帳簿上の数値で期末に確定させる。"],"correctIndex":2,"explanations":["× 誤り。事後のまとめ記録は、期間の誤りや記録漏れを生じやすい。","× 誤り。記憶に基づく記録は、正確性を確かめられない。","○ 正しい。証憑に基づく適時の記録と差異の確認により、在庫の正確性を担保できる。","× 誤り。実際の入庫を確認しないと、請求書だけでは在庫の実在性を確かめられない。"]},{"id":"jsox-91","type":"mc","chapterIndex":5,"stem":"決算の仕訳のうち、重要な見積りの変更や修正仕訳の承認に関して、最も適切なものはどれか。","options":["重要な見積りの修正は担当者の判断で行い、承認は決算後の監査人の確認の時点でまとめて行い、修正の根拠は決算後に資料として整える。","決算の修正仕訳は、元の仕訳を残さず、修正の結果のみを記録し、修正の理由や修正前の金額は、決算の数値に影響しない限り記録しない運用とする。","修正仕訳の承認者は、起票者自身とし、起票者が内容を十分に理解しているため、承認の記録は残さず、決算後の一覧表への記載のみを行う。","重要な見積りの変更や修正仕訳は、根拠を示したうえで、起票者とは別の権限者が承認する。"],"correctIndex":3,"explanations":["× 誤り。決算後の事後承認では、決算の数値に対する統制が機能しない。","× 誤り。元の仕訳を残さないと、修正の経緯を追跡できない。","× 誤り。起票者による自己承認は、牽制が働かない。","○ 正しい。根拠の提示と別の権限者による承認により、決算の数値の信頼性を担保できる。"]},{"id":"jsox-92","type":"mc","chapterIndex":5,"stem":"新規の取引先との取引開始に関する統制として、最も適切なものはどれか。","options":["新規取引先の信用状況を審査し、与信の承認を得てから取引を開始する。","新規取引先は、取引の実績が出るまで審査を省略してよい。","新規取引先の審査は営業担当者が単独で行い、承認は不要とする。","新規取引先との取引は、代金の回収後に審査を行う。"],"correctIndex":0,"explanations":["○ 正しい。信用状況の審査と承認により、貸倒れや不正な取引のリスクを抑えられる。","× 誤り。実績がない段階でこそ審査が必要であり、省略はできない。","× 誤り。営業担当者の単独審査は、牽制が働かない。","× 誤り。回収後に審査しても、貸倒れのリスクの防止にならない。"]},{"id":"jsox-93","type":"mc","chapterIndex":5,"stem":"支払の統制として、最も適切なものはどれか。","options":["支払は、請求書と発注・検収の記録を照合せずに、請求額どおりに支払い、後日の差異の確認は、取引先からの問合せがあった場合に限って行う。","支払は、請求書・検収記録・発注内容を照合し、承認を経てから行う。","支払は、担当者が判断で振込先を変更してよい。","支払は、月末に一括して行い、個別の承認は省略する。"],"correctIndex":1,"explanations":["× 誤り。照合を省くと、誤払や架空請求による不正を防げない。","○ 正しい。三点照合と承認により、誤払や不正な支払を防止できる。","× 誤り。振込先の任意変更は、不正な支払の典型的なリスクである。","× 誤り。個別の承認を省くと、個々の支払の妥当性を確認できない。"]},{"id":"jsox-94","type":"mc","chapterIndex":5,"stem":"職務分掌（職務分離）に関する説明として、最も適切なものはどれか。","options":["職務分離は、人員が不足している場合は省略してよい。","職務分離は、同じ担当者が取引の開始から記録までを行うことで、処理の手順を一人に集約して効率を高め、人員の配置を最小限にする目的で行う。","職務分離は、取引の承認、記録、資産の管理などの機能を異なる担当者に分け、不正や誤りを防止する目的で行う。","職務分離は、経営者のみに権限を集中させることで行い、経営者の判断により、承認・記録・資産管理の機能を一人の経営者が担う体制を維持し、監査委員会への報告も省略する。"],"correctIndex":2,"explanations":["× 誤り。人員が少ない場合も、補完的な統制などで牽制を確保する必要がある。","× 誤り。一人に権限が集中すると、不正や誤りを防げない。","○ 正しい。機能を分けることで、相互牽制により不正や誤りを防止できる。","× 誤り。経営者への権限の集中は、経営者による不正のリスクを高める。"]},{"id":"jsox-95","type":"mc","chapterIndex":5,"stem":"財務報告の開示に関する統制として、最も適切なものはどれか。","options":["開示資料は作成者の判断のみで確定させ、レビューは省略し、資料の作成の結果は、開示の直前に経営者へ口頭で報告する運用とする。","開示の内容は、前期の資料を基に変更せず作成し、当期の業績や会計数値の変動が大きい場合でも、前期の表現をそのまま用いて作成する。","開示に関する誤りは、発見された後に訂正すればよく、事前の確認は不要とし、訂正の内容は開示後の次回の決算で併せて説明する。","開示資料は、会計数値との整合性を確認するレビューを経て、経営者が内容を確認する。"],"correctIndex":3,"explanations":["× 誤り。レビューを省くと、資料の誤りや不整合を見逃す。","× 誤り。前期の資料の踏襲は、状況の変化を反映しない。","× 誤り。事前の確認を省くと、開示の誤りが外部に出る。","○ 正しい。数値との整合性の確認と経営者の確認により、開示の信頼性を担保できる。"]},{"id":"jsox-96","type":"mc","chapterIndex":6,"stem":"IT全般統制のうち、アクセス管理に関する統制として、最も適切なものはどれか。","options":["利用者IDの発行・変更・削除を承認に基づいて行い、特権IDの利用を定期的にレビューする。","利用者IDは業務で複数人が共有して使ってよく、個人ごとの発行は不要とする。","特権IDはシステム管理者が常に利用するため、利用記録は残さない。","パスワードは初期設定のまま運用することで、利用者の管理を省略する。"],"correctIndex":0,"explanations":["○ 正しい。承認に基づくID管理と特権IDのレビューにより、不正なアクセスを防止できる。","× 誤り。共有IDは利用者を特定できず、アクセスの責任を追跡できない。","× 誤り。利用記録がないと、特権の不正利用を検知できない。","× 誤り。初期設定のままのパスワードは、不正アクセスの典型的な原因となる。"]},{"id":"jsox-97","type":"mc","chapterIndex":6,"stem":"IT全般統制のうち、プログラムの変更管理として、最も適切なものはどれか。","options":["担当者が緊急と判断すれば、テストを省略して本番の変更を行ってよい。","プログラムの変更は、依頼・承認・テスト・本番移行を分離して行い、移行の記録を残す。","変更は本番環境で直接行い、テストは変更後に任意で実施する。","変更の記録は変更者が本人の判断で残すため、統一した記録は不要とし、変更の内容や承認者、移行の日付も、必要に応じて残せばよいとする。"],"correctIndex":1,"explanations":["× 誤り。テストを省くと、本番に未検証の変更が反映される。","○ 正しい。変更の承認、テスト、移行の分離と記録により、不正・誤りの変更を防止できる。","× 誤り。本番での直接変更は、テストされていない変更が本番に反映されるリスクを生む。","× 誤り。統一された記録がないと、変更の網羅性と正当性を検証できない。"]},{"id":"jsox-98","type":"mc","chapterIndex":6,"stem":"IT全般統制のうち、運用管理（バックアップ等）に関する統制として、最も適切なものはどれか。","options":["バックアップは障害が起きてから取得すれば足り、定期的な取得は不要とし、障害の発生時に必要なデータを取り出せるかどうかは、事後に確認する。","バックアップは同一のサーバに保存し、復旧の手順は確認しなくてよい。","バックアップは定期的に取得して保管先を分け、復旧手順を定期的に検証する。","バックアップは担当者の判断で取得頻度を決め、取得の記録は残さず、保管先や復旧の手順も、担当者ごとに異なる方法で管理してよい。"],"correctIndex":2,"explanations":["× 誤り。障害の後に取得しても、障害前のデータを復旧できない。","× 誤り。同一サーバへの保存は、障害時に同時に失われる。","○ 正しい。定期取得、保管先の分離、復旧の検証により、データの継続性を担保できる。","× 誤り。取得の記録がないと、取得の網羅性を確認できない。"]},{"id":"jsox-99","type":"mc","chapterIndex":6,"stem":"業務処理統制のうち、入力データの正確性に関する統制として、最も適切なものはどれか。","options":["入力データは、チェックを省略して迅速に処理することを優先し、入力の誤りは、処理の結果を確認した段階で、まとめて修正する運用とする。","入力データの誤りは後工程で発見されるため、入力時のチェックは不要とし、誤りが見つかった場合は、後工程の担当者が個別の判断で修正してよい。","入力データは、担当者が入力した値を任意に修正してよく、修正の理由や修正前の値は記録せず、処理の結果が合っていれば修正の履歴は残さない。","入力時に必須項目・形式・範囲などの入力チェックを設け、エラーを検出した場合は承認を経て修正する。"],"correctIndex":3,"explanations":["× 誤り。チェックを省くと、誤った入力が処理に流れ、誤りの検出が遅れる。","× 誤り。後工程での発見を前提にすると、誤りの影響が拡大する。","× 誤り。承認なしの任意の修正は、不正や誤りの隠蔽につながる。","○ 正しい。入力チェックと承認を経た修正により、入力データの正確性を担保できる。"]},{"id":"jsox-100","type":"mc","chapterIndex":6,"stem":"業務処理統制のうち、処理結果（出力）の確認に関する統制として、最も適切なものはどれか。","options":["処理件数や合計金額を入力データと照合し、差異が生じた場合は原因を調査して記録する。","出力された帳票は、内容を確認せず、そのまま利用する。","出力の確認はシステムの自動判定に任せ、担当者は確認しない。","差異があった場合は次回の処理で自動的に調整されるため、調査は不要とする。"],"correctIndex":0,"explanations":["○ 正しい。件数・金額の照合と差異の調査により、処理の完全性と正確性を確認できる。","× 誤り。内容を確認しない帳票の利用は、誤りを見逃す。","× 誤り。自動判定のみに任せると、判定の誤りを発見できない。","× 誤り。差異の原因を調べずに次回へ持ち越すと、誤りの影響が拡大する。"]},{"id":"jsox-101","type":"mc","chapterIndex":6,"stem":"システムの開発・導入に関する統制として、最も適切なものはどれか。","options":["新規システムは利用部門の承認を得ずに、開発部門の判断で本番稼働させる。","新規システムの導入は、要件の承認、テストの実施、利用部門による受入れテストを経て本番稼働させる。","テストは本番稼働後に行い、テストの結果を記録しない。","開発の要件は開発者が口頭で利用部門と確認すれば足り、文書化は不要とし、稼働後に要件と異なる点が見つかった場合にのみ、その時点で内容を整理する。"],"correctIndex":1,"explanations":["× 誤り。利用部門の承認なしの稼働は、要件と異なるシステムが稼働するリスクを生む。","○ 正しい。要件承認、テスト、受入れを経た稼働により、システムの信頼性を担保できる。","× 誤り。本番稼働後のテストでは、稼働前の不具合を防げない。","× 誤り。要件を文書化しないと、要件の充足を検証できない。"]},{"id":"jsox-102","type":"mc","chapterIndex":6,"stem":"IT全般統制における、開発と運用の職務の分離に関して、最も適切なものはどれか。","options":["プログラム開発者は本番環境の変更権限を保持し、必要に応じて本番を直接変更してよく、変更の内容は、後日まとめて開発の記録に残すものとする。","開発と運用は同一の担当者が行うことで、迅速な対応を確保する。","開発者と本番環境の変更権限を持つ者を分け、本番への反映は承認を経た担当者が行う。","開発と運用の分離は、小規模な企業では必ず省略しなければならず、同一の担当者が開発と運用を兼ねる場合でも、その旨の記録は残さない。"],"correctIndex":2,"explanations":["× 誤り。開発者による本番の直接変更は、未承認の変更が反映されるリスクを生む。","× 誤り。同一人物による開発と運用では、相互牽制が働かない。","○ 正しい。権限の分離と承認を経た反映により、不正や誤った変更を防止できる。","× 誤り。小規模な組織でも、代替の統制により分離の目的を確保することが求められる。"]},{"id":"jsox-103","type":"mc","chapterIndex":6,"stem":"IT全般統制のうち、利用者のアクセス権の見直しに関して、最も適切なものはどれか。","options":["アクセス権は一度付与すれば、異動や退職があっても変更しないこととし、必要な業務の範囲が変わった場合も、利用者本人からの申出がない限り、権限の見直しは行わない。","アクセス権の見直しは、システムの障害が発生した時のみ行うこととし、異動や退職、業務の変更による権限の見直しは、障害対応の一環として必要に応じて行う。","アクセス権の付与は、利用者の要望に応じて、上長の承認なしに行ってよく、付与の内容は、利用者本人が必要と判断した範囲で、事後に情報システム部門へ報告する。","アクセス権は異動や退職などのタイミングで見直し、業務上必要な範囲に限定されているかを定期的に確認する。"],"correctIndex":3,"explanations":["× 誤り。異動や退職で権限が残ると、不要な権限による不正のリスクが生じる。","× 誤り。障害時のみの見直しでは、権限の過剰を継続的に防げない。","× 誤り。承認のない付与は、権限の管理の統制を損なう。","○ 正しい。定期的な見直しと最小権限の確認により、不要な権限を排除できる。"]},{"id":"jsox-104","type":"mc","chapterIndex":6,"stem":"特権ID（システム管理者権限など）の管理に関して、最も適切なものはどれか。","options":["特権IDの利用は、申請と承認を経て必要な期間に限り、利用の記録（ログ）を取得して確認する。","特権IDは常時利用できるよう、有効期限を設けず保持させる。","特権IDの利用は利用者が自身の判断で行い、事後の記録は残さない。","特権IDは業務の効率化のため、一般の利用者にも共有して付与し、利用の記録は残さない。"],"correctIndex":0,"explanations":["○ 正しい。申請・承認、期間の限定、ログの確認により、特権の不正利用を抑止し検知できる。","× 誤り。有効期限のない特権は、利用の必要がなくなった後も残り、リスクとなる。","× 誤り。事後の記録がないと、特権の不正利用を検知できない。","× 誤り。特権の共有は利用者の特定を妨げ、不正の責任を追跡できない。"]},{"id":"jsox-105","type":"mc","chapterIndex":6,"stem":"本番システムのバッチ処理（ジョブ）の運用管理に関して、最も適切なものはどれか。","options":["ジョブの実行結果は、エラーが出た場合のみ確認し、正常終了は記録しない。","ジョブの実行は、スケジュールと実行結果を記録し、エラーが発生した場合は原因を調査して対応を記録する。","ジョブの修正は担当者が本番で直接行い、事後の報告は行わない。","ジョブの実行権限は運用担当者の全員に付与し、管理は不要とし、ジョブの実行の対象や時刻は、担当者が都度判断して決めてよい運用とする。"],"correctIndex":1,"explanations":["× 誤り。正常終了の記録がないと、実行の完全性を確認できない。","○ 正しい。実行記録とエラーへの対応の記録により、処理の完全性を担保できる。","× 誤り。本番での直接修正は未承認の変更を生むため、統制として不適切である。","× 誤り。実行権限を全員に付与すると、不正や誤操作のリスクが高まる。"]},{"id":"jsox-106","type":"mc","chapterIndex":6,"stem":"システム間のデータ連携（インタフェース）の統制として、最も適切なものはどれか。","options":["連携データは件数や金額の照合を行わず、受信側で任意に修正してよく、修正の内容は連携の記録に残さず、受信後の業務処理の中で必要に応じて扱う。","連携データの処理エラーは、次回の連携で自動的に解消されるため、対応は不要とする。","連携データの件数と金額を送信側と受信側で照合し、不一致があれば原因を調査して処理を完了させる。","連携データは暗号化されていれば、送信の時点での照合や受信後の確認は省略でき、処理の結果が正常に終了したことのみを確認すればよい。"],"correctIndex":2,"explanations":["× 誤り。受信側での任意の修正は、データの改ざんや誤りを生む。","× 誤り。エラーの放置は、次回へ誤りを持ち越す。","○ 正しい。件数・金額の照合と不一致の調査により、連携データの完全性を担保できる。","× 誤り。暗号化は機密性の確保であり、データの完全性の確認を代替しない。"]},{"id":"jsox-107","type":"mc","chapterIndex":6,"stem":"表計算ソフト等で作成した集計ツール（EUC）の統制として、最も適切なものはどれか。","options":["EUCは個人が作成したものであり、財務報告に使う場合も、作成者が計算結果を確認していれば、第三者による検証や変更の管理は省略してよく、利用の承認も不要とする。","EUCの数式や計算式は、作成者以外が確認する必要はなく、作成者が十分に理解している計算であれば、利用の承認や版の管理も行わなくてよい。","EUCは業務の効率化を優先するため、変更の記録を残さず、どの版で計算されたかは、利用者が必要に応じて各自で管理する運用とする。","財務報告に使用するEUCは、計算ロジックを第三者が検証し、変更を管理して、利用の承認を受ける。"],"correctIndex":3,"explanations":["× 誤り。財務報告に使われるEUCは、個人が作成したものであっても検証が必要である。","× 誤り。作成者以外の確認がないと、計算の誤りを発見できない。","× 誤り。変更の記録がないと、どの版で計算されたかを追跡できない。","○ 正しい。第三者による検証、変更の管理、承認により、EUCの信頼性を担保できる。"]},{"id":"jsox-108","type":"mc","chapterIndex":6,"stem":"業務やシステムを外部に委託している場合の統制として、最も適切なものはどれか。","options":["委託先の内部統制の状況を評価（保証報告書の入手等を含む）し、委託業務の統制が適切に機能しているかを確認する。","業務を委託した場合、委託先の統制は評価せず、委託元の責任は負わない。","委託先の統制の状況は委託先の自己申告のみで確認し、独立した評価は行わない。","委託業務は委託元の統制の対象外とし、財務報告の評価範囲にも含めず、委託先との契約の内容も確認しない。"],"correctIndex":0,"explanations":["○ 正しい。委託先の統制を評価することで、委託業務を通じた財務報告のリスクを把握できる。","× 誤り。業務を委託しても、財務報告に対する責任は委託元が負う。","× 誤り。自己申告のみでは、統制の有効性を独立して確認できない。","× 誤り。委託業務が財務報告に影響する場合は、評価範囲に含める必要がある。"]},{"id":"jsox-109","type":"mc","chapterIndex":6,"stem":"システムへのアクセスログの管理に関して、最も適切なものはどれか。","options":["ログは容量の制約を理由に一定期間で削除し、特権のログも同様に扱う。","特権の利用などの重要なログを取得し、定期的に確認して、異常があれば調査・対応する。","ログはシステム管理者のみが閲覧でき、他者による確認は行わない。","ログは障害が発生した時にのみ取得し、通常時は取得せず、障害の内容や影響の範囲は、障害の発生後に担当者が記憶をもとに整理する。"],"correctIndex":1,"explanations":["× 誤り。特権の利用ログを削除すると、不正利用の事後の検証ができなくなる。","○ 正しい。重要なログの取得と定期的な確認により、不正の検知と対応ができる。","× 誤り。管理者のみの閲覧では、管理者自身の不正を検知できない。","× 誤り。通常時のログがないと、異常の兆候を把握できない。"]},{"id":"jsox-110","type":"mc","chapterIndex":6,"stem":"緊急の変更（障害対応など）に関する統制として、最も適切なものはどれか。","options":["緊急変更は事後の記録を残す必要はなく、担当者の判断で行う。","緊急変更は通常の変更管理の対象外とし、承認を一切求めず、変更の内容や理由は、障害が解消した後も記録を残す必要がないものとする。","緊急変更は事後に承認と記録を行い、遅くとも事後に通常の変更手続での検証を実施する。","緊急変更は本番環境での試行を繰り返し、結果が良ければ記録を残さず、試行の過程で行った設定の変更も、そのまま本番の設定として残してよい。"],"correctIndex":2,"explanations":["× 誤り。事後の記録がないと、本番に加えられた変更を追跡できない。","× 誤り。承認を一切求めないと、不正や誤った変更を統制できない。","○ 正しい。事後の承認・記録と検証により、緊急変更のリスクを管理できる。","× 誤り。本番での試行の繰り返しは、未検証の変更を本番に反映させるリスクを生む。"]},{"id":"jsox-111","type":"mc","chapterIndex":6,"stem":"システムのマスタデータ（商品マスタ・税率マスタなど）の変更管理に関して、最も適切なものはどれか。","options":["マスタデータは、データ量が多いため、変更の承認や記録は省略してよく、変更の内容は、後日、業務の担当者が必要と判断した場合にのみ確認する運用とする。","マスタデータは担当者が直接データベースを更新して変更し、更新の内容は、変更後に担当者が必要に応じてシステムの画面で確認すればよい。","税率マスタの変更は、税率が変わる時期に関係なく、任意のタイミングで行ってよく、変更の申請や承認は、税率の適用日の後に行ってもよく、変更の記録は残さない。","マスタデータの変更は申請と承認を経て行い、変更内容と適用日を記録して、変更の正確性を確認する。"],"correctIndex":3,"explanations":["× 誤り。マスタデータは処理結果に広く影響するため、変更の承認と記録が必要である。","× 誤り。直接の更新は、承認と記録を経ない変更を生む。","× 誤り。税率の変更は、法令の適用時期に合わせて行う必要がある。","○ 正しい。承認、記録、適用日の確認により、マスタデータの正確性を担保できる。"]},{"id":"jsox-112","type":"mc","chapterIndex":6,"stem":"システムに組み込まれた自動化された統制（自動計算・自動チェックなど）に関して、最も適切なものはどれか。","options":["自動化された統制は、設定や仕様が適切であることを導入時と変更時にテストで確認し、その後も変更を管理する。","自動化された統制は、一度導入すれば、以後の設定の確認は不要とする。","自動化された統制は人手による確認よりも常に信頼できるため、結果の検証は省略する。","自動化された統制の設定は、担当者が任意に変更してよく、記録は不要とする。"],"correctIndex":0,"explanations":["○ 正しい。導入時と変更時のテスト、および変更の管理により、自動統制の有効性を担保できる。","× 誤り。設定が変更されると、自動統制は機能しなくなる可能性がある。","× 誤り。自動化された統制も誤りや設定ミスを含みうるため、検証が必要である。","× 誤り。設定の任意の変更は、統制の有効性を損なう。"]},{"id":"jsox-113","type":"mc","chapterIndex":6,"stem":"本番データベースへの直接更新（アプリケーションを介さない更新）に関して、最も適切なものはどれか。","options":["直接更新は担当者の判断で随時行ってよく、記録は不要とする。","直接更新は原則として制限し、やむを得ず行う場合は承認を経て、実施内容と結果を記録して確認する。","直接更新は業務の効率化のため、日常的に行ってよい。","直接更新はテスト環境で行うため、本番での記録は不要とし、テスト環境で確認した結果を、本番のデータに反映させる際の承認も省略してよい。"],"correctIndex":1,"explanations":["× 誤り。記録のない直接更新は、データの変更の経緯を追跡できない。","○ 正しい。原則としての制限と承認・記録により、データの不正や誤りを防止・発見できる。","× 誤り。日常的な直接更新は、アプリケーションの統制を迂回するため不適切である。","× 誤り。テスト環境の結果は、本番のデータ変更の記録にはならない。"]},{"id":"jsox-114","type":"mc","chapterIndex":6,"stem":"利用者のパスワード管理に関する統制として、最も適切なものはどれか。","options":["パスワードは利用者が共通の文字列を使い、定期的な変更は行わない。","パスワードは初期値を変更せず、使い続けてよく、初期値の文字列は、利用者の全員に共通で配布されているものを、そのまま運用に用いてよい。","パスワードは一定の複雑性と定期的な変更（または多要素認証）を求め、初期値は初回利用時に変更させる。","パスワードは他の利用者と共有して管理し、担当者が一元的に保管するとともに、利用者本人が変更を求めた場合でも、共有のパスワードは変更しない運用とする。"],"correctIndex":2,"explanations":["× 誤り。共通の文字列は利用者の特定を妨げ、不正利用を招く。","× 誤り。初期値の放置は、第三者による不正アクセスの原因となる。","○ 正しい。複雑性・変更・多要素認証と初期値の変更により、不正アクセスのリスクを抑制できる。","× 誤り。パスワードの共有と一元保管は、漏えいや不正利用のリスクを高める。"]},{"id":"jsox-115","type":"mc","chapterIndex":6,"stem":"支払処理などの業務処理統制として、二重処理（重複支払）を防止するための統制として、最も適切なものはどれか。","options":["支払の処理は重複チェックを行わず、事後に気付いた時に対応し、重複の支払が判明した場合も、取引先との交渉の結果に応じて個別に扱う運用とする。","支払の番号は担当者が任意に付与し、システムでの採番は行わず、同じ番号が重複した場合にも、担当者の判断で番号を振り直してよい。","重複の確認は支払後の月次で行えば十分であり、支払前のチェックは不要とし、確認の結果、重複が見つかった場合は次月の支払で相殺して調整する。","請求番号や取引先・金額の組み合わせで支払前に重複をチェックし、該当する場合は承認を経て処理する。"],"correctIndex":3,"explanations":["× 誤り。事後の対応では、重複支払の金銭的な損失を防げない。","× 誤り。任意の番号付与は、番号の重複や欠番を統制できない。","× 誤り。支払後の確認では、重複の支払を防止できず、回収の手間が生じる。","○ 正しい。支払前の重複チェックと承認により、重複支払を防止できる。"]},{"id":"jsox-116","type":"mc","chapterIndex":6,"stem":"システムにおける期間の締め処理（月次・年次の締め）に関して、最も適切なものはどれか。","options":["締め後の取引の追加・修正は、締め解除の承認を経て行い、解除の記録を残す。","締め後も、担当者が自由に過去の期間の取引を追加してよい。","締め処理は担当者が任意の日に行い、統一した締め日は設けない。","締めの解除は記録を残さずに行うことで、業務の効率を高める。"],"correctIndex":0,"explanations":["○ 正しい。締め解除の承認と記録により、期間外の取引の混入を防止し、追跡できる。","× 誤り。締め後の自由な追加は、期間帰属の誤りを生む。","× 誤り。締め日が統一されないと、期間の管理ができない。","× 誤り。解除の記録がないと、期間外の変更を追跡できない。"]},{"id":"jsox-117","type":"mc","chapterIndex":6,"stem":"クラウドサービスを利用する場合の統制として、最も適切なものはどれか。","options":["クラウドサービスの統制は提供者がすべて担うため、利用者は設定や利用状況の確認を行わない。","クラウドサービスの利用に当たり、利用者と提供者の責任範囲を明確にし、利用者側の設定やアクセス管理を統制する。","クラウドサービスの情報は、財務報告の評価対象から除外する。","クラウドサービスは社内システムよりも常に安全であるため、統制の評価は省略し、提供者の認証の取得状況を確認すれば、利用者側の設定や権限の管理は確認しなくてよい。"],"correctIndex":1,"explanations":["× 誤り。利用者側の設定やアクセス管理の責任は、通常、利用者が負う。","○ 正しい。責任範囲の明確化と利用者側の統制により、クラウドの利用に伴うリスクを管理できる。","× 誤り。財務報告に影響する情報は、利用形態にかかわらず評価の対象となりうる。","× 誤り。安全性が高いことと統制の評価は別であり、評価を省略してよいことにはならない。"]},{"id":"jsox-118","type":"mc","chapterIndex":6,"stem":"システム障害の対応に関する統制として、最も適切なものはどれか。","options":["障害は影響が小さいものは記録せず、担当者の判断で対応を終了する。","障害の原因は、再発の可能性が低ければ分析せず、対応のみを行い、障害の記録は、対応が完了した時点で担当者が必要と判断したものに限って残す。","障害を記録し、影響範囲と原因を分析して、再発防止策を講じ、その有効性を確認する。","障害の対応は財務報告に影響しない限り、経営者に報告する必要はなく、システムの停止時間や復旧の状況も、担当者の判断で報告を省略してよい。"],"correctIndex":2,"explanations":["× 誤り。記録のない障害は、傾向や再発を把握できない。","× 誤り。原因の分析を省くと、再発を防止できない。","○ 正しい。記録・分析・再発防止策と有効性の確認により、障害の影響を抑制できる。","× 誤り。財務報告への影響の有無にかかわらず、重要な障害は経営者へ報告する必要がある。"]},{"id":"jsox-119","type":"mc","chapterIndex":6,"stem":"財務データを含む情報の保管・廃棄に関する統制として、最も適切なものはどれか。","options":["廃棄するデータは確認せずに、一般のごみとして処分してよく、データの種類や保存期間にかかわらず、廃棄の記録は作成しない運用とする。","財務データは保存期間を定めず、無期限に保管し、保管の場所やアクセスの権限は、データの量が増えた場合にのみ見直すものとする。","財務データのバックアップは、暗号化せずに保管してよく、保管先の施錠や持ち出しの管理も、担当者の判断で必要な場合にのみ行い、保管の期間も定めない。","財務データの保管と廃棄は保存期間を定めて管理し、廃棄時には記録を残して確実に消去する。"],"correctIndex":3,"explanations":["× 誤り。確認のない廃棄は、情報の漏えいや不正利用のリスクを生む。","× 誤り。無期限の保管は、管理の対象を増やし、漏えいのリスクを高める。","× 誤り。暗号化しないバックアップは、漏えいした場合に情報が読み取られるリスクがある。","○ 正しい。保存期間の管理と確実な消去の記録により、情報の機密性と管理を担保できる。"]},{"id":"jsox-120","type":"mc","chapterIndex":6,"stem":"IT全般統制と業務処理統制の関係に関する説明として、最も適切なものはどれか。","options":["IT全般統制が適切に機能していることは、業務処理統制の自動化された統制を信頼するための前提となる。","業務処理統制が有効であれば、IT全般統制の評価は省略できる。","IT全般統制は業務処理統制と独立しているため、両者の関係を考慮する必要はない。","IT全般統制は業務処理統制の結果を検証するためにのみ行われ、統制の設計は含まない。"],"correctIndex":0,"explanations":["○ 正しい。全般統制が機能していない場合、自動統制の設定や処理の信頼性を担保できない。","× 誤り。全般統制が機能していないと、業務処理統制の結果の信頼性が損なわれる。","× 誤り。両者は密接に関係しており、相互の関係を考慮して評価する必要がある。","× 誤り。全般統制は、統制の設計と運用の双方を対象とする。"]},{"id":"jsox-121","type":"mc","chapterIndex":7,"stem":"全社的な内部統制の評価を踏まえて、評価対象とする事業拠点を選ぶ際の考え方として、最も適切なものはどれか。","options":["連結売上高等の金額的な重要性が高い事業拠点から選び、全体の概ね3分の2程度をカバーするように選定する。","事業拠点はすべて同じ割合でランダムに抽出し、評価作業の負荷を均等にするため、各拠点の財務上の影響度は考慮しない。","業績の悪い拠点に限定し、規模の大きい拠点は対象外とする。","本社機能のみを対象とし、子会社は含めない。"],"correctIndex":0,"explanations":["○ 正しい。実施基準では、売上高等の概ね3分の2程度をカバーする事業拠点を選ぶ考え方が示されている。","× 誤り。無作為抽出では重要な拠点を確実に捉えられず、リスクに基づく選定になっていない。","× 誤り。業績だけで拠点を選ぶと、財務報告への影響が大きい拠点を見落とす。","× 誤り。評価は連結ベースで行うため、連結の範囲の子会社も対象となる。"]},{"id":"jsox-122","type":"mc","chapterIndex":7,"stem":"業務プロセスの評価範囲を決める際の考え方として、最も適切なものはどれか。","options":["取引規模に関わらず、すべての業務プロセスを同じ深さで評価し、リスクの大きさの違いは評価の計画に反映させない。","財務諸表の重要な勘定科目に影響する取引を処理する業務プロセスを、リスクの大きさに応じて特定する。","業務プロセスは組織図の部署単位で一律に区切り、担当者の経験や取引の性質にかかわらず、リスクの大きさは一切考慮しない。","情報システムによる処理だけを評価し、手作業は対象外とする。"],"correctIndex":1,"explanations":["× 誤り。評価の深さはリスクの大きさに応じて決めるべきで、一律に扱うのは適切でない。","○ 正しい。評価範囲は、財務報告の重要な事項に影響するリスクの大きさに応じて業務プロセスを特定する。","× 誤り。部署単位の一律の区切りだけでは、リスクの高い取引が評価から漏れるおそれがある。","× 誤り。手作業の業務プロセスも財務報告に影響しうるため、除外する理由にはならない。"]},{"id":"jsox-123","type":"mc","chapterIndex":7,"stem":"運用状況の評価で抽出数を決める際の考え方として、最も適切なものはどれか。","options":["過去に不備がなかった統制は、統制の頻度や母集団の規模にかかわらず、一律に1件の確認だけで運用評価を終えてよいとされている。","抽出数は監査人に任せ、経営者は評価計画に抽出数の根拠を記載しなくてもよいものとし、評価の記録も残さない。","統制の実施頻度や過去の不備の有無などを考慮し、必要な抽出数を評価計画で定める。","全件を確認しなければ運用の有効性を評価できないため、抽出による評価は一切認められない、必ず全件を確認して評価する必要がある。"],"correctIndex":2,"explanations":["× 誤り。統制の頻度や母集団の大きさを無視して抽出数を決めるのは適切でない。","× 誤り。抽出数の根拠は経営者が評価計画に含めて示す必要がある。","○ 正しい。運用評価の抽出数は、頻度・母集団の大きさ・過去の不備などのリスクを踏まえて定める。","× 誤り。運用評価では、適切な抽出による確認が一般的に認められている。"]},{"id":"jsox-124","type":"mc","chapterIndex":7,"stem":"内部統制の不備が重要な欠陥に当たるかどうかの判断として、最も適切なものはどれか。","options":["不備の金額が小さければ、重要な欠陥とはならない。","不備の判定は、実際に虚偽記載が発生したかどうかのみで行う。","不備の金額が大きい場合に限り、質的な側面を検討すれば足りる。","重要な欠陥かどうかは、財務諸表の虚偽記載が合理的に生じうるか（発生可能性）と、その影響の大きさで判断する。"],"correctIndex":3,"explanations":["× 誤り。金額が小さくても、質的重要性がある不備は重要な欠陥となりうる。","× 誤り。判定は将来の発生可能性も含めて行う。","× 誤り。金額が大きくても質的な側面の検討は必要で、金額だけで判断しない。","○ 正しい。重要な欠陥は、虚偽記載の発生可能性と影響の大きさを合わせて判断する。"]},{"id":"jsox-125","type":"mc","chapterIndex":7,"stem":"重要な統制の不備を、別の統制（補完的統制）で財務報告リスクを低減している場合の取扱いとして、最も適切なものはどれか。","options":["補完的統制の効果を評価し、その分を含めてリスクの低減を判断する。","補完的統制が存在すれば、不備は自動的に有効な統制とみなされ、その時点で評価を終えてよいものとする。","不備は評価対象から外してよい。","補完的統制の効果は、検証しなくても問題はないとする。"],"correctIndex":0,"explanations":["○ 正しい。補完的統制の効果が確認できれば、その分を含めてリスクの低減を評価する。","× 誤り。補完的統制があっても、その有効性を評価しなければ不備は解消しない。","× 誤り。補完的統制は評価対象から外す根拠にはならない。","× 誤り。補完的統制の効果は、有効に機能しているかを検証して判断する必要がある。"]},{"id":"jsox-126","type":"mc","chapterIndex":7,"stem":"重要な欠陥の有無の判定の基準時点として、最も適切なものはどれか。","options":["期末日後に是正された不備は、期末時点で存在していたかどうかにかかわらず、すべて評価対象外とし、判定の対象に含めない扱いとする。","重要な欠陥の有無は原則として事業年度末日時点で判定し、期末日後の是正措置は内部統制報告書の付記事項として記載する。","重要な欠陥の判定は報告書の提出日時点で行うものとし、期末日は判定の基準としては扱わず、期末時点の状況の影響は一切考慮しない扱いとする。","期末日の数か月前に不備を是正すれば、期末時点の不備は存在しなかったものとみなす。"],"correctIndex":1,"explanations":["× 誤り。期末日時点で存在していた不備は、期末後の是正があっても判定の対象となる。","○ 正しい。判定は期末日時点が基準で、期末日後の重要な事象は付記事項として開示する。","× 誤り。判定の基準時点は期末日である。","× 誤り。期末日時点で存在していた不備は、その前の是正があっても期末時点の不備として扱う。"]},{"id":"jsox-127","type":"mc","chapterIndex":7,"stem":"金融商品取引法の内部統制報告制度における「重要な欠陥」の説明として、最も適切なものはどれか。","options":["財務報告の金額に誤りが一件でも生じた場合は、その大小や発生の経緯にかかわらず、その時点で必ず重要な欠陥となる。","内部統制の不備のうち、業務の効率性や有効性に関わるものだけを重要な欠陥とし、財務報告には関係しない不備のみを対象とする。","内部統制の不備のうち、財務報告に重要な影響を及ぼす可能性が高いものを重要な欠陥という。","重要な欠陥は監査人が発見した不備のみを指し、経営者が発見し是正した不備は、財務報告への影響にかかわらず含まないものとされる。"],"correctIndex":2,"explanations":["× 誤り。金額的重要性を下回る誤りは、直ちに重要な欠陥とはならない。","× 誤り。重要な欠陥は財務報告に関わるもので、効率性の不備は対象外である。","○ 正しい。重要な欠陥は、財務報告に重要な影響を及ぼす可能性が高い内部統制の不備を指す。","× 誤り。経営者が発見した不備も判定の対象となる。"]},{"id":"jsox-128","type":"mc","chapterIndex":7,"stem":"財務報告に係る内部統制の有効性の評価の単位として、最も適切なものはどれか。","options":["評価は親会社の個別財務諸表だけを対象とする。","子会社ごとに異なる基準で評価し、連結では集計しない。","個別財務諸表の金額の大きさのみで評価対象を決める。","財務報告に係る内部統制の有効性は、原則として連結ベースで評価し、連結の範囲に含まれる子会社の内部統制も評価対象とする。"],"correctIndex":3,"explanations":["× 誤り。連結の範囲の子会社も評価対象となる。","× 誤り。評価は連結ベースで行うのが原則である。","× 誤り。判断の基準は連結財務諸表に対する重要性である。","○ 正しい。財務報告に係る内部統制は、原則として連結ベースで評価する。"]},{"id":"jsox-129","type":"mc","chapterIndex":8,"stem":"期末日までに是正されなかった重要な欠陥がある場合の、内部統制報告書での取扱いとして、最も適切なものはどれか。","options":["内部統制報告書には、その内容と是正できなかった理由を記載する。","是正されなかった重要な欠陥があっても、報告書には「有効」と記載すればよく、是正できなかった事実は記載しない。","是正できなかった事実は、外部へ開示しなくてよい。","計画が承認されれば記載は省略できる。"],"correctIndex":0,"explanations":["○ 正しい。是正できなかった重要な欠陥は、内容と理由を内部統制報告書に記載する。","× 誤り。重要な欠陥が残っている場合、有効とは記載できない。","× 誤り。是正できなかった重要な欠陥は、報告書に記載する必要がある。","× 誤り。計画の承認は記載省略の根拠にならない。"]},{"id":"jsox-130","type":"mc","chapterIndex":7,"stem":"運用評価で統制の不備が一件見つかった場合の対応として、最も適切なものはどれか。","options":["運用評価で不備が一件見つかっても、その統制以外の評価結果には影響しないと判断し、他の統制について追加の確認は行わず、評価を完了させてよい。","不備の原因を分析し、同様の統制に影響がないか追加の確認を行う。","不備が見つかった統制は、評価対象から除外して評価を完了させ、その事実や除外の理由は報告書に記載しない扱いとする。","一人の誤りであれば、他の統制への影響はないと考える。"],"correctIndex":1,"explanations":["× 誤り。原因によっては、他の統制にも影響が及ぶ。","○ 正しい。不備の原因を分析し、影響の範囲を確かめることが求められる。","× 誤り。不備を除外して評価を終えるのは適切でない。","× 誤り。一件の不備でも、原因を分析し、同様の統制への影響を確認する必要がある。"]},{"id":"jsox-131","type":"mc","chapterIndex":7,"stem":"重要な業務プロセスを評価対象に加える考え方として、最も適切なものはどれか。","options":["重要な業務プロセスは、評価対象拠点の業務のすべてを一律に含めるものとし、リスクの大きさや影響の程度による絞り込みは行わない。","重要な業務プロセスは、過去に不備が発生していない領域のみに限定して評価し、新たに発生した領域の評価は対象外とする。","財務報告への影響が大きい業務プロセスを、評価対象に加える。","重要な業務プロセスは経営者が任意に決めてよく、その理由を記録する必要はないものとし、判断の根拠も示さない。"],"correctIndex":2,"explanations":["× 誤り。重要な業務プロセスは、リスクに基づいて絞り込むもので、一律に含めるわけではない。","× 誤り。過去に不備がないことだけで対象から外すのは適切でない。","○ 正しい。全社的統制の評価結果を踏まえ、財務報告への影響が大きい業務プロセスを個別に加える。","× 誤り。判断の理由を記録し、評価の根拠を示す必要がある。"]},{"id":"jsox-132","type":"mc","chapterIndex":7,"stem":"IT統制の不備が業務プロセスの統制に及ぼす影響の考え方として、最も適切なものはどれか。","options":["業務プロセス統制が有効なら、IT統制の不備は影響しない。","IT統制は業務プロセスと切り離して評価するため、影響の分析は不要である。","IT統制の不備は記録のみ行う。","システムに依存する自動化された統制の有効性は、IT全般統制の有効性を前提とするため、その不備の影響も併せて評価する。"],"correctIndex":3,"explanations":["× 誤り。業務プロセス統制が有効でも、IT統制の不備は業務処理統制の信頼性に影響しうる。","× 誤り。両者は関連しており、切り離して評価しない。","× 誤り。業務処理統制の評価に影響するため、記録のみで済ませてはならない。","○ 正しい。IT全般統制は、業務処理統制の前提となる。"]},{"id":"jsox-133","type":"mc","chapterIndex":7,"stem":"統制の評価手続のうち、デザインの評価と運用評価の違いとして、最も適切なものはどれか。","options":["統制の設計が適切かを確かめるのがデザインの評価、期間を通じて機能しているかを確かめるのが運用評価である。","デザインの評価と運用評価は、同じ手続で一度行えば足り、区別する必要はない。","運用評価は、統制が設計されているかを確かめる手続である。","デザインの評価は、期末日の後にのみ実施するものであり、期中に統制の設計を確認したり、是正の計画を立てたりする手続は含まれない。"],"correctIndex":0,"explanations":["○ 正しい。設計の有効性と、期間を通じた運用の有効性は区別して評価する。","× 誤り。両者は目的が異なるため区別して評価する。","× 誤り。運用評価は、統制が実際に機能しているかを確かめる手続である。","× 誤り。デザインの評価は期中から行うのが一般的である。"]},{"id":"jsox-134","type":"mc","chapterIndex":7,"stem":"不正による重要な虚偽表示のリスクに対する評価の考え方として、最も適切なものはどれか。","options":["不正による虚偽表示は、経営者の判断に基づかないものであるため、評価の対象外とし、統制の有無も確かめない。","不正による重要な虚偽表示のリスクを評価し、そのリスクに対応する統制が存在するかを確かめる。","不正リスクは、内部統制の評価ではなく、監査役等の監査にのみ関係するものであり、経営者による評価の対象とはしない。","不正リスクが高い領域は、評価を省略して監査人に委ねる。"],"correctIndex":1,"explanations":["× 誤り。経営者の関与による不正も評価の対象となる。","○ 正しい。不正による虚偽表示のリスクに対応する統制の有無を確かめる。","× 誤り。経営者の評価の対象でもある。","× 誤り。評価を省略して監査人に委ねることはできない。"]},{"id":"jsox-135","type":"mc","chapterIndex":7,"stem":"評価範囲の決め方として、最も適切なものはどれか。","options":["事業拠点の選定は、売上高の金額だけで決め、資産や利益の重要性は、財務報告への影響にかかわらず考慮しないものとする。","評価範囲は、拠点数が多い順に、財務報告への影響の大きさや業務のリスクにかかわらず機械的に選ぶのが基本である。","事業拠点は、連結売上高等の概ね3分の2程度をカバーするように選定し、重要な業務プロセスを個別に加える。","事業拠点は全て評価対象とすることを原則とし、リスクの大きさにかかわらず例外は認められないので、業務量の制約にも関係なく必ず全拠点を評価する。"],"correctIndex":2,"explanations":["× 誤り。資産や利益の重要性も考慮して拠点を選ぶ。","× 誤り。拠点数ではなく、財務報告への影響の大きさで選ぶ。","○ 正しい。実施基準では、売上高等の概ね2/3程度をカバーする拠点を選び、重要な業務プロセスを追加する考え方が示されている。","× 誤り。リスクに基づく絞り込みは認められている。"]},{"id":"jsox-136","type":"mc","chapterIndex":7,"stem":"不備の類型である「設計の不備」と「運用の不備」の説明として、最も適切なものはどれか。","options":["設計の不備は、統制が実施されていれば解消されるため、評価の結論に影響しない。","運用の不備は、統制の仕組みそのものが欠けている状態を指す。","設計の不備と運用の不備は同じ意味であり、区別して評価する必要はない。","設計の不備は統制の仕組みが不十分な状態を、運用の不備は統制が設計どおりに実施されていない状態を指す。"],"correctIndex":3,"explanations":["× 誤り。設計の不備は、実施しても解消しない。","× 誤り。仕組みが欠けているのは設計の不備である。","× 誤り。両者は別の問題であり、区別して評価する。","○ 正しい。設計の不備と運用の不備は区別して評価する。"]},{"id":"jsox-137","type":"mc","chapterIndex":7,"stem":"不備の重要性を判断した経営者が記録しておくべき事項として、最も適切なものはどれか。","options":["不備の重要性の判断の根拠（金額的・質的な検討と判断の過程）を記録し、監査人との協議に備える。","不備の判断は結論のみを記録すれば足り、判断の過程や根拠は残さないものとし、監査人との協議の内容も記録しない。","不備の判断は監査人の結論に従うため、経営者が検討する必要はない。","不備の重要性は、問題が発生した後に初めて検討する。"],"correctIndex":0,"explanations":["○ 正しい。判断の根拠を残すことは、評価の妥当性を示すうえで重要である。","× 誤り。判断の過程を残さなければ、評価の妥当性を示せない。","× 誤り。経営者が自ら判断し、評価する責任を負う。","× 誤り。評価は期中から継続して行う。"]},{"id":"jsox-138","type":"mc","chapterIndex":8,"stem":"重要な欠陥を内部統制報告書で開示することに関する説明として、最も適切なものはどれか。","options":["重要な欠陥を開示した企業は、その事実だけで直ちに上場廃止となり、市場から退出させられるため、経営者は開示を避けるべきである。","重要な欠陥を開示しても、直ちに財務報告が不適正であることを意味するわけではない。","重要な欠陥があっても、内部統制報告書の提出を省略できるため、経営者は提出の要否を個別に判断してよいものとし、開示の義務はない。","重要な欠陥は、社内で処理すれば開示は不要である。"],"correctIndex":1,"explanations":["× 誤り。重要な欠陥の開示が直ちに上場廃止につながるわけではない。","○ 正しい。重要な欠陥の開示は、今後の改善課題を示す意義がある。","× 誤り。重要な欠陥があっても、内部統制報告書の提出は必要である。","× 誤り。重要な欠陥は内部統制報告書で開示が必要である。"]},{"id":"jsox-139","type":"mc","chapterIndex":7,"stem":"財務諸表の修正が発生した場合の内部統制の検討として、最も適切なものはどれか。","options":["監査人が財務諸表の修正を求めた場合でも、その修正は内部統制の不備とは関係がなく、統制の検討を行う必要はない。","財務諸表に誤りが生じても、修正された後は統制の不備として扱う必要はなく、原因の検討も記録も残さないものとする。","重要な修正が生じた場合、その原因が内部統制の不備であったかを検討する。","期中に修正が発生しても、期末に是正されていれば、不備の検討は一切不要であり、期中の修正の事実も記録に残す必要はない。"],"correctIndex":2,"explanations":["× 誤り。監査の過程で指摘された修正は、統制の不備の検討の対象となる。","× 誤り。修正が発生した事実は、不備の有無を検討する必要がある。","○ 正しい。重要な修正は、統制の不備が原因かを検討する。","× 誤り。期中に発生した修正は、期末の是正だけで検討が不要にはならない。"]},{"id":"jsox-140","type":"mc","chapterIndex":7,"stem":"運用評価でのサンプリングの扱いとして、最も適切なものはどれか。","options":["統制の運用評価は、常に全件を確認することが求められる。","抽出の方法や対象の選び方は、記録しなくてよい。","抽出を用いると、母集団全体の評価結果を示せないため、認められない。","統制の運用評価では、母集団から適切に抽出した試料を確認し、その結果を母集団全体の評価に用いることができる。"],"correctIndex":3,"explanations":["× 誤り。抽出による確認が認められる場合が多い。","× 誤り。抽出の方法や対象の選び方は、評価の根拠として記録しておく必要がある。","× 誤り。適切な抽出は、母集団全体の評価に用いられる。","○ 正しい。適切な抽出とその結果の評価は、運用評価の方法として認められる。"]},{"id":"jsox-141","type":"mc","chapterIndex":7,"stem":"日常的なモニタリングの結果を評価に利用する場合の考え方として、最も適切なものはどれか。","options":["日常的なモニタリングの結果を評価の証拠として利用できるが、その信頼性を検討する必要がある。","日常的なモニタリングは、監査人の作業にのみ利用でき、経営者は利用できない。","日常的なモニタリングの結果は、評価の証拠としては一切利用できず、経営者の判断でも利用することができないものとし、必ず独立した再実施を行う。","日常的なモニタリングの結果は、信頼性にかかわらず、そのまま評価の結論となる。"],"correctIndex":0,"explanations":["○ 正しい。モニタリングの結果は、その独立性や精度を確かめたうえで証拠に利用できる。","× 誤り。経営者も評価に利用できる。","× 誤り。適切な場合は評価の証拠として利用できる。","× 誤り。信頼性の検討なしに評価の結論とはできない。"]},{"id":"jsox-142","type":"mc","chapterIndex":7,"stem":"業務を外部に委託している場合の評価の考え方として、最も適切なものはどれか。","options":["業務を外部に委託している場合でも、委託業務が財務報告に影響しないと判断できれば、委託先の統制は評価対象から外してよく、委託先からの報告も求めなくてよい。","外部委託先の内部統制に関する保証報告書を入手し、評価に利用するかどうかを検討する。","委託先の内部統制は委託元が直接評価しなければならず、保証報告書を含む委託先の報告は、評価の証拠として一切利用できない。","内部監査部門は、委託先の評価に関与できない。"],"correctIndex":1,"explanations":["× 誤り。委託先の統制が財務報告に影響する場合は、評価の対象から外してはならない。","○ 正しい。委託先の保証報告書は、評価の証拠として利用できる。","× 誤り。保証報告書を利用して評価することもできる。","× 誤り。内部監査部門は、委託先の統制の評価に関与することができる。"]},{"id":"jsox-143","type":"mc","chapterIndex":7,"stem":"内部統制の評価の文書化に関する説明として、最も適切なものはどれか。","options":["評価の手続は担当者の記憶に基づけば足り、評価の計画や実施した手続、その結果を文書に残す必要はないものとし、口頭での説明で代えてよい。","評価の結果は結論だけを残し、その過程や根拠、実施した手続の内容は、担当者の判断で残さなくてよいものとする。","評価の計画、実施した手続、結果を文書に残し、評価の根拠を検証可能にする。","評価の文書は、監査が終了した時点で速やかに廃棄してよく、一定の保存期間を設けなくてもよいものとし、必要が生じた場合は担当者の記憶で補う。"],"correctIndex":2,"explanations":["× 誤り。根拠を文書で残す必要がある。","× 誤り。過程も残して検証可能にする必要がある。","○ 正しい。文書化によって評価の根拠を検証可能にする。","× 誤り。一定期間は保存する必要がある。"]},{"id":"jsox-144","type":"mc","chapterIndex":7,"stem":"不備の質的重要性の判断として、最も適切なものはどれか。","options":["金額が少額であれば、質的重要性は一切ない。","不正に関係する不備は、金額にかかわらず検討対象とはならない。","質的重要性は金額に比例するため、金額が小さい場合は検討しない。","金額が小さくても、経営者の関与や不正に関係する不備は、質的な側面から重要性を判断する。"],"correctIndex":3,"explanations":["× 誤り。少額でも不正に関係すれば、質的重要性を検討する。","× 誤り。金額にかかわらず質的な検討の対象となる。","× 誤り。質的重要性は金額と別に検討する。","○ 正しい。金額が小さくても、質的な側面から重要性を判断する。"]},{"id":"jsox-145","type":"mc","chapterIndex":7,"stem":"全社的な内部統制の不備と業務プロセスの評価の関係として、最も適切なものはどれか。","options":["全社的な内部統制の不備は、業務プロセスの評価にも影響を及ぼしうるため、評価の結論に反映する。","全社的な内部統制は、業務プロセスの評価と独立しており、いかなる場合も影響を考慮せず、個別の業務プロセスの結論だけで評価を完結させる。","全社的な内部統制の評価は、一度行えば以後は見直す必要がない。","全社的な内部統制は、経営者の方針に関係なく、個別の業務に限定して評価する。"],"correctIndex":0,"explanations":["○ 正しい。全社的統制の不備は、業務プロセスの統制にも影響する。","× 誤り。両者は関係しており、影響を考慮する。","× 誤り。継続的に見直す必要がある。","× 誤り。全社的統制は経営者の方針と関係する。"]},{"id":"jsox-146","type":"mc","chapterIndex":7,"stem":"複数の不備があった場合の重要性の判断として、最も適切なものはどれか。","options":["個々の不備が軽微であれば、たとえ複数の不備が重なり、同じ勘定科目や同じ統制に関係する場合でも、重要な欠陥とはならず、組み合わせて判断する必要もない。","複数の不備が同じ勘定科目に関係する場合は、組み合わせて重要性を判断する。","不備は一件ずつ独立して判断し、複数の不備を組み合わせて検討することは、重要性の判断の上で一切認められず、件数は考慮しない。","不備の重要性は、件数にかかわらず一件の金額だけで判断する。"],"correctIndex":1,"explanations":["× 誤り。複数の不備が重なると、重要な欠陥となる場合がある。","○ 正しい。複数の不備が同じ勘定科目に関係する場合は、組み合わせて重要性を判断する。","× 誤り。不備は組み合わせて検討する。","× 誤り。件数や組み合わせも判断の要素となる。"]},{"id":"jsox-147","type":"mc","chapterIndex":7,"stem":"是正された統制の取扱いとして、最も適切なものはどれか。","options":["是正された統制は、是正の日付を記録するだけでよく、是正後の運用を確かめる必要はなく、再度の運用評価も不要であるものとする。","是正された統制は、その後の運用を評価しなくても、期末の評価で有効と判断でき、是正の経緯や記録の保存は必要に応じて省略してよい。","是正された統制は、是正後に一定期間運用されたことを確かめ、有効に機能しているかを評価する。","是正の完了は、経営者の報告だけで確認すれば足り、是正の証拠は不要であり、関係部署への確認や記録の保存も求められない。"],"correctIndex":2,"explanations":["× 誤り。是正後の運用を評価する必要がある。","× 誤り。是正後の運用の確認が必要である。","○ 正しい。是正後の運用状況を確かめて、統制の有効性を評価する。","× 誤り。証拠による確認が必要である。"]},{"id":"jsox-148","type":"mc","chapterIndex":7,"stem":"評価範囲に含まれていない事業拠点の取扱いとして、最も適切なものはどれか。","options":["評価範囲に含まれない拠点は、いかなる場合も確認する必要がない。","評価範囲外の拠点で重要な不備の兆候があっても、対応する必要はない。","評価範囲外の拠点は、監査人が確認すれば経営者は評価しなくてよい。","評価範囲外の拠点でも、重要な不備の兆候がある場合は、評価範囲の見直しを検討する。"],"correctIndex":3,"explanations":["× 誤り。兆候があれば範囲の見直しを検討する。","× 誤り。兆候に対応すべきである。","× 誤り。経営者の評価責任は残る。","○ 正しい。兆候に応じて評価範囲を見直すことを検討する。"]},{"id":"jsox-149","type":"mc","chapterIndex":7,"stem":"不正が発見された場合の内部統制上の扱いとして、最も適切なものはどれか。","options":["経営者またはそれに準ずる者の関与による不正が発見された場合は、重要な欠陥の兆候として検討する。","従業員の軽微な不正は、経営者の関与がなく、財務諸表にも影響しないものであれば、重要な欠陥の兆候として扱う必要はなく、内部統制の評価にも含めず、報告書にも記載しない。","不正は、財務諸表に影響しない限り、内部統制の評価に含める必要はない。","不正が発見された場合、その事実は内部統制報告書には記載する必要はない。"],"correctIndex":0,"explanations":["○ 正しい。経営者等の関与による不正は、重要な欠陥の兆候として検討する。","× 誤り。従業員の不正も内容によっては検討が必要である。","× 誤り。財務諸表への影響だけでなく、統制への影響も検討する。","× 誤り。内容によっては報告書での記載・開示が必要となる。"]},{"id":"jsox-150","type":"mc","chapterIndex":7,"stem":"内部統制の評価結果を表明できない場合の記載として、最も適切なものはどれか。","options":["重要な評価手続が実施できなかった場合でも、評価の結論は有効と表明でき、実施できなかった手続の事実や理由は報告書に記載せず、経営者の判断のみで結論を表明してよいものとする。","重要な評価手続が実施できなかった場合は、評価結果を表明できない旨と、実施できなかった手続及びその理由を記載する。","重要な評価手続が実施できなかった場合は、その事実を記載せず、有効であることを前提とした結論を表明し、実施できなかった手続は記載しない扱いとし、監査人の確認に委ねる。","重要な評価手続が実施できなかった場合は、監査人の判断で代わりに結論を記載する。"],"correctIndex":1,"explanations":["× 誤り。実施できない手続があれば、有効とは表明できない。","○ 正しい。評価結果を表明できない旨と、その理由を記載する。","× 誤り。事実と理由の記載が必要である。","× 誤り。結論は経営者が表明する。"]},{"id":"jsox-151","type":"mc","chapterIndex":8,"stem":"内部統制報告書の記載事項として、最も適切なものはどれか。","options":["内部統制報告書には、評価結果のみを記載し、評価の範囲や基準、評価の手続の概要など、その他の事項は記載しなくてよいものとする。","内部統制報告書は、有価証券報告書とは別に提出し、提出時期や提出先も経営者の判断で自由に選べるものとして扱ってよい。","内部統制報告書には、評価の範囲、評価の基準、評価の結果などを記載する。","内部統制報告書は、監査人が作成して経営者に提示するものであり、経営者は内容を確認するだけでよく、その責任は負わない。"],"correctIndex":2,"explanations":["× 誤り。評価の範囲や基準も記載事項である。","× 誤り。有価証券報告書と併せて提出する。","○ 正しい。評価の範囲、基準、結果などを記載する。","× 誤り。報告書は経営者が作成し、責任を負う。"]},{"id":"jsox-152","type":"mc","chapterIndex":8,"stem":"内部統制報告書の公衆縦覧の期間として、最も適切なものはどれか。","options":["提出後は公衆縦覧に供されない。","提出日から1年間だけ、一般に供覧される。","提出日から3年間、一般に供覧される。","内部統制報告書は、提出日から5年間公衆縦覧に供される。"],"correctIndex":3,"explanations":["× 誤り。提出後は公衆縦覧に供される。","× 誤り。内部統制報告書は、提出日から5年間にわたり公衆縦覧に供される。","× 誤り。内部統制報告書の公衆縦覧の期間は、提出日から5年間である。","○ 正しい。内部統制報告書は提出日から5年間公衆縦覧に供される。"]},{"id":"jsox-153","type":"mc","chapterIndex":8,"stem":"内部統制報告書に記載する評価結果の区分として、最も適切なものはどれか。","options":["内部統制は有効である、重要な欠陥があり有効でない、評価手続が実施できず結果を表明できない、のいずれかを記載する。","内部統制は有効である、または無効であるの二択のみを記載する。","評価結果は、重要な欠陥の件数を記載すれば足りるものとし、有効か否かの区分は記載せず、内容の説明も省略する。","評価結果は、監査人の意見を引用するのみで、経営者が記載する必要はなく、区分や理由の記載も監査人の判断で省略し、有効性の判断は内部統制報告書の提出後に、経営者が行うものとする。"],"correctIndex":0,"explanations":["○ 正しい。評価結果は、有効、重要な欠陥で有効でない、評価結果を表明できない、のいずれかで記載する。","× 誤り。区分は三つである。","× 誤り。件数ではなく、評価結果の区分と内容を記載する。","× 誤り。評価結果は経営者が記載する。"]},{"id":"jsox-154","type":"mc","chapterIndex":8,"stem":"内部統制報告書に「内部統制は有効である」と記載する要件として、最も適切なものはどれか。","options":["重要な欠陥がなければ、評価の範囲や手続は必要最小限でよく、その旨を記載しなくてもよいものとし、監査人の確認も求められない。","有効と記載するには、重要な欠陥がなく、評価が必要な程度に実施されていることが前提となる。","経営者が有効と判断すれば、評価の手続を実施していなくても記載でき、評価の記録を残す必要はないものとし、監査人の確認も要しない。","監査人が適正意見を出せば足りる。"],"correctIndex":1,"explanations":["× 誤り。評価の範囲と手続は必要な程度に行い、記載する必要がある。","○ 正しい。有効と記載するには、重要な欠陥がなく、評価が必要な程度に実施されていることが前提となる。","× 誤り。手続を実施していないなら、有効とは言えない。","× 誤り。監査人の意見があっても、経営者は評価の記録を残す責任がある。"]},{"id":"jsox-155","type":"mc","chapterIndex":8,"stem":"事業年度末日後に発生した事象の内部統制報告書での扱いとして、最も適切なものはどれか。","options":["事業年度末日後に発生した重要な事象は、内部統制報告書に一切記載してはならず、その事実は社内で管理するにとどめ、開示の対象にもしない。","付記事項は、有価証券報告書の注記にのみ記載し、内部統制報告書には記載しないものとし、その判断は財務諸表の監査人が個別に行う。","事業年度末日後から報告書提出日までに、評価に重要な影響を及ぼす事象があれば、付記事項として記載する。","付記事項は、監査人が記載の内容を決め、経営者は関与せず、その結果についても経営者は責任を負わないものとして扱うことも可能である。"],"correctIndex":2,"explanations":["× 誤り。重要な事象は付記事項として記載しうる。","× 誤り。内部統制報告書の付記事項として記載する。","○ 正しい。期末後の重要な事象は付記事項として記載する。","× 誤り。経営者が記載内容を決めて責任を負う。"]},{"id":"jsox-156","type":"mc","chapterIndex":9,"stem":"経営者確認書の内容として、最も適切なものはどれか。","options":["経営者確認書は、監査人が作成して経営者に署名を求める文書である。","経営者確認書は、監査を受けた後に任意で提出すれば足りる文書である。","経営者確認書は、財務諸表の作成責任を監査人が負うことを確認する文書である。","経営者確認書は、内部統制の整備及び運用に関する経営者の責任を、経営者が監査人に対して確認する文書である。"],"correctIndex":3,"explanations":["× 誤り。経営者が作成し、監査人に提出する。","× 誤り。提出が求められる文書である。","× 誤り。作成と責任は経営者にある。","○ 正しい。経営者が内部統制に関する責任を確認し、監査人に提出する。"]},{"id":"jsox-157","type":"mc","chapterIndex":9,"stem":"内部統制監査における監査人の意見の種類として、最も適切なものはどれか。","options":["内部統制の意見は、無限定適正意見、不適正意見、意見不表明のいずれかを表明する。","監査人は、内部統制の有効性について、経営者の評価結果をそのまま写し、独自の意見は表明せず、監査人の判断は示さないものとする。","財務諸表の監査意見を、内部統制の意見に代えてよい。","監査人は、重要な欠陥の有無にかかわらず、常に無限定適正意見を表明する。"],"correctIndex":0,"explanations":["○ 正しい。内部統制監査の意見は、無限定適正、不適正、意見不表明のいずれかとなる。","× 誤り。監査人は独自に判断して意見を表明する。","× 誤り。内部統制監査の意見は、財務諸表の意見とは別に表明する必要がある。","× 誤り。重要な欠陥があれば、不適正の意見となりうる。"]},{"id":"jsox-158","type":"mc","chapterIndex":9,"stem":"監査人が経営者の評価をどのように扱うかの説明として、最も適切なものはどれか。","options":["監査人は、経営者の評価を一切利用してはならず、全ての手続を独自に行う必要があり、経営者の評価結果は監査の証拠として採用できない。","監査人は、内部統制の評価の基準に従い、経営者の評価の結果を利用するかどうかを判断する。","監査人は、経営者の評価の結果を判断の根拠を確かめずに無条件に採用し、その結果の妥当性については一切検討する必要がない。","監査人は、財務諸表の監査の結果のみで内部統制の監査意見を表明できる。"],"correctIndex":1,"explanations":["× 誤り。経営者の評価を利用することも認められる。","○ 正しい。監査人は、経営者評価の利用可否を判断する。","× 誤り。根拠を確かめて利用するかを判断する。","× 誤り。内部統制の監査には、別途の手続が必要である。"]},{"id":"jsox-159","type":"mc","chapterIndex":9,"stem":"監査役等と内部統制報告の関係として、最も適切なものはどれか。","options":["監査役等は、内部統制報告書の内容を把握する必要はなく、会計監査人の判断に任せればよく、監査役等としての独自の確認は一切行わないものとする。","監査役等は、内部統制監査報告書を作成し、経営者に提出する責任を負うものであり、報告書の内容について会計監査人に確認する必要はない。","監査役等は、内部統制報告書及び内部統制監査報告書の内容を把握し、会計監査人の監査の方法と結果の相当性を判断する。","監査役等は、内部統制に関する検証を行うことが法令で禁止されており、内部統制報告書の内容を把握することも認められていない。"],"correctIndex":2,"explanations":["× 誤り。内容の把握が重要とされる。","× 誤り。作成責任は経営者と監査人にある。","○ 正しい。監査役等は報告書の内容を把握し、会計監査人の監査の相当性を判断する。","× 誤り。監査役等による検証を禁止する規定はない。"]},{"id":"jsox-160","type":"mc","chapterIndex":8,"stem":"内部統制報告書の作成責任の所在として、最も適切なものはどれか。","options":["内部統制報告書は、監査人が作成して経営者が提出する書類である。","内部統制報告書は、内部監査部門のみが作成し、経営者の責任は及ばない。","内部統制報告書は、取締役会が作成し、経営者は承認のみを行う。","内部統制報告書の作成責任は経営者にあり、経営者が有効な内部統制の整備及び運用に責任を負うことを前提とする。"],"correctIndex":3,"explanations":["× 誤り。報告書の作成責任は経営者にある。","× 誤り。経営者が責任を負う。","× 誤り。作成は経営者が行う。","○ 正しい。経営者が内部統制報告書を作成し、その責任を負う。"]},{"id":"jsox-161","type":"mc","chapterIndex":7,"stem":"内部統制の評価の基準日として、最も適切なものはどれか。","options":["内部統制の評価は、事業年度末日を基準日として行う。","内部統制の評価は、報告書提出日を基準日として行い、期末日後の状況を反映させるため、提出直前の状況を基準にする。","四半期末を基準日とし、年度末は対象外とする。","監査人が指定した日を基準日とする。"],"correctIndex":0,"explanations":["○ 正しい。評価の基準日は事業年度末日である。","× 誤り。基準日は期末日である。","× 誤り。内部統制の評価は、事業年度末日を基準日として行う。","× 誤り。評価の基準日は、経営者が事業年度末日として設定する。"]},{"id":"jsox-162","type":"mc","chapterIndex":8,"stem":"内部統制報告書と有価証券報告書の提出の関係として、最も適切なものはどれか。","options":["内部統制報告書は、有価証券報告書の提出より前に必ず提出しなければならず、有価証券報告書の提出日を超えて遅延させることは一切認められない。","内部統制報告書は、有価証券報告書と併せて内閣総理大臣（財務局長）に提出する。","内部統制報告書は、有価証券報告書とは別の法令に基づいて作成され、提出先も異なる上に、提出時期も有価証券報告書とは別に定められている。","提出は、事業年度終了から一年を経過した後に行う。"],"correctIndex":1,"explanations":["× 誤り。有価証券報告書と併せて提出する。","○ 正しい。内部統制報告書は有価証券報告書と併せて提出する。","× 誤り。提出は有価証券報告書と併せて行う。","× 誤り。内部統制報告書は、有価証券報告書と併せて提出する。"]},{"id":"jsox-163","type":"mc","chapterIndex":9,"stem":"内部統制監査の対象として、最も適切なものはどれか。","options":["内部統制監査は、業務の効率性や法令遵守に関する内部統制も対象とし、財務報告に係らない統制の有効性についても、監査人が意見を表明する。","内部統制監査は、財務諸表の作成に関係しない内部統制の有効性を評価し、その結果について監査人が意見を表明する。","内部統制監査は、財務報告に係る内部統制の有効性について、監査人が意見を表明するものである。","内部統制監査は、経営者の評価結果とは無関係に、監査人が独自に内部統制を設計し、その設計に基づいて有効性の意見を表明する。"],"correctIndex":2,"explanations":["× 誤り。対象は財務報告に係る内部統制である。","× 誤り。財務報告に関係する統制が対象である。","○ 正しい。財務報告に係る内部統制について意見を表明する。","× 誤り。監査人は内部統制を設計しない。"]},{"id":"jsox-164","type":"mc","chapterIndex":9,"stem":"経営者への質問と監査証拠の関係として、最も適切なものはどれか。","options":["監査人は、経営者への質問の回答のみで十分な監査証拠を入手したとみなしてよい。","監査人は、経営者への質問を唯一の証拠とし、文書による裏付けは不要である。","監査人は、経営者の口頭による説明を、監査証拠として最も信頼性の高いものとみなす。","監査人は、経営者への質問だけでは十分な証拠とはならず、文書や記録による裏付けを入手する。"],"correctIndex":3,"explanations":["× 誤り。質問のみでは監査証拠として不十分である。","× 誤り。文書による裏付けが必要である。","× 誤り。口頭の説明は証拠として信頼性が低い。","○ 正しい。質問だけでは不十分で、文書や記録による裏付けを求める。"]},{"id":"jsox-165","type":"mc","chapterIndex":9,"stem":"重要な欠陥が存在する場合の監査人の意見の方向性として、最も適切なものはどれか。","options":["監査人は、重要な欠陥が存在する場合、内部統制は有効でないと判断し、不適正意見を表明する。","監査人は、重要な欠陥が存在しても、経営者が是正計画を示し、その計画が取締役会で承認されていれば、内部統制は有効であるとみなして無限定適正意見を表明する。","財務諸表が適正なら有効とみなす。","監査人は、重要な欠陥が存在する場合、意見を表明せず、報告書を提出させない。"],"correctIndex":0,"explanations":["○ 正しい。重要な欠陥が存在し内部統制が有効でない場合は、不適正意見となる。","× 誤り。是正計画の有無は有効性の判断に影響しない。","× 誤り。財務諸表の意見とは別に判断する。","× 誤り。意見の表明は監査人の責任である。"]},{"id":"jsox-166","type":"mc","chapterIndex":9,"stem":"内部統制監査報告書における経営者と監査人の責任の記載として、最も適切なものはどれか。","options":["内部統制監査報告書には、経営者の責任は記載せず、監査人の責任のみを記載し、経営者の責任は報告書の対象外として扱う。","内部統制監査報告書には、経営者と監査人のそれぞれの責任を区別して記載する。","内部統制監査報告書には、監査人の責任のみを記載し、経営者の責任は内部統制報告書の範囲内で別途扱うものとし、監査報告書の対象外とする。","経営者と監査人の責任は、一体として記載する。"],"correctIndex":1,"explanations":["× 誤り。経営者の責任も記載する。","○ 正しい。経営者の責任と監査人の責任は区別して記載する。","× 誤り。経営者の責任も記載する。","× 誤り。経営者と監査人のそれぞれの責任は、区別して記載する必要がある。"]},{"id":"jsox-167","type":"mc","chapterIndex":9,"stem":"監査範囲に重大な制約があった場合の監査人の対応として、最も適切なものはどれか。","options":["監査範囲に制約があっても、監査人は無限定適正意見を表明しなければならず、その制約の内容や影響の程度を報告書に記載する必要は全くない。","監査範囲に制約があった場合、監査人は、制約の内容にかかわらず、一律に不適正意見を表明しなければならず、その判断の根拠を示す必要もない。","重要な制約で意見を形成できない場合、監査人は意見を表明しない。","監査範囲に制約があっても、経営者の評価をそのまま採用すれば、監査人は経営者の評価の内容を検討することなく、監査意見を表明できる。"],"correctIndex":2,"explanations":["× 誤り。制約により意見を形成できない場合がある。","× 誤り。制約の結果として、不適正意見ではなく意見不表明となりうる場合がある。","○ 正しい。重要な制約で意見を形成できない場合、意見不表明となる。","× 誤り。経営者の評価の採用は、制約の解消にならない。"]},{"id":"jsox-168","type":"mc","chapterIndex":9,"stem":"監査人の監査計画の考え方として、最も適切なものはどれか。","options":["監査人は、リスクにかかわらず全拠点を均等に評価する計画を立てる。","監査人は、経営者の評価が完了した後に、初めて監査計画を立てる。","内部統制の評価を行わず、財務諸表の結果だけで計画を立てる。","監査人は、財務報告に係るリスクを評価し、そのリスクに対応する監査手続を計画する。"],"correctIndex":3,"explanations":["× 誤り。リスクに応じて計画する。","× 誤り。監査計画は経営者の評価と並行して立てる。","× 誤り。内部統制の監査は別途行う。","○ 正しい。リスクアプローチに基づき監査手続を計画する。"]},{"id":"jsox-169","type":"mc","chapterIndex":9,"stem":"監査人が経営者の評価をどのように検討するかとして、最も適切なものはどれか。","options":["監査人は、経営者の評価の過程を検討し、評価の範囲や結果の妥当性を判断する。","監査人は、経営者の評価に関与せず、独自の評価結果のみを報告する。","監査人は、経営者の評価結果を覆すことはできない。","監査人は、経営者の評価を検討する必要はなく、結果のみを確認すれば足りるものとし、評価の過程や範囲については確認せず、報告書にも記載しない。"],"correctIndex":0,"explanations":["○ 正しい。監査人は経営者の評価の過程と妥当性を検討する。","× 誤り。経営者の評価を検討する。","× 誤り。監査人は、異なる判断をしうる。","× 誤り。過程も検討する。"]},{"id":"jsox-170","type":"mc","chapterIndex":8,"stem":"評価範囲から除外した事業拠点がある場合の内部統制報告書での記載として、最も適切なものはどれか。","options":["評価範囲から除外した事業拠点があっても、その事実を報告書に記載する必要はなく、除外した理由や範囲を社内で管理するにとどめ、開示は省略してよい。","評価範囲から除外した事業拠点がある場合は、その範囲と理由を内部統制報告書に記載する。","評価範囲は、報告書の作成後に監査人が決めて記載するものとし、経営者は範囲の決定に関与せず、除外の理由も記載しない扱いとする。","評価範囲は、全ての事業拠点を含めることが必須であり、除外は認められない。"],"correctIndex":1,"explanations":["× 誤り。除外の範囲と理由の記載が必要である。","○ 正しい。評価範囲と除外の理由を記載する。","× 誤り。評価範囲は経営者が決める。","× 誤り。除外は一定の条件で認められる。"]},{"id":"jsox-171","type":"mc","chapterIndex":8,"stem":"提出後の内部統制報告書に誤りが判明した場合の対応として、最も適切なものはどれか。","options":["提出後に報告書の誤りが判明しても、次回の報告書で修正すればよく、既に提出済みの報告書の訂正は行わず、関係者への通知も求められない。","提出後の誤りは、監査人の判断に任せて、経営者は対応しなくてよく、訂正の要否の検討も経営者が行う必要はないものとして扱う。","提出後に誤りが判明した場合、訂正の要否を検討し、必要であれば訂正報告書を提出する。","報告書の誤りは、内部告発がない限り修正の必要はなく、告発があった場合にのみ訂正を検討し、社内での検討や記録も一切不要とする。"],"correctIndex":2,"explanations":["× 誤り。判明した時点で訂正の要否を検討する。","× 誤り。経営者が訂正の要否を検討する。","○ 正しい。誤りが判明した場合は、訂正報告書の提出を検討する。","× 誤り。告発の有無に関係なく対応を検討する。"]},{"id":"jsox-172","type":"mc","chapterIndex":9,"stem":"監査人が重要な欠陥を発見した場合の報告として、最も適切なものはどれか。","options":["重要な欠陥は、監査報告書に記載しない。","監査人は、重要な欠陥を経営者に報告せず、監査報告書にのみ記載する。","監査役等との情報の共有は禁止されている。","監査人は、重要な欠陥を発見した場合、経営者及び監査役等に適切に報告する。"],"correctIndex":3,"explanations":["× 誤り。重要な欠陥は報告が必要である。","× 誤り。経営者に報告し、監査報告書にも関係する。","× 誤り。監査役等と情報を共有する。禁止はされていない。","○ 正しい。重要な欠陥は経営者と監査役等に適切に報告する。"]},{"id":"jsox-173","type":"mc","chapterIndex":9,"stem":"取締役会の内部統制における役割として、最も適切なものはどれか。","options":["取締役会は、内部統制の整備に関する基本方針を決定し、経営者の執行状況を監督する。","取締役会は、内部統制に関与せず、経営者の判断に全面的に委ねるものとし、基本方針の決定や執行状況の監督は行わず、報告も求めない。","取締役会は、内部統制報告書を作成し、経営者は関与しない。","取締役会は、内部統制の評価を行う権限を監査人に移譲させる。"],"correctIndex":0,"explanations":["○ 正しい。取締役会は基本方針の決定と監督の責任を負う。","× 誤り。取締役会は内部統制に関与する責任を持つ。","× 誤り。報告書の作成は経営者の責任である。","× 誤り。評価の責任は経営者にあり、監査人に移譲されない。"]},{"id":"jsox-174","type":"mc","chapterIndex":7,"stem":"内部統制の評価の実施時期として、最も適切なものはどれか。","options":["内部統制の評価は、期末日後に開始するのが原則であり、期中には評価の計画を立てず、期末日後に一括して実施する。","内部統制の評価は、期中から計画的に開始し、期末日時点の状況を確かめる。","内部統制の評価は、報告書の提出直前に一括して行い、期中の統制の状況や不備の是正の経緯は、評価の対象外として確認しない。","内部統制の評価は、監査人の依頼があった時期にのみ行う。"],"correctIndex":1,"explanations":["× 誤り。期中から評価を始めるのが一般的である。","○ 正しい。期中から計画的に評価し、期末時点の状況を確かめる。","× 誤り。直前の一括実施は適切でない。","× 誤り。評価は、期中から計画的に開始し、経営者の判断で行うものである。"]},{"id":"jsox-175","type":"mc","chapterIndex":7,"stem":"発見された不備の管理と報告として、最も適切なものはどれか。","options":["不備の一覧は、監査人のみに報告し、経営者の内部では共有せず、不備の内容や是正の状況についても、経営者は一切関与しないものとする。","不備は件数が少なければ、記録を残さず処理してよく、その際に経営者への報告や是正状況の確認も省略して差し支えないものとする。","発見された不備は一覧にして管理し、重要性を判断したうえで、経営者及び監査役等に報告する。","不備は、是正された時点で、その記録を削除してよく、是正の経緯や重要性の判断の記録も残さず、次年度の評価にも引き継がない。"],"correctIndex":2,"explanations":["× 誤り。経営者の内部でも共有し、適切に管理する。","× 誤り。件数に関わらず記録を残す。","○ 正しい。不備は一覧で管理し、重要性を判断して報告する。","× 誤り。是正後も記録を残す。"]},{"id":"jsox-176","type":"mc","chapterIndex":9,"stem":"内部統制監査と財務諸表監査の関係として、最も適切なものはどれか。","options":["内部統制監査は、財務諸表監査とは独立しており、同じ監査人が担当することはできない。","内部統制監査は、財務諸表監査の一部であり、独立した監査意見を持たない。","内部統制監査は、財務諸表監査の結果を全く利用できない。","内部統制監査は、財務諸表監査と一体的に実施することができ、同じ監査人が担当することが一般的である。"],"correctIndex":3,"explanations":["× 誤り。同じ監査人が一体的に行うことができる。","× 誤り。内部統制監査は独立した意見を表明する。","× 誤り。財務諸表監査の結果も利用できる。","○ 正しい。内部統制監査と財務諸表監査は一体的に実施される。"]},{"id":"jsox-177","type":"mc","chapterIndex":7,"stem":"是正された不備の取扱いとして、最も適切なものはどれか。","options":["是正された不備の状況は、次年度の評価で再確認し、改善の状況を報告する。","是正された不備は、次年度の評価では確認せず、是正の完了をもって評価を終了するものとし、改善の状況を外部へ報告する必要はなく、社内の記録にも残さない。","改善の状況は、経営者の内部でのみ共有する。","是正の完了後は、不備の記録を次年度に引き継がない。"],"correctIndex":0,"explanations":["○ 正しい。是正された不備は次年度に再確認し、改善の状況を報告する。","× 誤り。次年度に再確認する。","× 誤り。経営者内の共有だけでなく、適切に報告する。","× 誤り。記録を次年度に引き継ぐ。"]},{"id":"jsox-178","type":"mc","chapterIndex":8,"stem":"内部統制報告書に虚偽の記載があった場合の対応として、最も適切なものはどれか。","options":["内部統制報告書に虚偽の記載があっても、監査人が気付かなければ、経営者の責任は問われず、その記載の訂正や関係者への説明も一切必要とならない。","内部統制報告書に虚偽の記載があれば、その訂正と関係者への対応が必要となる。","内部統制報告書の虚偽の記載は、経営者の判断に基づく限り、経営者の責任は問われず、社内での確認や関係者への説明も不要であるものとする。","内部統制報告書の記載内容は、提出後は一切変更できない。"],"correctIndex":1,"explanations":["× 誤り。監査人が気付かなくても、虚偽記載は問題となる。","○ 正しい。虚偽記載が判明すれば、訂正などの対応が必要となる。","× 誤り。経営者も責任を問われうる。","× 誤り。判明した誤りは訂正が必要となりうる。"]},{"id":"jsox-179","type":"mc","chapterIndex":9,"stem":"監査調書の取扱いとして、最も適切なものはどれか。","options":["監査調書は、監査が終了した時点で速やかに廃棄してよく、保存期間や保管の方法は定めなくてもよいものとし、必要な場合は担当者の記憶で補う。","監査調書は、監査人の内部の資料であり、外部への提示は一切認められず、監督当局からの求めにも応じる必要はない。","監査調書は、監査の実施内容と結論の根拠を記録し、一定期間保存する。","監査調書は、経営者が作成し、監査人は記録を保有せず、監査の根拠は経営者の作成した資料によって示すものとし、保存は経営者に委ねる。"],"correctIndex":2,"explanations":["× 誤り。一定期間保存する。","× 誤り。一定の場合に提示が求められる。","○ 正しい。監査調書は監査の根拠を記録し、一定期間保存する。","× 誤り。監査人が作成する。"]},{"id":"jsox-180","type":"mc","chapterIndex":0,"stem":"内部統制報告制度の目的として、最も適切なものはどれか。","options":["内部統制報告制度は、業務効率の向上を目的とする。","内部統制報告制度は、従業員の不正を罰することを目的とする。","内部統制報告制度は、経営者の報酬を決める。","内部統制報告制度は、財務報告の信頼性を確保することを目的とする。"],"correctIndex":3,"explanations":["× 誤り。主な目的は財務報告の信頼性の確保である。","× 誤り。罰則が目的ではない。","× 誤り。報酬の決定とは無関係である。","○ 正しい。内部統制報告制度は財務報告の信頼性確保を目的とする。"]}];
+  const CHAPTERS = ["内部統制の基本的枠組み（目的・定義・限界・経営者の責任）","基本的要素：統制環境","基本的要素：リスクの評価と対応","基本的要素：情報と伝達","基本的要素：モニタリング","業務プロセスに係る統制（統制活動）","IT（情報技術）の利用と統制","評価の範囲・方法・不備の判定","内部統制報告書の作成と開示","財務報告に係る内部統制の監査・経営者確認"];
+  const BASE_CHAPTER_COUNT = 10;   // これ以降の章は新シラバス仮問題集（deck:'extra3'）用
+// GAS_WEBAPP_URL / EXAM_ID / EXAM_SHORT_TITLE / TRACKING_EXAM_ID / QUESTIONS / CHAPTERS は build_html.js が
+// ビルド時にこのファイルの直前へ注入する。QUESTIONS は {id, type:'mc'|'tf'|'mc-multi', chapterIndex, stem, ...}
+// の配列。TRACKING_EXAM_ID は成績記録シート名（<TRACKING_EXAM_ID>_<mode>）専用のIDで、
+// 同じexam.id配下に複数の問題集（quiz/quiz2）がある場合に成績を分離するため EXAM_ID とは別に持つ
+// （EXAM_ID はチャットへ戻る遷移先ページなので exam.id のまま変えない）。
+// 'mc-multi' は「すべて選びなさい」形式（正解が複数）。見た目は 'mc' と同じ選択肢ボタンだが、
+// クリックのたびにトグル選択（複数選択可）になり、正解は correctIndexes（配列）で持つ。
+
+const MODE_LABEL = { mc: '模擬試験', tf: '一問一答', extra: '追加問題', extra2: '追加問題2', extra3: '新シラバス仮問題', review: '復習' };
+// 成績記録（QuizTracking.js）のシートを分けるための mode 変換。
+// 'extra'（追加問題、別ソースの問題集）は既存の 模擬試験(seiseiai_mc) と混在しないよう
+// 'mc2' という別モード名で記録する。'extra2'（3つ目の問題集）は同様に'mc3'。
+// 'review'（復習モード）は章別推移表には記録せず、専用の復習ログへ書く（recordResults参照）。
+const TRACKING_MODE = { mc: 'mc', tf: 'tf', extra: 'mc2', extra2: 'mc3', extra3: 'mc4', review: 'review' };
+
+// 復習モードの「卒業」条件。復習でこの回数だけ連続正解したら、既定の出題対象から外す
+// （「記録にある全部」を選べば卒業ぶんも出題できる）。バックエンド QuizReview.js は
+// 生の連続正解数(streak)だけを返し、閾値の判断はこの画面側で持つ。
+const GRADUATE_STREAK = 2;
+// 復習の範囲「最近間違えた問題」が遡る日数。
+const RECENT_MISS_DAYS = 14;
+
+let mode = null;             // 'mc' | 'tf' | 'extra' | 'extra2' | 'extra3' | 'review'
+let modePool = [];           // モードごとの出題プール（下記参照）
+let scopeChapterIndex = null; // null = 全部、それ以外は対象chapterIndex
+let scopeGroup = null;        // null = 章全体、それ以外は章の中のテーマ別グループ名
+let questions = [];          // 範囲確定時に modePool を全部 or 該当章でfilterしたもの
+let idx = 0;
+let selectedOption = null;   // mc: 0-3 の数値、tf: true/false、mc-multi: 選択中indexの配列、未選択は null（mc-multiは[]）
+let revealed = false;
+let sessionResults = [];     // [{id, chapterIndex, correct, selectedOption}]
+let skippedCount = 0;        // 回答せずに飛ばした問題数（正答率の母数には入れない）
+
+// 復習モード用の状態。reviewEntries はバックエンド apiGetReviewPool の戻り
+// [{id, mode, missCount, lastMissAt, reviewCount, streak, lastReviewAt}]。
+let reviewEntries = [];
+let reviewEntryById = {};
+let reviewScopeKey = null;   // 'active' | 'repeat' | 'recent' | 'all' | chapterIndex(数値)
+let reviewMissingCount = 0;  // 記録にあるが今の問題集に見つからない問題数（ID未記録の旧データなど）
+
+(function initCounts() {
+  document.getElementById('mcCount').textContent = QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).length;
+  document.getElementById('tfCount').textContent = QUESTIONS.filter((q) => q.type === 'tf' && !q.deck).length;
+  document.getElementById('extraCount').textContent = QUESTIONS.filter((q) => q.deck === 'extra').length;
+  document.getElementById('extra2Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra2').length;
+  document.getElementById('extra3Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra3').length;
+  // 問題が1問も無いモードのカードは出さない（FP3のように問題集が1本だけの資格向け）。
+  [['tfCard', 'tfCount'], ['extraCard', 'extraCount'], ['extra2Card', 'extra2Count'], ['extra3Card', 'extra3Count']].forEach(([card, count]) => {
+    if (!Number(document.getElementById(count).textContent)) document.getElementById(card).style.display = 'none';
+  });
+  // 模擬試験カードの選択肢数表記（FP3は3択）。選択肢数が混在するときは「3〜4択」のように範囲で出す。
+  const sizes = Array.from(new Set(QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).map((q) => q.options.length)));
+  if (sizes.length) {
+    const lo = Math.min.apply(null, sizes), hi = Math.max.apply(null, sizes);
+    document.getElementById('mcKind').textContent = (lo === hi ? lo : lo + '〜' + hi) + '択';
+  }
+  // 問題集1本だけの資格は「模擬試験」ではなく exams.js の quiz.mcTitle で呼び替える。
+  if (typeof MC_TITLE === 'string' && MC_TITLE) {
+    MODE_LABEL.mc = MC_TITLE;
+    document.getElementById('mcTitle').textContent = MC_TITLE;
+  }
+})();
+
+function showScreen(id) {
+  ['screenMode', 'screenScope', 'screenQuestion', 'screenSummary'].forEach((s) => {
+    document.getElementById(s).style.display = s === id ? '' : 'none';
+  });
+}
+
+function chooseMode(m) {
+  if (m === 'review') { startReview(); return; }
+  const pool = m === 'extra' || m === 'extra2' || m === 'extra3'
+    ? QUESTIONS.filter((q) => q.deck === m)
+    : QUESTIONS.filter((q) => q.type === m && !q.deck);
+  if (!pool.length) { alert('このモードの問題がまだ登録されていません。'); return; }
+  mode = m;
+  modePool = pool;
+  renderScopeScreen();
+}
+
+// ── 復習モード（間違えた問題だけの再学習） ────────────────────────────────
+// 出題プールはスプレッドシートの記録（<examId>_<mode>_ミス、全モードぶん）から作る。
+// 端末のlocalStorageは使わない: このページはGASのサンドボックスiframe（*.googleusercontent.com）
+// で配信されるため保存先が端末・ブラウザごとにバラバラになり、スマホとPCで復習状況が
+// 食い違ってしまう。記録は既にスプレッドシートにあるのでそれを唯一の正とする。
+async function startReview() {
+  const card = document.getElementById('reviewCard');
+  const desc = document.getElementById('reviewCount');
+  const prevDesc = desc.textContent;
+  card.disabled = true;
+  desc.textContent = '記録を読み込み中...';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+    });
+    if (!data.ok) {
+      alert('復習リストを取得できませんでした: ' + (data.error || ''));
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    reviewEntries = data.entries || [];
+    reviewEntryById = {};
+    reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+
+    const pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+    reviewMissingCount = reviewEntries.length - pool.length;
+    if (!pool.length) {
+      alert(reviewEntries.length
+        ? '記録にある問題が今の問題集に見つかりませんでした（問題IDの無い古い記録のみです）。'
+        : 'まだ間違えた問題の記録がありません。\n各モードを解いたあとサマリー画面で「この回の結果を記録」を押すと、ここに溜まっていきます。');
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    mode = 'review';
+    modePool = pool;
+    desc.textContent = pool.filter((q) => !isGraduated(q)).length + '問が未克服';
+    renderScopeScreen();
+  } catch (err) {
+    alert('通信エラー: ' + (err && err.message ? err.message : err));
+    desc.textContent = prevDesc;
+  } finally {
+    card.disabled = false;
+  }
+}
+
+// 復習プールの1問あたりの状態を引く小物。記録に無い問題（通常は起きない）は0扱い。
+function isGraduated(q) {
+  const e = reviewEntryById[q.id];
+  return !!e && e.streak >= GRADUATE_STREAK;
+}
+function missCountOf(q) {
+  const e = reviewEntryById[q.id];
+  return e ? e.missCount : 0;
+}
+function lastMissTimeOf(q) {
+  const e = reviewEntryById[q.id];
+  return e && e.lastMissAt ? new Date(e.lastMissAt).getTime() : 0;
+}
+
+// 復習の範囲キー → 出題対象の絞り込み条件。
+function reviewFilter(key) {
+  if (key === 'all') return function () { return true; };
+  if (key === 'repeat') return function (q) { return !isGraduated(q) && missCountOf(q) >= 2; };
+  if (key === 'recent') {
+    const since = Date.now() - RECENT_MISS_DAYS * 24 * 60 * 60 * 1000;
+    return function (q) { return !isGraduated(q) && lastMissTimeOf(q) >= since; };
+  }
+  if (typeof key === 'number') return function (q) { return !isGraduated(q) && q.chapterIndex === key; };
+  return function (q) { return !isGraduated(q); }; // 'active'（既定）
+}
+
+function reviewScopeLabel(key) {
+  if (key === 'all') return '記録にある全部';
+  if (key === 'repeat') return '2回以上間違えた問題';
+  if (key === 'recent') return '最近' + RECENT_MISS_DAYS + '日で間違えた問題';
+  if (typeof key === 'number') return chapterLabelText(key);
+  return '未克服の問題';
+}
+
+// 復習モードでは色々なデッキの問題が混ざるので、その問題がどの問題集のものかを示す。
+function deckLabelOf(q) {
+  if (q.deck === 'extra') return '追加問題';
+  if (q.deck === 'extra2') return '追加問題2';
+  if (q.deck === 'extra3') return '新シラバス仮問題';
+  return q.type === 'tf' ? '一問一答' : '模擬試験';
+}
+
+// モード確定後、「全部」か「章ごとにチャレンジ」かを選ぶ画面を組み立てる。
+function renderScopeScreen() {
+  if (mode === 'review') { renderReviewScopeScreen(); return; }
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">📚 全部</div><div class="scope-all-desc">' + modePool.length + '問すべて出題</div>';
+  allBtn.onclick = () => chooseScope(null);
+  el.appendChild(allBtn);
+
+  const chapterIndexes = Array.from(new Set(modePool.map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとにチャレンジ';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const count = modePool.filter((q) => q.chapterIndex === ci).length;
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + count + '問</span>';
+      btn.onclick = () => chooseScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+
+    // 章の下のテーマ別グループ（問題に group が付いているときだけ）。
+    if (modePool.some((q) => q.group)) {
+      const gHeading = document.createElement('div');
+      gHeading.className = 'scope-chapter-heading';
+      gHeading.textContent = 'テーマ別にチャレンジ';
+      el.appendChild(gHeading);
+      chapterIndexes.forEach((ci) => {
+        const inChapter = modePool.filter((q) => q.chapterIndex === ci && q.group);
+        const names = [];
+        inChapter.slice().sort((a, b) => (a.groupIndex || 0) - (b.groupIndex || 0)).forEach((q) => { if (names.indexOf(q.group) < 0) names.push(q.group); });
+        if (!names.length) return;
+        const sub = document.createElement('div');
+        sub.className = 'scope-note';
+        sub.textContent = chapterLabelText(ci);
+        el.appendChild(sub);
+        const gList = document.createElement('div');
+        gList.className = 'scope-chapter-list';
+        names.forEach((name) => {
+          const n = inChapter.filter((q) => q.group === name).length;
+          const btn = document.createElement('button');
+          btn.className = 'scope-chapter-btn';
+          btn.innerHTML = '<span class="name">' + escapeHtml(name) + '</span><span class="count">' + n + '問</span>';
+          btn.onclick = () => chooseScope(ci, name);
+          gList.appendChild(btn);
+        });
+        el.appendChild(gList);
+      });
+    }
+  }
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲選択画面。章ではなく「未克服／繰り返しミス／最近／全部」で切る。
+function renderReviewScopeScreen() {
+  document.getElementById('headerSub').textContent = '復習　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const countOf = (key) => modePool.filter(reviewFilter(key)).length;
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">🔁 未克服の問題</div><div class="scope-all-desc">'
+    + countOf('active') + '問・間違えたまま克服できていない問題</div>';
+  allBtn.onclick = () => chooseReviewScope('active');
+  el.appendChild(allBtn);
+
+  const presets = [
+    { key: 'repeat', name: '🔥 2回以上間違えた問題' },
+    { key: 'recent', name: '📅 最近' + RECENT_MISS_DAYS + '日で間違えた問題' },
+    { key: 'all', name: '📚 記録にある全部（克服済みも含む）' },
+  ];
+  const presetList = document.createElement('div');
+  presetList.className = 'scope-chapter-list';
+  presets.forEach((p) => {
+    const n = countOf(p.key);
+    const btn = document.createElement('button');
+    btn.className = 'scope-chapter-btn';
+    btn.disabled = n === 0;
+    btn.innerHTML = '<span class="name">' + escapeHtml(p.name) + '</span><span class="count">' + n + '問</span>';
+    btn.onclick = () => chooseReviewScope(p.key);
+    presetList.appendChild(btn);
+  });
+  el.appendChild(presetList);
+
+  // 章ごと（未克服のぶんだけ）。0問の章はボタン自体を出さない。
+  const chapterIndexes = Array.from(new Set(modePool.filter(reviewFilter('active')).map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとに復習（未克服ぶん）';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const n = countOf(ci);
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + n + '問</span>';
+      btn.onclick = () => chooseReviewScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+  }
+
+  const note = document.createElement('div');
+  note.className = 'scope-note';
+  note.textContent = '復習で' + GRADUATE_STREAK + '回連続で正解した問題は「克服」として既定の出題から外れます。'
+    + (reviewMissingCount > 0 ? '（記録のうち' + reviewMissingCount + '問は今の問題集に無いため対象外）' : '');
+  el.appendChild(note);
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲確定。ミスが多い問題・最近間違えた問題から先に出す。
+function chooseReviewScope(key) {
+  const pool = modePool.filter(reviewFilter(key));
+  if (!pool.length) { alert('この条件に当てはまる問題がありません。'); return; }
+  reviewScopeKey = key;
+  scopeChapterIndex = typeof key === 'number' ? key : null;
+  scopeGroup = null;
+  questions = pool.slice().sort((a, b) => (missCountOf(b) - missCountOf(a)) || (lastMissTimeOf(b) - lastMissTimeOf(a)));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = '復習　' + reviewScopeLabel(key) + '（' + questions.length + '問）';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function chooseScope(chapterIndex, group) {
+  scopeChapterIndex = chapterIndex;
+  scopeGroup = group || null;
+  questions = chapterIndex == null ? modePool : modePool.filter((q) => q.chapterIndex === chapterIndex && (!scopeGroup || q.group === scopeGroup));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　' + (chapterIndex == null ? '全部' : chapterLabelText(chapterIndex) + (scopeGroup ? '／' + scopeGroup : ''));
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function restartMode() {
+  if (mode === 'review') { chooseReviewScope(reviewScopeKey); return; }
+  chooseScope(scopeChapterIndex, scopeGroup);
+}
+
+// 今のセッションで間違えた問題だけを、その場でもう一度出題する（記録を待たない簡易復習）。
+// 記録ベースの本格的な復習はモード選択の「🔁 復習」。
+function retryWrongInSession() {
+  const wrong = sessionResults.filter((r) => !r.correct)
+    .map((r) => questions.find((q) => q.id === r.id))
+    .filter(Boolean);
+  if (!wrong.length) return;
+  questions = wrong;
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent =
+    (mode === 'review' ? '復習' : MODE_LABEL[mode]) + '　間違えた' + wrong.length + '問をもう一度';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function backToScopeSelect() {
+  renderScopeScreen();
+}
+
+function backToModeSelect() {
+  mode = null;
+  modePool = [];
+  scopeChapterIndex = null;
+  scopeGroup = null;
+  document.getElementById('headerSub').textContent = 'モードを選んでください';
+  showScreen('screenMode');
+}
+
+function chapterLabelText(chapterIndex) {
+  if (chapterIndex == null || !CHAPTERS[chapterIndex]) return '';
+  // BASE_CHAPTER_COUNT 以降は新シラバス仮問題集の章（旧シラバスの章と名前が重なるので「新」を付ける）
+  if (chapterIndex >= BASE_CHAPTER_COUNT) return '新シラバス第' + (chapterIndex - BASE_CHAPTER_COUNT + 1) + '章：' + CHAPTERS[chapterIndex];
+  return '第' + (chapterIndex + 1) + '章：' + CHAPTERS[chapterIndex];
+}
+
+function renderQuestion() {
+  const q = questions[idx];
+  selectedOption = q.type === 'mc-multi' ? [] : null;
+  revealed = false;
+
+  // 復習モードは色々なデッキが混ざるので、どの問題集の何問目かと通算ミス回数も出す。
+  const progressLabel = mode === 'review'
+    ? '復習（' + deckLabelOf(q) + '）　' + (idx + 1) + ' / ' + questions.length + '　通算' + missCountOf(q) + '回ミス'
+    : MODE_LABEL[mode] + '　' + (idx + 1) + ' / ' + questions.length;
+  document.getElementById('progress').textContent = progressLabel;
+  document.getElementById('chapterLabel').textContent = chapterLabelText(q.chapterIndex) + (q.group ? '／' + q.group : '');
+  document.getElementById('stem').textContent = q.stem + (q.type === 'mc-multi' ? '（複数選択可）' : '');
+
+  const optionsEl = document.getElementById('options');
+  optionsEl.innerHTML = '';
+
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    q.options.forEach((text, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = '(' + (i + 1) + ') ' + text;
+      btn.onclick = () => selectOption(i);
+      optionsEl.appendChild(btn);
+    });
+  } else {
+    const trueBtn = document.createElement('button');
+    trueBtn.className = 'option-btn tf-btn';
+    trueBtn.textContent = '○ 正しい';
+    trueBtn.onclick = () => selectOption(true);
+    const falseBtn = document.createElement('button');
+    falseBtn.className = 'option-btn tf-btn';
+    falseBtn.textContent = '× 誤り';
+    falseBtn.onclick = () => selectOption(false);
+    optionsEl.appendChild(trueBtn);
+    optionsEl.appendChild(falseBtn);
+  }
+
+  // 「回答」ボタンは複数選択（mc-multi）専用。mc / tf は選択した時点で即判定するため出さない。
+  const answerBtn = document.getElementById('answerBtn');
+  answerBtn.disabled = true;
+  answerBtn.style.display = q.type === 'mc-multi' ? '' : 'none';
+  document.getElementById('questionActions').style.display = '';
+  document.getElementById('revealArea').style.display = 'none';
+}
+
+// 回答せずに次の問題へ飛ばす。スキップした問題は sessionResults に入れないので
+// 正答率の母数にも、間違えた問題の記録にも入らない（＝ミス扱いにはしない）。
+function skipQuestion() {
+  if (revealed) return;
+  skippedCount++;
+  saveProgress(idx + 1);
+  nextQuestion();
+}
+
+// mc / tf は「選択＝回答」で、選択肢を押した時点でそのまま正誤を表示する（回答ボタンは出さない）。
+// mc-multi（すべて選びなさい）は複数選んでから確定する必要があるため、従来どおり
+// トグル選択 →「回答」ボタンで reveal() する。
+function selectOption(v) {
+  if (revealed) return;
+  const q = questions[idx];
+
+  if (q.type !== 'mc-multi') {
+    selectedOption = v;
+    reveal();
+    return;
+  }
+
+  const i = selectedOption.indexOf(v);
+  if (i === -1) selectedOption.push(v);
+  else selectedOption.splice(i, 1);
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, j) => {
+    btn.classList.toggle('selected', selectedOption.includes(j));
+  });
+  document.getElementById('answerBtn').disabled = selectedOption.length === 0;
+}
+
+function sameIndexSet(a, b) {
+  if (a.length !== b.length) return false;
+  const sortedA = a.slice().sort();
+  const sortedB = b.slice().sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+// ── 効果音（正解＝ピンポン／不正解＝ブブー） ─────────────────────────────────────
+// 音声ファイルは使わず Web Audio で合成する。鳴らすのは回答の瞬間（利用者のクリック直後）なので
+// ブラウザの自動再生制限にかからない。失敗しても回答の処理は止めない。ON/OFFは端末ごとの好みなので
+// localStorage に覚える（読めない環境ではONのまま）。
+let soundOn = true;
+let audioCtx = null;
+try { soundOn = localStorage.getItem('quizSound') !== 'off'; } catch (e) { /* 読めなければON */ }
+
+function getAudioCtx() {
+  if (audioCtx) return audioCtx;
+  const AC = typeof AudioContext !== 'undefined' ? AudioContext
+    : (typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null);
+  if (!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+
+// 1音: 立ち上がりを素早く、あとは指数的に減衰させる（ぷつっというノイズを避ける）。
+function playTone(ctx, start, freq, dur, type, peak) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
+function playResultSound(correct) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const t = ctx.currentTime;
+    // 音量: 同時に鳴る音の合計が 1.0 を超えない範囲（超えると割れる）。
+    if (correct) {
+      // ピン（高）→ポーン（低）。倍音を足してベルらしくする。
+      playTone(ctx, t, 1175, 0.3, 'sine', 0.65);
+      playTone(ctx, t, 2350, 0.2, 'sine', 0.18);
+      playTone(ctx, t + 0.18, 880, 0.6, 'sine', 0.65);
+      playTone(ctx, t + 0.18, 1760, 0.35, 'sine', 0.18);
+    } else {
+      // ブッ、ブー。少しずらした低いのこぎり波2本でブザーらしいざらつきを出す。
+      [150, 157].forEach((f) => {
+        playTone(ctx, t, f, 0.16, 'sawtooth', 0.31);
+        playTone(ctx, t + 0.22, f, 0.5, 'sawtooth', 0.31);
+      });
+    }
+  } catch (e) { /* 音が鳴らなくても学習の邪魔をしない */ }
+}
+
+function updateSoundBtn() {
+  const btn = document.getElementById('soundBtn');
+  if (!btn) return;
+  btn.textContent = soundOn ? '🔊 音' : '🔇 音';
+  btn.title = soundOn ? '効果音ON（押すとOFF）' : '効果音OFF（押すとON）';
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('quizSound', soundOn ? 'on' : 'off'); } catch (e) { /* 保存できなくても今回は有効 */ }
+  updateSoundBtn();
+  if (soundOn) playResultSound(true);   // ONにしたときに音を確かめられるよう、ピンポンを鳴らす
+}
+updateSoundBtn();
+
+function reveal() {
+  if (selectedOption === null || revealed) return;
+  if (Array.isArray(selectedOption) && selectedOption.length === 0) return;
+  revealed = true;
+
+  const q = questions[idx];
+  const correct = q.type === 'mc' ? selectedOption === q.correctIndex
+    : q.type === 'mc-multi' ? sameIndexSet(selectedOption, q.correctIndexes)
+    : selectedOption === q.correct;
+  sessionResults.push({ id: q.id, chapterIndex: q.chapterIndex, correct, selectedOption });
+  saveProgress(idx + 1);   // 回答した時点で保存（次へを押す前に閉じても、次の問題から再開できる）
+  playResultSound(correct);
+
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, i) => {
+    btn.disabled = true;
+    btn.classList.remove('selected');
+    const isCorrectChoice = q.type === 'mc' ? i === q.correctIndex
+      : q.type === 'mc-multi' ? q.correctIndexes.includes(i)
+      : (i === 0) === q.correct;
+    const isSelectedChoice = q.type === 'mc' ? i === selectedOption
+      : q.type === 'mc-multi' ? selectedOption.includes(i)
+      : (i === 0) === selectedOption;
+    if (isCorrectChoice) btn.classList.add('correct');
+    else if (isSelectedChoice) btn.classList.add('incorrect');
+  });
+
+  const revealOptions = document.getElementById('revealOptions');
+  revealOptions.innerHTML = '';
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    // バッジは「選択肢として選ぶべきか(correctIndex/correctIndexes)」ではなく、解説文が本来持つ○/×
+    // （その文が事実として正しいか）をそのまま使う。「最も不適切なものはどれか」形式の設問では
+    // 正解の選択肢が「事実として誤り（×）」であるため、correctIndexだけで○/×を決めると意味が逆転する。
+    q.explanations.forEach((text, i) => {
+      const row = document.createElement('div');
+      row.className = 'option-explain';
+      const m = text.match(/^([○×])\s*/);
+      const fallbackCorrect = q.type === 'mc-multi' ? q.correctIndexes.includes(i) : i === q.correctIndex;
+      const badge = m ? m[1] : (fallbackCorrect ? '○' : '×');
+      row.innerHTML = '<span class="option-badge">' + badge + '</span>' + escapeHtml(text.replace(/^[○×]\s*/, ''));
+      revealOptions.appendChild(row);
+    });
+  } else {
+    const row = document.createElement('div');
+    row.className = 'option-explain';
+    row.innerHTML = '<span class="option-badge">' + (q.correct ? '○ 正しい' : '× 誤り') + '</span><br>' + escapeHtml(q.explanation.replace(/^[○×]\s*/, ''));
+    revealOptions.appendChild(row);
+  }
+
+  document.getElementById('questionActions').style.display = 'none';
+  document.getElementById('revealArea').style.display = '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 選択肢のindex（mc/mc-multi）やbool（tf）を、スプレッドシート出力・アドバイス用に
+// 人が読めるテキストへ変換する。
+function answerText(q, val) {
+  if (q.type === 'mc') return val == null ? '（未回答）' : q.options[val];
+  if (q.type === 'mc-multi') return (val || []).map((i) => q.options[i]).join(' / ');
+  return val ? '正しい' : '誤り';
+}
+
+function buildAskPrompt(q, selected) {
+  // ラベルは問題タイプではなく、現在解いているモード（MODE_LABEL）から決める。
+  // mc3（追加問題2）もtype:'mc'なので、type起点だと「模擬試験」と誤表示されてしまうため。
+  // 復習モードは複数デッキが混ざるので、その問題自身の出自（deckLabelOf）を使う。
+  const deckLabel = mode === 'review' ? deckLabelOf(q) : (MODE_LABEL[mode] || '問題集');
+  if (q.type === 'mc') {
+    const selfAnswerLine = selected != null && selected !== q.correctIndex
+      ? '\n自分は(' + (selected + 1) + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + (q.correctIndex + 1) + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  if (q.type === 'mc-multi') {
+    const selectedList = (selected || []).map((i) => i + 1).join(', ');
+    const correctList = q.correctIndexes.map((i) => i + 1).join(', ');
+    const selfAnswerLine = selected != null && !sameIndexSet(selected, q.correctIndexes)
+      ? '\n自分は(' + selectedList + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題（複数選択）について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + correctList + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  const selfAnswerLine = selected != null && selected !== q.correct
+    ? '\n自分は「' + (selected ? '正しい' : '誤り') + '」と回答して間違えました。なぜそれが誤りかも教えてください。'
+    : '';
+  return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の文の正誤について教えてください。\n\n' +
+    '問題文：' + q.stem + '\n' +
+    '正解：' + (q.correct ? '正しい' : '誤り') + selfAnswerLine +
+    '\nこの論点の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+}
+
+function askInChat() {
+  const q = questions[idx];
+  // GASのHtmlServiceはページをiframe（サンドボックス）内に読み込むため、
+  // location.href だとiframe内だけが遷移してしまう（top.location.hrefが必要）。
+  // さらに相対URLはiframeの内部配信元（googleusercontent.com）を基準に解決
+  // されてしまうため、GAS_WEBAPP_URLを前置した絶対URLにする必要がある。
+  // チャットの「元の問題に戻る」ボタン用に、戻り先（この問題を開き直すURL）を一緒に渡す。
+  // 復習モードは記録の読み込みが要るので、その問題が属する通常モード（出自のデッキ）へ戻す。
+  const backMode = mode === 'review' ? (q.deck || q.type) : mode;
+  let backUrl = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '-quiz&resume=' + encodeURIComponent(q.id) + '&m=' + encodeURIComponent(backMode);
+  if (mode !== 'review' && scopeChapterIndex != null) backUrl += '&c=' + scopeChapterIndex;
+  if (mode !== 'review' && scopeGroup) backUrl += '&g=' + encodeURIComponent(scopeGroup);
+  top.location.href = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '&ask=' + encodeURIComponent(buildAskPrompt(q, selectedOption))
+    + '&back=' + encodeURIComponent(backUrl);
+}
+
+// チャットの「元の問題に戻る」から開かれたとき、?resume=<問題ID>&m=<モード>[&c=<章>][&g=<グループ>] の問題を開き直す。
+// 出題順は固定（シャッフルなし）なので、同じ範囲を作り直して該当の位置へ移れば続きから解ける。
+function initResumeParam() {
+  if (typeof google === 'undefined' || !google.script || !google.script.url || !google.script.url.getLocation) return;
+  google.script.url.getLocation(function (loc) {
+    const p = (loc && loc.parameter) || {};
+    if (!p.resume || !p.m) return;
+    const target = QUESTIONS.find((q) => q.id === p.resume);
+    if (!target) return;
+    chooseMode(p.m);
+    if (mode !== p.m) return;
+    const c = p.c != null && p.c !== '' ? Number(p.c) : null;
+    chooseScope(Number.isInteger(c) ? c : null, p.g || null);
+    let at = questions.findIndex((q) => q.id === target.id);
+    if (at < 0) { chooseScope(null, null); at = questions.findIndex((q) => q.id === target.id); }
+    if (at < 0) return;
+    idx = at;
+    renderQuestion();
+  });
+}
+initResumeParam();
+
+// ── 中断→再開 ─────────────────────────────────────────────────────────
+// 1問回答／スキップするたびに、いまの出題セッションの途中経過をバックエンド（UserProperties）へ送る。
+// 次に開いたとき、モード選択画面の先頭に「続きから再開」を出し、中断した次の問題から続けられる。
+// 1資格につき1枠（最後に解いていたセッション）。端末をまたいで再開できる。最後まで解くと消える。
+// 状態は小さく詰める（UserProperties は1値約9KB上限）: q=出題順のID列、a=[[ID, 正誤(1/0), 選んだ答え]…]、i=次に解く位置。
+let pendingProgress = null;
+
+function hasGoogleRun() {
+  return typeof google !== 'undefined' && google && google.script && google.script.run;
+}
+
+function saveProgress(nextIdx) {
+  if (!hasGoogleRun() || !mode || !questions.length) return;
+  const state = {
+    v: 1, t: Date.now(), mode: mode, c: scopeChapterIndex, g: scopeGroup, r: reviewScopeKey,
+    h: document.getElementById('headerSub').textContent,
+    q: questions.map((q) => q.id).join(','), i: nextIdx,
+    a: sessionResults.map((r) => [r.id, r.correct ? 1 : 0, r.selectedOption]), sk: skippedCount,
+  };
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiSaveQuizProgress({ examId: TRACKING_EXAM_ID, state: state });
+  } catch (e) { /* 保存に失敗しても出題は続ける */ }
+}
+
+function clearProgress() {
+  pendingProgress = null;
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiClearQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 無視 */ }
+}
+
+// 保存された途中経過が、今の問題集でそのまま復元できるか（問題が差し替わっていたら諦める）。
+function isResumableProgress(s) {
+  if (!s || s.v !== 1 || typeof s.q !== 'string' || !Array.isArray(s.a) || !Number.isInteger(s.i)) return false;
+  const ids = s.q.split(',');
+  if (s.i < 0 || s.i >= ids.length) return false;
+  const known = {};
+  QUESTIONS.forEach((q) => { known[q.id] = true; });
+  return ids.every((id) => known[id]) && s.a.every((r) => Array.isArray(r) && known[r[0]]);
+}
+
+function offerResume(s) {
+  if (!isResumableProgress(s)) return;
+  pendingProgress = s;
+  const total = s.q.split(',').length;
+  document.getElementById('resumeText').textContent =
+    '📌 途中の問題集があります：' + (s.h || '') + '　' + (s.i + 1) + '問目から（全' + total + '問・回答済み' + s.a.length + '問）';
+  document.getElementById('resumeBanner').style.display = '';
+}
+
+(function initProgress() {
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) { if (res && res.ok && res.state) offerResume(res.state); })
+      .withFailureHandler(function () {})
+      .apiLoadQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 再開バナーが出ないだけ */ }
+})();
+
+function discardProgress() {
+  document.getElementById('resumeBanner').style.display = 'none';
+  clearProgress();
+}
+
+async function resumeProgress() {
+  const s = pendingProgress;
+  if (!s || !isResumableProgress(s)) { discardProgress(); return; }
+  const btn = document.getElementById('resumeBtn');
+  btn.disabled = true;
+  try {
+    let pool;
+    if (s.mode === 'review') {
+      // 復習は問題ごとの通算ミス回数・卒業判定が画面に出るので、記録を読み直してから復元する。
+      const data = await new Promise(function (resolve, reject) {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+      });
+      if (!data.ok) { alert('復習の記録を取得できませんでした: ' + (data.error || '')); return; }
+      reviewEntries = data.entries || [];
+      reviewEntryById = {};
+      reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+      pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+      reviewMissingCount = reviewEntries.length - pool.length;
+    } else {
+      pool = s.mode === 'extra' || s.mode === 'extra2' || s.mode === 'extra3'
+        ? QUESTIONS.filter((q) => q.deck === s.mode)
+        : QUESTIONS.filter((q) => q.type === s.mode && !q.deck);
+    }
+    const byId = {};
+    QUESTIONS.forEach((q) => { byId[q.id] = q; });
+    mode = s.mode;
+    modePool = pool;
+    scopeChapterIndex = s.c == null ? null : s.c;
+    scopeGroup = s.g || null;
+    reviewScopeKey = s.r == null ? null : s.r;
+    questions = s.q.split(',').map((id) => byId[id]);
+    idx = s.i;
+    sessionResults = s.a.map((r) => ({ id: r[0], chapterIndex: byId[r[0]].chapterIndex, correct: !!r[1], selectedOption: r[2] }));
+    skippedCount = s.sk || 0;
+    pendingProgress = null;
+    document.getElementById('resumeBanner').style.display = 'none';
+    document.getElementById('headerSub').textContent = s.h || MODE_LABEL[mode] || '';
+    showScreen('screenQuestion');
+    renderQuestion();
+  } catch (err) {
+    alert('再開できませんでした: ' + (err && err.message ? err.message : err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function nextQuestion() {
+  idx++;
+  if (idx >= questions.length) showSummary();
+  else renderQuestion();
+}
+
+// CHAPTERS の全章を常に含めて返す（今回未出題の章は total:0）。
+// スプレッドシート側は最初の記録時に受け取った章名で行を確定するため、
+// 章の集合が回によってブレると2回目以降の記録で行が見つからなくなる。
+// 常に全章を送ることでこれを防ぐ。
+function aggregateByChapter(results) {
+  const byIndex = {};
+  results.forEach((r) => {
+    if (!byIndex[r.chapterIndex]) byIndex[r.chapterIndex] = { correct: 0, total: 0 };
+    byIndex[r.chapterIndex].total++;
+    if (r.correct) byIndex[r.chapterIndex].correct++;
+  });
+  // 新シラバス仮問題集（extra3）は新シラバスの章だけ、それ以外の問題集は旧シラバスの章だけを送る
+  // （新しい成績シートに旧章の行が並んだり、既存シートの章の集合が変わって行が見つからなくなるのを防ぐ）。復習は全章。
+  const inScope = (i) => mode === 'review' || (mode === 'extra3' ? i >= BASE_CHAPTER_COUNT : i < BASE_CHAPTER_COUNT);
+  return CHAPTERS.map((label, i) => ({
+    chapterIndex: i,
+    chapterLabel: i >= BASE_CHAPTER_COUNT ? chapterLabelText(i) : label,
+    correct: (byIndex[i] && byIndex[i].correct) || 0,
+    total: (byIndex[i] && byIndex[i].total) || 0,
+  })).filter((c) => inScope(c.chapterIndex));
+}
+
+function showSummary() {
+  clearProgress();   // 最後まで解いたので、途中経過は不要
+  showScreen('screenSummary');
+  const total = sessionResults.length;
+  const correct = sessionResults.filter((r) => r.correct).length;
+  const wrongCount = total - correct;
+  const pct = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
+  document.getElementById('summaryScore').textContent =
+    correct + ' / ' + total + '（' + pct + '%）' + (skippedCount > 0 ? '　スキップ ' + skippedCount + '問' : '');
+
+  const byChapter = aggregateByChapter(sessionResults);
+  const chaptersEl = document.getElementById('summaryChapters');
+  chaptersEl.innerHTML = '';
+  byChapter.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'summary-chapter-row';
+    const scoreText = c.total > 0
+      ? c.correct + '/' + c.total + '（' + Math.round((c.correct / c.total) * 1000) / 10 + '%）'
+      : '未出題';
+    row.innerHTML = '<span class="name">' + escapeHtml(c.chapterLabel) + '</span><span class="score">' + scoreText + '</span>';
+    chaptersEl.appendChild(row);
+  });
+
+  document.getElementById('recordStatus').textContent = '';
+  const recordBtn = document.getElementById('recordBtn');
+  // 全問スキップ（回答0問）のときは記録しても中身が無いので押させない。
+  recordBtn.disabled = total === 0;
+  recordBtn.textContent = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+
+  // 間違えた問題があるときだけ、その場で解き直すボタンを出す。
+  const retryBtn = document.getElementById('retryWrongBtn');
+  retryBtn.style.display = wrongCount > 0 ? '' : 'none';
+  retryBtn.textContent = '🔁 間違えた' + wrongCount + '問だけもう一度';
+
+  const note = document.getElementById('summaryNote');
+  if (mode === 'review') {
+    note.textContent = '復習の結果は「' + TRACKING_EXAM_ID + '_復習ログ」に記録され、'
+      + GRADUATE_STREAK + '回連続で正解した問題は次回から「克服」として出題対象から外れます'
+      + '（章別の正答率推移シートには影響しません）。';
+    note.style.display = '';
+  } else {
+    note.style.display = 'none';
+    note.textContent = '';
+  }
+
+  document.getElementById('adviceArea').style.display = 'none';
+  document.getElementById('adviceStatus').textContent = '';
+  document.getElementById('adviceBtn').disabled = false;
+  document.getElementById('adviceBtn').textContent = '🎯 学習アドバイスを見る';
+}
+
+// 今回の結果（章別正答率・間違えた問題）と、過去に蓄積した「ミス」シートの履歴を
+// バックエンドで突き合わせ、Geminiに弱点分野・復習優先度・次のアクションをまとめさせる。
+async function getAdvice() {
+  const btn = document.getElementById('adviceBtn');
+  const status = document.getElementById('adviceStatus');
+  const area = document.getElementById('adviceArea');
+  btn.disabled = true;
+  btn.textContent = 'アドバイスを作成中...';
+  status.textContent = '';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiQuizAdvice({
+          examId: EXAM_ID,
+          trackingExamId: TRACKING_EXAM_ID,
+          mode: TRACKING_MODE[mode] || mode,
+          chapters: aggregateByChapter(sessionResults),
+          wrongAnswers: buildWrongAnswers(),
+        });
+    });
+    if (data.ok) {
+      area.textContent = data.advice;
+      area.style.display = '';
+      btn.textContent = '🎯 学習アドバイスを見る';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || 'アドバイスの取得に失敗しました');
+      btn.textContent = '🎯 学習アドバイスを見る';
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.textContent = '🎯 学習アドバイスを見る';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 間違えた問題だけを、問題文・自分の回答・正解を添えたスプレッドシート出力用の形へ整形する。
+function buildWrongAnswers() {
+  return sessionResults.filter((r) => !r.correct).map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+// 復習モードの記録用。正解した問題も含めて全問を送る（連続正解＝克服の判定に必要なため）。
+function buildReviewResults() {
+  return sessionResults.map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      deckLabel: deckLabelOf(q),
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      correct: r.correct,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+async function recordResults() {
+  const btn = document.getElementById('recordBtn');
+  const status = document.getElementById('recordStatus');
+  const labelWhenIdle = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+  btn.disabled = true;
+  btn.textContent = '記録中...';
+  status.textContent = '';
+
+  const byChapter = aggregateByChapter(sessionResults);
+  try {
+    // fetchではなく google.script.run を使う（理由は chat-app.js の callBackend 参照）。
+    // 復習モードは章別の正答率推移シートに混ぜない（出題が間違えた問題に偏っていて
+    // 推移のグラフが本来の実力より低く歪むため）。専用の復習ログへ全問を書く。
+    const data = await new Promise(function (resolve, reject) {
+      const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      if (mode === 'review') {
+        runner.apiRecordReviewLog({
+          examId: TRACKING_EXAM_ID,
+          results: buildReviewResults(),
+          attemptAt: new Date().toISOString(),
+        });
+        return;
+      }
+      runner.apiRecordQuizResult({
+        examId: TRACKING_EXAM_ID,
+        mode: TRACKING_MODE[mode] || mode,
+        chapters: byChapter,
+        wrongAnswers: buildWrongAnswers(),
+        attemptAt: new Date().toISOString(),
+      });
+    });
+    if (data.ok) {
+      status.textContent = '✅ 記録しました';
+      btn.textContent = '記録済み';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || '記録に失敗しました');
+      btn.disabled = false;
+      btn.textContent = labelWhenIdle;
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.disabled = false;
+    btn.textContent = labelWhenIdle;
+  }
+}
+
+</script>
+</body>
+</html>

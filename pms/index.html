@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PMS（Pマーク）問題集（仮問題）</title>
+<meta name="robots" content="noindex,nofollow">
+<script>
+(function () {
+  function make(ok, fail) {
+    return new Proxy({}, { get: function (_, name) {
+      if (name === "withSuccessHandler") return function (f) { return make(f, fail); };
+      if (name === "withFailureHandler") return function (f) { return make(ok, f); };
+      return function () {
+        var reading = /^(apiLoad|apiGet)/.test(String(name));
+        setTimeout(function () {
+          if (reading) { if (ok) ok(null); }
+          else if (fail) fail(new Error("公開版では記録・AI助言は使えません"));
+        }, 0);
+      };
+    } });
+  }
+  window.google = { script: { run: make(null, null) } };
+})();
+</script>
+  <style>
+    :root {
+      --theme-color: #7a2e5c;
+      --theme-color-dark: #4a1b37;
+    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: var(--theme-color-dark);
+  padding: 0;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.container {
+  background: white;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--theme-color) 0%, var(--theme-color-dark) 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-icon { font-size: 32px; }
+
+.header-text { min-width: 0; flex: 1 1 140px; }   /* ボタンに押されてタイトルが1文字幅に潰れ、縦書きのように見えるのを防ぐ */
+.header-text h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; writing-mode: horizontal-tb; }
+.header-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-btn:hover { background: rgba(255,255,255,0.3); }
+
+.quiz-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { width: 100%; max-width: 520px; margin: 0 auto; }
+
+/* --- モード選択画面 --- */
+/* カード数が増えても幅が細くなりすぎないよう、flexではなくgridで自動折り返しする
+   （4つ目の「追加問題2」追加時にスマホで窮屈にならないための変更）。 */
+.mode-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.mode-card {
+  min-width: 0;
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.mode-card:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 復習モードのカードだけ、出題元の問題集カードと見分けられるよう薄く色を敷く。 */
+.review-card {
+  background: #fffaf2;
+  border-color: #f0d9b5;
+}
+.review-card:hover { border-color: #e0a75e; }
+.mode-card:disabled { opacity: 0.6; cursor: wait; }
+
+.mode-icon { font-size: 36px; margin-bottom: 8px; }
+.mode-title { font-size: 17px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.mode-desc { font-size: 13px; color: #888; }
+
+/* --- 範囲選択画面（全部 / 章ごとにチャレンジ） --- */
+.back-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.back-link:hover { color: var(--theme-color); }
+
+.scope-select {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-all-btn {
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  margin-bottom: 8px;
+}
+
+.scope-all-btn:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.scope-all-title { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.scope-all-desc { font-size: 13px; color: #888; }
+
+.scope-chapter-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  margin: 4px 0 2px;
+}
+
+.scope-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scope-chapter-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  background: #f8f9ff;
+  border: 1.5px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scope-chapter-btn:hover { border-color: var(--theme-color); }
+
+.scope-chapter-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.scope-chapter-btn:disabled:hover { border-color: #e6e8ee; }
+
+/* 範囲選択画面の下に出す補足（復習モードの「克服」ルールの説明など） */
+.scope-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.scope-chapter-btn .name { flex: 1; padding-right: 12px; }
+.scope-chapter-btn .count { flex-shrink: 0; color: var(--theme-color); font-weight: 700; font-size: 13px; }
+
+/* --- 出題画面 --- */
+.progress {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.chapter-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--theme-color);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.question-card {
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stem {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #222;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option-btn:hover { border-color: var(--theme-color); }
+
+.option-btn.selected {
+  border-color: var(--theme-color);
+  background: #f0f0ff;
+  font-weight: 600;
+}
+
+.option-btn.tf-btn {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 回答後の表示状態 */
+.option-btn.correct {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.option-btn.incorrect {
+  border-color: #c62828;
+  background: #fdecea;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-badge {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.option-explain {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.answer-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.answer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 回答（複数選択のときだけ表示）とスキップを縦に並べる操作行。
+   mc / tf は選択した時点で判定するため、この行にはスキップだけが残る。 */
+.question-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skip-btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: white;
+  color: #888;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.skip-btn:hover { border-color: var(--theme-color); color: var(--theme-color); }
+
+.reveal-area { margin-top: 20px; }
+
+.reveal-options { margin-bottom: 16px; }
+
+.reveal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.action-btn:hover { border-color: var(--theme-color); }
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+}
+
+/* --- 終了サマリー画面 --- */
+#screenSummary { text-align: center; }
+#screenSummary h2 { font-size: 22px; color: #333; margin-bottom: 16px; }
+
+.summary-score {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--theme-color);
+  margin-bottom: 20px;
+}
+
+.summary-chapters {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.summary-chapter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.summary-chapter-row .name { color: #333; }
+.summary-chapter-row .score { color: var(--theme-color); font-weight: 700; }
+
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 間違えた問題だけを解き直すボタン。記録ボタンの次に置いて目に入るようにする。 */
+.action-btn.retry-wrong {
+  border-color: #f0d9b5;
+  background: #fffaf2;
+  color: #a1670f;
+  font-weight: 700;
+}
+.action-btn.retry-wrong:hover { border-color: #e0a75e; }
+
+.summary-note {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.record-status,
+.advice-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #888;
+  min-height: 18px;
+}
+
+.advice-area {
+  margin-top: 12px;
+  text-align: left;
+  white-space: pre-wrap;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.quiz-body::-webkit-scrollbar { width: 5px; }
+.quiz-body::-webkit-scrollbar-track { background: transparent; }
+.quiz-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+/* --- PCブラウザ（幅900px以上）: 画面幅を広く使う ---
+   以前は .screen が max-width:520px の中央寄せで、PCでは画面の中央に細い1列が出るだけだった（2026-09-20 に変更）。
+   スマホ（600px以下）の指定とは範囲が重ならない。行が長くなりすぎないよう、上限は 1120px（1400px以上は 1240px）。
+   ボタン類は横いっぱいに伸ばさず、中央に寄せた幅に留める。 */
+@media (min-width: 900px) {
+  .header { padding: 18px 40px; }
+  .header-text h1 { font-size: 20px; }
+  .header-text p { font-size: 13px; }
+  .header-btn { font-size: 12px; padding: 7px 14px; }
+
+  .quiz-body { padding: 32px 48px; }
+  .screen { max-width: 1120px; }
+
+  /* モード選択: カードを横に並べて広く使う（4枚なら1行） */
+  .mode-select { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+  .mode-card { padding: 30px 20px; }
+  .mode-icon { font-size: 40px; }
+  .mode-title { font-size: 18px; }
+  .mode-desc { font-size: 14px; }
+
+  /* 範囲選択: 章のボタンを2列に（章が多くても縦に長くなりすぎない） */
+  .scope-chapter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+  .scope-chapter-btn { font-size: 15px; }
+
+  /* 出題: 問題文・選択肢を広く、文字も一段大きく */
+  .question-card { padding: 28px 36px; }
+  .stem { font-size: 18px; line-height: 1.8; }
+  .options { gap: 12px; }
+  .option-btn { font-size: 16px; padding: 14px 20px; }
+  .answer-btn, .action-btn, .skip-btn { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .question-actions { align-items: center; }
+  .question-actions .answer-btn, .question-actions .skip-btn { width: 100%; }
+  .summary-note, .scope-note { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .reveal-actions { align-items: stretch; }
+
+  /* 終了サマリー: 章別の結果を2列に */
+  .summary-chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+  .summary-chapter-row { font-size: 14.5px; padding: 12px 16px; }
+  .summary-actions { align-items: center; }
+  .summary-actions .action-btn { width: 100%; }
+}
+
+@media (min-width: 1400px) {
+  .screen { max-width: 1240px; }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0; }
+  .container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+  .header { padding: 12px 14px; gap: 8px 10px; flex-wrap: wrap; }   /* 狭い画面ではボタン類を2行目へ折り返す */
+  .header-icon { font-size: 28px; }
+  .header-text h1 { font-size: 16px; }
+  .header-text p { display: none; }
+  .header-actions { gap: 6px; flex-wrap: wrap; flex-basis: 100%; margin-left: 0; }
+  .header-btn { font-size: 11px; padding: 6px 10px; }
+  .quiz-body { padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); }
+  .stem { font-size: 16.5px; }
+  .option-btn { font-size: 16px; }
+  .mode-select { gap: 10px; }
+  .mode-card { padding: 16px 8px; }
+  .mode-icon { font-size: 26px; margin-bottom: 4px; }
+  .mode-title { font-size: 14px; margin-bottom: 2px; }
+  .mode-desc { font-size: 11px; }
+}
+
+@media (max-height: 480px) {
+  .quiz-body { padding-top: 14px; }
+  .mode-card { padding: 12px 8px; }
+  .mode-icon { font-size: 22px; margin-bottom: 2px; }
+}
+
+/* --- 中断した問題集の再開バナー（モード選択画面の先頭） --- */
+.resume-banner {
+  border: 2px solid var(--theme-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.resume-text { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 10px; }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.resume-actions .action-btn { flex: 1 1 140px; width: auto; }
+
+  </style>
+<style>#askBtn,#adviceBtn{display:none !important}</style>
+</head>
+<body>
+<div style="background:#fff4d6;color:#5b4300;padding:10px 14px;font-size:14px;line-height:1.6;border-bottom:1px solid #e6c96b">
+<strong>非公式・個人作成の仮問題です。</strong>プライバシーマーク制度（JIPDEC）・個人情報保護委員会・JIS Q 15001の公式の試験・規格とは無関係で、公式の出題・難度とは一致しません。事実関係は公式テキストで未照合です。この公開版では成績・途中経過は保存されません。
+</div>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">🛡️</div>
+    <div class="header-text">
+      <h1>PMS（Pマーク）問題集（仮問題）</h1>
+      <p id="headerSub">モードを選んでください</p>
+    </div>
+    <div class="header-actions">
+      
+      
+      
+      <button type="button" class="header-btn" id="soundBtn" onclick="toggleSound()">🔊 音</button>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quizBody">
+    <div class="screen" id="screenMode">
+      <div class="resume-banner" id="resumeBanner" style="display:none;">
+        <div class="resume-text" id="resumeText"></div>
+        <div class="resume-actions">
+          <button class="action-btn primary" id="resumeBtn" onclick="resumeProgress()">▶ 続きから再開</button>
+          <button class="action-btn" onclick="discardProgress()">破棄</button>
+        </div>
+      </div>
+      <div class="mode-select">
+        <button class="mode-card" onclick="chooseMode('mc')">
+          <div class="mode-icon">📝</div>
+          <div class="mode-title" id="mcTitle">模擬試験</div>
+          <div class="mode-desc"><span id="mcCount">0</span>問・<span id="mcKind">4択</span></div>
+        </button>
+        <button class="mode-card" id="tfCard" onclick="chooseMode('tf')">
+          <div class="mode-icon">⭕</div>
+          <div class="mode-title">一問一答</div>
+          <div class="mode-desc"><span id="tfCount">0</span>問・正誤判定</div>
+        </button>
+        <button class="mode-card" id="extraCard" onclick="chooseMode('extra')">
+          <div class="mode-icon">📘</div>
+          <div class="mode-title">追加問題</div>
+          <div class="mode-desc"><span id="extraCount">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra2Card" onclick="chooseMode('extra2')">
+          <div class="mode-icon">📗</div>
+          <div class="mode-title">追加問題2</div>
+          <div class="mode-desc"><span id="extra2Count">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra3Card" onclick="chooseMode('extra3')">
+          <div class="mode-icon">🆕</div>
+          <div class="mode-title">新シラバス仮問題</div>
+          <div class="mode-desc"><span id="extra3Count">0</span>問・4択（2027年2月〜の追加分）</div>
+        </button>
+        <button class="mode-card review-card" id="reviewCard" onclick="chooseMode('review')">
+          <div class="mode-icon">🔁</div>
+          <div class="mode-title">復習</div>
+          <div class="mode-desc" id="reviewCount">間違えた問題だけ</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen" id="screenScope" style="display:none;">
+      <button class="back-link" onclick="backToModeSelect()">← モード選択に戻る</button>
+      <div class="scope-select" id="scopeSelect"></div>
+    </div>
+
+    <div class="screen" id="screenQuestion" style="display:none;">
+      <div class="progress" id="progress"></div>
+      <div class="chapter-label" id="chapterLabel"></div>
+      <div class="question-card">
+        <p class="stem" id="stem"></p>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="question-actions" id="questionActions">
+        <button class="answer-btn" id="answerBtn" onclick="reveal()" disabled>回答</button>
+        <button class="skip-btn" id="skipBtn" onclick="skipQuestion()">回答せずに次へ →</button>
+      </div>
+      <div class="reveal-area" id="revealArea" style="display:none;">
+        <div class="reveal-options" id="revealOptions"></div>
+        <div class="reveal-actions">
+          <button class="action-btn" id="askBtn" style="display:none !important" onclick="askInChat()">🤖 チャットに詳しく聞く</button>
+          <button class="action-btn primary" id="nextBtn" onclick="nextQuestion()">次の問題へ →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenSummary" style="display:none;">
+      <h2>お疲れさまでした！</h2>
+      <div class="summary-score" id="summaryScore"></div>
+      <div class="summary-chapters" id="summaryChapters"></div>
+      <div class="summary-actions">
+        <button class="action-btn primary" id="recordBtn" onclick="recordResults()">この回の結果を記録</button>
+        <button class="action-btn retry-wrong" id="retryWrongBtn" onclick="retryWrongInSession()" style="display:none;">🔁 間違えた問題だけもう一度</button>
+        <button class="action-btn" id="adviceBtn" style="display:none !important" onclick="getAdvice()">🎯 学習アドバイスを見る</button>
+        <button class="action-btn" onclick="restartMode()">もう一度</button>
+        <button class="action-btn" onclick="backToScopeSelect()">別の範囲へ</button>
+        <button class="action-btn" onclick="backToModeSelect()">別のモードへ</button>
+      </div>
+      <div class="summary-note" id="summaryNote" style="display:none;"></div>
+      <div class="record-status" id="recordStatus"></div>
+      <div class="advice-status" id="adviceStatus"></div>
+      <div class="advice-area" id="adviceArea" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_WEBAPP_URL = '';
+  const EXAM_ID = 'pms';
+  const EXAM_SHORT_TITLE = 'PMS（Pマーク）';
+  const TRACKING_EXAM_ID = 'pms';
+  const MC_TITLE = '問題集';
+  const QUESTIONS = [{"id":"pms-1","type":"mc","chapterIndex":0,"stem":"個人情報保護法における「個人情報」の定義として、最も適切なものはどれか。","options":["生存する個人に関する情報であって、氏名や生年月日などにより特定の個人を識別できるもの（他の情報と容易に照合でき、それによって特定の個人を識別できるものを含む）。","個人に関する情報のうち、企業が公表しているものだけを指し、氏名などの識別情報を含まないものや、本人が死亡した後も残る情報はすべて個人情報の定義に含まれ、社内の管理記録も対象外となる。","本人の氏名のみを指し、住所・電話番号・メールアドレスなどの連絡先や勤務先の情報は、特定の個人を直接示す記述ではないため個人情報に該当しない。","インターネット上に掲載された情報に限られ、社内で管理している人事記録は個人情報に該当しない。"],"correctIndex":0,"explanations":["○ 正しい。個人情報保護法第2条第1項の定義どおりで、他の情報との容易な照合で識別できる場合も含まれる。","× 公表の有無は要件ではない。社内の管理記録も対象になりうる。また死亡した人の情報は「生存する個人に関する情報」に当たらない。","× 氏名以外でも、住所や電話番号などで特定の個人を識別できれば個人情報に当たる。","× 掲載場所による限定はない。社内の人事記録も特定の個人を識別できるなら個人情報である。"]},{"id":"pms-2","type":"mc","chapterIndex":0,"stem":"個人識別符号に関する記述として、最も適切なものはどれか。","options":["生年月日や性別は、単独であっても必ず個人識別符号に該当するため、本人の同意なく取得してはならない個人情報として厳格に扱う必要がある。","旅券番号や運転免許証番号のように、特定の個人を識別できる符号として法令で定められたものは個人識別符号に当たる。","購買履歴や閲覧履歴など行動に関する情報は、それ自体がすべて個人識別符号に該当し、本人の同意がない限り取得も利用もできない。","企業内の部署名と役職名の組み合わせは、社員を特定できるため個人識別符号に当たる。"],"correctIndex":1,"explanations":["× 生年月日や性別は単独では個人識別符号に当たらない。他の情報と組み合わせれば個人情報になりうる。","○ 正しい。法第2条第2項で定める個人識別符号（身体の特徴データ、旅券番号、運転免許証番号など）に当たる。","× 行動履歴は一般に個人識別符号ではない。個人関連情報として別に扱われる場合がある。","× 部署名と役職名は一般に個人識別符号に当たらない。"]},{"id":"pms-3","type":"mc","chapterIndex":0,"stem":"要配慮個人情報に関する記述として、最も適切なものはどれか。","options":["氏名と電話番号、メールアドレスなど、本人への連絡に用いられる情報を組み合わせたものであり、特定の個人に連絡できる状態を作るため、取得時に特別な配慮が求められる個人情報の一類型である。","購買履歴と閲覧履歴を組み合わせて作成した、顧客の嗜好や関心を示すプロファイルであり、本人の同意を得なくても社外のパートナーと共有してよい個人情報として扱うことができる。","病歴、人種、信条、社会的身分、犯罪の経歴など、不当な差別や偏見その他の不利益が生じないよう特に取扱いに配慮を要する個人情報（政令で定める記述等を含む）。","年齢と居住地域の組み合わせによって、本人の属性や生活の傾向を推定できるようにしたものであり、統計処理を施せば取得や利用に一切の制約を受けない情報であるため、社内で自由に共有でき、利用目的の公表も不要と整理されている。"],"correctIndex":2,"explanations":["× 連絡先は一般の個人情報であり、要配慮個人情報には当たらない。","× 購買や閲覧の履歴は一般の個人情報（場合により個人関連情報）であり、要配慮個人情報ではない。","○ 正しい。法第2条第3項の定義。取得には原則として本人の同意が必要で、オプトアウトによる第三者提供もできない。","× 年齢と地域は一般の属性であり、それだけで要配慮個人情報にはならない。"]},{"id":"pms-4","type":"mc","chapterIndex":0,"stem":"匿名加工情報の説明として、最も適切なものはどれか。","options":["特定の個人を識別できないように加工しただけで、元の情報を復元できる状態で保管する情報。","本人の同意を得てのみ第三者に提供できる、氏名などの識別子を仮名に置き換えた情報で、提供先でも元の個人情報との照合が前提となる情報。","他の情報と照合しなければ特定の個人を識別できないように加工した情報で、社内での分析に限って利用できる情報。","特定の個人を識別できないように個人情報を加工し、かつ、その個人情報を復元できないようにした情報。作成と提供には法定の加工基準と公表などの義務がある。"],"correctIndex":3,"explanations":["× 復元できる状態で保管すると、匿名加工情報の要件を満たさない。復元不可であることが必要である。","× 氏名を仮名に置き換えた情報は仮名加工情報の説明に近いが、本人同意を前提とする記述は誤りである。","× これは仮名加工情報の説明である。匿名加工情報は他の情報との照合に頼らず、復元できないように加工する。","○ 正しい。法第2条第6項の定義と、作成時の加工基準・公表義務（法第43条等）に沿う。"]},{"id":"pms-5","type":"mc","chapterIndex":0,"stem":"仮名加工情報の説明として、最も適切なものはどれか。","options":["他の情報と照合しない限り特定の個人を識別できないように加工した情報。社内の利用が前提で、第三者への提供は原則としてできない。","特定の個人を識別できないように加工し、元に戻せないようにした情報で、第三者提供も一定の要件のもとで可能な情報。","生存する個人に関する情報のうち、個人情報に該当しないもので、提供先で個人データになることが想定されるもの。","本人の同意なく第三者に提供してよい、個人を識別できる要素をすべて取り除いて統計化された集計データで、加工の方法を公表する必要もない情報。"],"correctIndex":0,"explanations":["○ 正しい。法第2条第5項の定義である。仮名加工情報は原則として第三者提供ができない（法第41条）。","× これは匿名加工情報の説明である。仮名加工情報は照合により識別できる点が異なる。","× これは個人関連情報の説明である。仮名加工情報は個人情報を加工したものに限られる。","× 統計データという記述は、仮名加工情報の定義と一致しない。"]},{"id":"pms-6","type":"mc","chapterIndex":0,"stem":"個人関連情報に関する記述として、最も適切なものはどれか。","options":["個人関連情報は個人情報に該当するため、取得時に利用目的を特定して本人へ通知する必要があり、社外に提供する場合も第三者提供の制限は一切適用されず、本人の同意は不要であり、提供先の利用目的を確認する必要もない。","生存する個人に関する情報で個人情報に該当しないもののうち、提供先で個人データとして取得されることが想定されるものを、第三者に提供する際は本人同意の確認が必要。","特定の個人を識別できないように加工したものなので、第三者提供にあたり本人同意は一切不要とされる。","企業の内部でのみ利用する場合には、利用目的の公表も第三者提供の制限も適用されず、社内の利用であれば記録を残す義務も生じないと整理されており、社外に出さない限り本人への説明も求められない。"],"correctIndex":1,"explanations":["× 個人関連情報は個人情報に該当しない点が誤りである。第三者提供の制限（法第31条）が設けられている。","○ 正しい。Cookieの識別子に紐づく閲覧履歴などが典型例で、提供先の個人データ化が想定される場合に本人同意の確認が求められる。","× 加工して識別できなくしたものではないため、この記述は誤りである。","× 社内利用の場合でも、利用目的の特定や公表の義務は別に適用される。第三者提供の制限は社外への提供に関するものである。"]},{"id":"pms-7","type":"mc","chapterIndex":0,"stem":"個人情報取扱事業者の定義として、現行の個人情報保護法に照らして最も適切なものはどれか。","options":["個人情報を5,000人分以上保有する事業者のみが該当し、5,000人を下回る小規模な事業者は、保有件数にかかわらず法の義務の対象外となる。","国の行政機関および独立行政法人のみが該当し、民間の事業者は個人情報保護法の義務の対象とならず、各業界の自主的な取組みに委ねられている。","個人情報データベース等を事業の用に供している者であれば、保有件数にかかわらず該当する。","個人を相手に商品を販売する事業者だけが該当し、法人を相手にする事業者は、保有する情報の性質にかかわらず法の対象から除かれる。"],"correctIndex":2,"explanations":["× 5,000人の要件は2017年の改正で撤廃された。現行法では保有件数にかかわらず対象となる。","× 行政機関や独立行政法人は、個人情報取扱事業者ではなく、別の法律の対象になる。","○ 正しい。法第16条第2項の定義で、事業の用に供する個人情報データベース等を基準とする。","× 顧客の属性による限定はなく、法人相手の事業者も対象になる。"]},{"id":"pms-8","type":"mc","chapterIndex":5,"stem":"利用目的の特定に関する記述として、最も適切なものはどれか。","options":["社内の文書に記載しておけば足り、本人への通知や公表は必要ない。","利用目的は一度特定すれば、以後どのような変更もできない。","「事業活動のため」と書けば足りる。","取得にあたり、利用目的をできる限り具体的に特定し、本人に通知または公表する。"],"correctIndex":3,"explanations":["× 利用目的は取得時に本人に通知または公表する必要がある（法第21条）。社内の文書だけでは足りない。","× 利用目的は変更できる。変更の範囲と本人への通知・公表のルールに従えばよい（法第21条第3項）。","× 抽象的すぎる表現は、利用目的の特定として不十分とされる。","○ 正しい。法第17条第1項の定め。できる限り具体的に特定し、取得時に通知または公表する。"]},{"id":"pms-9","type":"mc","chapterIndex":5,"stem":"利用目的の変更に関する記述として、最も適切なものはどれか。","options":["変更前の利用目的と関連性を有すると合理的に認められる範囲を超えて変更する場合、原則として本人の同意が必要である。","利用目的の変更は社内の承認さえあれば、本人の同意を得ることなく自由に行えるため、変更後の利用目的を本人へ通知する必要もない。","利用目的を変更する場合は、本人に通知するだけでよく、同意を得る必要はいかなる場合も存在しない。","利用目的は取得後に変更することが一切認められておらず、変更すれば必ず個人データを消去しなければならない。"],"correctIndex":0,"explanations":["○ 正しい。法第17条第2項。関連性を有すると合理的に認められる範囲を超える変更には、原則として本人の同意が必要である。","× 社内の承認だけでは足りない。関連性の範囲を超える変更には本人同意が原則として必要である。","× 本人への通知だけでよいとするのは誤りである。範囲を超える変更は同意が原則となる。","× 利用目的の変更は認められており、変更に伴う個人データの消去が一律に必要になるわけではない。"]},{"id":"pms-10","type":"mc","chapterIndex":5,"stem":"個人データの第三者提供に関する原則として、最も適切なものはどれか。","options":["親会社や子会社への提供であれば、資本関係があるため、別の法人であっても本人の同意は不要であり、提供の記録を作成する必要もない。","法令に基づく場合など法定の例外を除き、本人の同意を得ないで個人データを第三者に提供することは原則としてできない。","提供先が公的機関であれば、常に本人の同意を得ずに提供でき、提供の記録を作成する義務も一切課されない。","提供先が業務提携先であっても、契約書を交わし、利用目的や管理方法を定めておけば、個人データの第三者提供の制限が解除され、本人の同意は不要になる。"],"correctIndex":1,"explanations":["× 親会社や子会社も、別の法人であれば第三者に当たる。資本関係だけでは同意の例外にならない。","○ 正しい。法第27条第1項。法令に基づく場合などの例外を除き、本人同意が原則である。","× 公的機関であっても、常に同意が不要になるわけではない。例外には個別の要件がある。","× 業務提携先は第三者に当たる。契約書の締結では本人同意の例外にならない。"]},{"id":"pms-11","type":"mc","chapterIndex":5,"stem":"オプトアウトによる第三者提供に関する記述として、最も適切なものはどれか。","options":["本人が停止を求める前に提供を開始し、事後に公表すれば、どの個人データでも無期限に提供を続けられる。","提供を停止する請求を受けないまま、公表しておけば、法令の定めがなくても提供の対象を自由に拡大できる。","要配慮個人情報は、オプトアウトの方式による第三者提供の対象にはできない。","個人データ以外の情報にも、同じ手続で提供できる仕組みであり、対象となる情報の種類による制限はなく、提供先の範囲も自由に定めてよい。"],"correctIndex":2,"explanations":["× 提供の停止を求められたときは応じる必要がある。公表だけで無期限に提供を続けられるわけではない。","× 法令の定める事項を満たさないまま対象を拡大することはできない。","○ 正しい。法第27条第2項により、要配慮個人情報はオプトアウトの対象外である。","× オプトアウトは個人データの第三者提供に関する仕組みであり、個人データ以外には適用されない。"]},{"id":"pms-12","type":"mc","chapterIndex":5,"stem":"外国にある第三者への個人データの提供に関する記述として、最も適切なものはどれか。","options":["提供先が日本と同等の保護水準を満たしていれば、本人の同意は常に不要である。","提供先の国が公表されていれば同意は不要。","事業者が自社の管理下で保管している場合は、外国にある第三者への提供には当たらない。","原則として本人の同意が必要であり、同意の取得時には移転先の国の制度などの情報提供が求められる。"],"correctIndex":3,"explanations":["× 保護水準が同等であっても、原則として本人の同意が必要である（法第28条）。例外は限定的である。","× 国が公表されているだけでは、同意の取得を省略できる根拠にはならない。","× 外国にある事業者の管理下に置く場合は、外国にある第三者への提供に当たりうる。自社管理かどうかで直ちに例外にはならない。","○ 正しい。法第28条第1項。同意取得時の情報提供義務（移転先の制度等）も定められている。"]},{"id":"pms-13","type":"mc","chapterIndex":6,"stem":"個人データの漏えい等が発生した場合の報告に関する記述として、最も適切なものはどれか。","options":["要配慮個人情報や財産的被害のおそれがある漏えい等は、個人情報保護委員会への報告が必要であり、速報と確報の段階がある。","漏えい等が発生しても、本人に通知すれば、個人情報保護委員会への報告は不要である。","報告は1年以内に行えばよく、発生直後に報告する必要はない。","社内で原因を特定できた場合に限り報告は任意となり、本人への通知も個人情報保護委員会への報告も両方とも必要なくなると、実務上は整理されている。"],"correctIndex":0,"explanations":["○ 正しい。法第26条および施行規則により、一定の漏えい等は委員会への報告が義務となる。速報と確報の二段階である。","× 本人への通知と委員会への報告は別の義務であり、通知だけでは報告義務を満たさない。","× 報告は速やかに行う必要があり、1年以内という期限は一般的な定めではない。","× 原因の特定の有無は報告義務の要件ではない。"]},{"id":"pms-14","type":"mc","chapterIndex":0,"stem":"保有個人データの説明として、最も適切なものはどれか。","options":["個人情報データベース等に含まれるすべての情報を指し、消去予定の情報も含まれる。","個人データのうち、本人の求めに応じて開示や内容の訂正等をする権限を事業者が有するもので、6か月以内に消去されるものを除くもの。","他社の管理する個人データを指し、当該事業者は開示や訂正などの権限を一切持たないものとされ、預かっているだけの情報を指すため、事業者の義務の対象外となる。","本人から直接取得した個人情報に限られ、第三者から提供を受けたものや、業務の委託を受けて預かったものは含まれず、取得経路によって判断される。"],"correctIndex":1,"explanations":["× 消去予定の情報を含むという記述は、保有個人データの定義の一部に当たらない。","○ 正しい。法第16条第4項の定義。6か月以内に消去されるもの（短期保存データ）は保有個人データから除かれる。","× 他社の管理する個人データは、この定義の対象ではない。事業者自身が管理する個人データが対象である。","× 取得経路による限定はない。第三者から提供を受けたデータも、要件を満たせば保有個人データになる。"]},{"id":"pms-15","type":"mc","chapterIndex":6,"stem":"安全管理措置に関する記述として、最も適切なものはどれか。","options":["個人データを暗号化していれば、技術的な措置が満たされるため、そのほかの安全管理措置は一切不要であり、教育や委託先の管理なども省略してよい。","安全管理措置は情報システムの措置に限られ、紙の帳票や施錠された保管場所などの物理的な保管、従業員の教育や委託先の管理は、対象外として扱ってよい。","組織的・人的・物理的・技術的の観点から、個人データの漏えい等を防ぐために必要かつ適切な措置を講じる。","従業員の教育は、情報を取得した時点で一度行えば、以後は不要であり、委託先の従業員についても教育の実施を求める必要はない。"],"correctIndex":2,"explanations":["× 暗号化は技術的措置の一つにすぎず、他の措置も必要である。組織・人・物理の観点が欠けている。","× 紙の帳票や保管場所も安全管理措置の対象である（法第23条）。情報システムに限られない。","○ 正しい。法第23条の定めで、四つの観点から必要かつ適切な措置を講じることが求められる。","× 従業員教育は継続的に行うことが前提である。一度行えば足りるわけではない。"]},{"id":"pms-16","type":"mc","chapterIndex":6,"stem":"委託先の監督に関する記述として、最も適切なものはどれか。","options":["委託先の責任は委託先が負うため、委託元は監督しない。","委託契約を締結すれば、管理状況の確認は不要になる。","委託先の選定は、委託先の価格のみを基準にすれば足りる。","委託先に対して必要かつ適切な監督を行い、その責任は委託元にも残る。"],"correctIndex":3,"explanations":["× 委託先で漏えいが起きても、委託元の監督義務は残る（法第25条）。委託先のみが責任を負うわけではない。","× 契約の締結後も、委託先の管理状況を確認する必要がある。","× 委託先の選定は、安全管理の能力などを総合的に評価して行う必要がある。価格だけで判断することは適切ではない。","○ 正しい。法第25条は、委託先に対する必要かつ適切な監督を求めている。"]},{"id":"pms-17","type":"mc","chapterIndex":1,"stem":"プライバシーマーク制度に関する記述として、最も適切なものはどれか。","options":["JIPDEC（日本情報経済社会推進協会）が運営し、JIS Q 15001に基づいて事業者の個人情報保護マネジメントシステムを認定する制度である。","国の行政機関が直接運営し、個人情報保護法の違反事業者に対して罰則や行政処分を科すとともに、認定を受けた事業者の名称を官報で公表する制度であり、民間の事業者の任意の取組みとは性格が異なる。","個人情報保護法に基づく義務的な認定であり、個人情報を取り扱うすべての事業者が取得を義務付けられている。","個人情報の漏えい事故を起こした事業者だけが申請できる、事後的な再発防止の制度である。"],"correctIndex":0,"explanations":["○ 正しい。プライバシーマーク制度はJIPDECが運営し、JIS Q 15001に基づいて認定する任意の制度である。","× 運営主体と性格が異なる。プライバシーマークは行政が直接運営する罰則制度ではない。","× 取得は任意であり、法律で義務付けられているものではない。","× 申請の要件に事故の有無は限定されていない。"]},{"id":"pms-18","type":"mc","chapterIndex":5,"stem":"個人情報の取得に関する記述として、最も適切なものはどれか。","options":["目的が正当であれば、同意なく使用できる。","偽りその他不正の手段により個人情報を取得してはならない。","取得にあたり本人に通知していれば、取得の方法は問われず、通知の内容によっては不正な手段であっても問題にならないと整理されている。","公開されている情報は、どのような方法で収集しても問題がなく、取得の目的や利用の態様にかかわらず、法令上の制約を受けることはないと整理されている。"],"correctIndex":1,"explanations":["× 誤り。目的が正当であっても、取得や利用には法の定める要件を満たす必要がある。","○ 正しい。法第20条第1項は、不正な手段による取得を禁じている。","× 通知の有無は取得方法の適法性を保証しない。不正な手段による取得は許されない。","× 公開されている情報であっても、取得の方法や利用の目的によっては法令違反となりうる。"]},{"id":"pms-19","type":"mc","chapterIndex":5,"stem":"個人データの正確性の確保に関する記述として、最も適切なものはどれか。","options":["個人データは取得時点の内容を保つことが原則であり、後から更新することは認められていない。","正確性は取得した本人が保証すればよく、事業者が個別に内容を確認したり、更新の仕組みを設けたりする必要はないと整理されている。","利用目的の達成に必要な範囲で、個人データを正確かつ最新の内容に保つよう努める。","正確性を確保できない場合は、そのデータを直ちに消去しなければならず、利用目的の達成に必要な期間であっても、例外なく削除する義務を負う。"],"correctIndex":2,"explanations":["× 最新の内容に保つ努力が求められる。取得時点の内容を固定することは要件ではない。","× 事業者にも正確性の確保の努力が求められる。本人の申告のみに依存することは十分ではない。","○ 正しい。法第22条は、利用目的の範囲で正確かつ最新の内容に保つよう努めることを定める。","× 正確性を確保できない場合に直ちに消去する義務は、法律上の一般的な定めではない。"]},{"id":"pms-20","type":"mc","chapterIndex":5,"stem":"個人データの消去に関する記述として、最も適切なものはどれか。","options":["いつまでも保存しなければならない。","一律に5年間は必ず保存しなければならない。","本人の同意がある場合にのみ消去することができる。","利用する必要がなくなったときは、遅滞なく消去するよう努める。"],"correctIndex":3,"explanations":["× 保存期間は利用目的に応じて定めるべきである。無期限の保存を求める定めではない。","× 誤り。保存期間は利用目的や法令に応じて定めるもので、一律に5年とは定められていない。","× 消去は同意の有無で左右されるものではない。利用の必要がなくなったときに消去するのが原則である。","○ 正しい。法第22条は、利用する必要がなくなったときに遅滞なく消去するよう努めることを定める。"]},{"id":"pms-21","type":"mc","chapterIndex":1,"stem":"PMSを確立する際、組織の内外の課題のうち個人情報の取扱いに影響するものを把握する対応として、最も適切なものはどれか。","options":["組織の外部環境や内部の状況を分析し、個人情報の取扱いに影響する課題を特定して、PMSの計画に反映させる。","過去に起きた事故の件数だけを集計し、その結果を今後の課題として扱うことで、外部環境や内部の状況の分析に代えることができる。","競合他社の個人情報保護の取組みを模倣することを、そのまま課題として採用する。","課題は経営者が一人で判断すれば足り、現場からの情報を集める必要はない。"],"correctIndex":0,"explanations":["○ 正しい。組織の状況の理解（箇条4）として、内外の課題を把握し、PMSの計画に反映させることが求められる。","× 過去の事故件数の集計は一つの材料にすぎず、組織の内外の状況の分析に代わるものではない。","× 他社の取組みの模倣は課題の把握にならない。自社の状況に基づいて課題を特定する必要がある。","× 経営者だけで判断するのではなく、現場の情報も含めて課題を把握することが望ましい。"]},{"id":"pms-22","type":"mc","chapterIndex":1,"stem":"利害関係者（本人、取引先、規制当局など）の要求事項の扱いとして、最も適切なものはどれか。","options":["利害関係者の要求事項は、法令の要求とは別に扱い、PMSの対象とする必要はない。","本人、取引先、規制当局など個人情報保護に関係する利害関係者を特定し、その要求事項をPMSに反映させる。","利害関係者の要求は、事業者が受け入れるかどうかを自由に決めてよく、判断の過程や結果を記録する必要もなく、その都度の担当者の判断に任せてよい。","利害関係者は顧客のみを指し、取引先や規制当局、従業員や株主などは、個人情報保護の要求事項の対象外として扱うことができる。"],"correctIndex":1,"explanations":["× 利害関係者の要求事項は、PMSの計画で特定し、必要に応じて対応する必要がある。","○ 正しい。利害関係者を特定し、その要求事項を把握してPMSに反映させることが求められる。","× 要求事項の扱いを記録せずに自由に決めることは、PMSの要求に沿わない。","× 利害関係者には取引先や規制当局も含まれる。顧客だけに限られるものではない。"]},{"id":"pms-23","type":"mc","chapterIndex":1,"stem":"PMSの適用範囲の決定に関する記述として、最も適切なものはどれか。","options":["適用範囲は、組織の一部署だけで個人情報を扱っている場合は、その部署の名称だけを記載すれば足りる。","適用範囲は、事業者のすべての活動を対象にする必要があり、一部を除外することは認められない。","適用範囲は、対象の組織・事業・個人情報の範囲を明確にし、文書化して維持する。","適用範囲は認証を取得した後に決めればよく、取得前に定めておく必要はなく、審査の段階で示せば足りる。"],"correctIndex":2,"explanations":["× 適用範囲は部署名だけでは不十分である。対象となる事業や個人情報の範囲を明確にする必要がある。","× 適用範囲は組織の実情に応じて定めてよく、すべての活動を対象にすることが常に求められるわけではない。","○ 正しい。PMSの適用範囲（箇条4）の決定と文書化が求められる。","× 適用範囲は、PMSを確立する段階で決める必要がある。認証取得後に決めるものではない。"]},{"id":"pms-24","type":"mc","chapterIndex":1,"stem":"組織の状況の理解に関連して、個人情報の棚卸し（特定）の目的として、最も適切なものはどれか。","options":["個人情報の件数を多く見せ、事業規模を対外的にアピールするための資料とする。","棚卸しの結果は経営者の判断に用いるだけで、現場には共有しない。","個人情報の棚卸しは、個人情報を取り扱う部署が一度だけ行えば、以後は見直す必要はない。","個人情報をどの業務でどのように取得・利用・保管・提供しているかを把握し、リスクを検討する基礎とする。"],"correctIndex":3,"explanations":["× 件数の多さを示すことは、棚卸しの目的として適切ではない。","× 棚卸しの結果は、関係する現場と共有して運用に活かす必要がある。","× 棚卸しは取扱いの変化に応じて定期的に見直すことが求められる。一度きりでは足りない。","○ 正しい。棚卸しの目的は、リスクの検討と管理の基礎を作ることにある。"]},{"id":"pms-25","type":"mc","chapterIndex":1,"stem":"法令・規範・契約上の要求事項の特定に関する記述として、最も適切なものはどれか。","options":["法令・規範・契約上の要求事項を特定し、PMSの計画や運用に反映させ、継続的に把握する。","個人情報保護法に限って要求事項を特定すれば足り、業界のガイドラインや契約上の義務は対象外とする。","要求事項は、認証を取得する時点で一度だけ確認すればよい。","契約上の義務は取引先との合意事項であり、個人情報保護の要求事項には含まれない。"],"correctIndex":0,"explanations":["○ 正しい。法令・規範・契約上の要求事項を特定し、継続的に把握して反映させることが求められる。","× 個人情報保護法以外にも、業界のガイドラインや契約上の義務が要求事項に含まれる場合がある。","× 要求事項は改正や契約の変化に応じて更新する必要がある。一度の確認では足りない。","× 契約上の個人情報保護義務は、要求事項の重要な一部である。"]},{"id":"pms-26","type":"mc","chapterIndex":2,"stem":"PMSにおけるトップマネジメントの責任に関する記述として、最も適切なものはどれか。","options":["個人情報保護の責任は現場の担当者にあるため、トップマネジメントは関与を最小限にとどめ、日常の運用は担当者の判断に任せればよい。","トップマネジメントは、PMSの方針と目標を定め、必要な資源を確保し、その有効性を確認する責任を負う。","トップマネジメントは、個人情報保護管理者に全権を委任し、以後は報告を受けるだけでよい。","トップマネジメントの責任は、認証の取得の時点で終わり、以後の方針の見直しや資源の確保、運用状況の確認は現場の担当者に任せてよい。"],"correctIndex":1,"explanations":["× 個人情報保護は経営の課題であり、トップマネジメントが責任を持って関与する必要がある。","○ 正しい。箇条5（リーダーシップ）では、トップマネジメントが方針・目標・資源の確保などに責任を負うとされる。","× 管理者への委任は可能だが、トップマネジメントの責任が消えるわけではない。","× 認証の取得後も、PMSを維持し改善する責任は継続する。"]},{"id":"pms-27","type":"mc","chapterIndex":2,"stem":"個人情報保護方針の策定と公表に関する記述として、最も適切なものはどれか。","options":["個人情報保護方針は社内にだけ示しておけばよく、組織の内部で周知が済んでいれば、外部に公表する必要はなく、問い合わせがあった場合のみ個別に回答すればよい。","個人情報保護方針は、取扱いの内容を具体的に記載すると、かえって事業の柔軟性を損なうため、対象を限定しない抽象的な表現にとどめ、詳細は運用の段階で必要に応じて決めればよい。","個人情報保護方針は、組織の目的や事業の性質に適した内容とし、トップマネジメントが承認して、社内外に周知する。","個人情報保護方針は、法令の条文をそのまま写した内容とすれば十分であり、事業の実態や組織の目的を記載する必要はなく、審査の際にも条文との一致だけが確認される。"],"correctIndex":2,"explanations":["× 方針は社外にも公表し、周知する必要がある。社内だけでは不十分である。","× 方針は事業の実態に沿った具体性が必要である。抽象的すぎる内容は適切ではない。","○ 正しい。箇条5では、方針をトップマネジメントが策定・承認し、組織内で周知することが求められる。","× 法令の条文の写しは、組織の方針としての役割を果たさない。"]},{"id":"pms-28","type":"mc","chapterIndex":2,"stem":"個人情報保護方針に含めることが望ましい内容として、最も適切なものはどれか。","options":["一般的な理念だけを記載し、具体的な取組みは含めない方針。","取扱いに関する数値目標のみを記載し、理念は含めない。","従業員の個人情報の取扱いのみを対象とし、顧客の情報は含めない。","個人情報保護の目的、法令等の遵守、継続的改善への取組みの約束などを含める。"],"correctIndex":3,"explanations":["× 誤り。理念だけで具体的な取組みを含めない方針は、要求される内容を満たさない。","× 数値目標は方針ではなく目標として扱うのが一般的である。理念を欠くのは適切でない。","× 方針は顧客や取引先の情報も含めた取扱い全体を対象とする必要がある。","○ 正しい。法令遵守、目的、継続的改善の約束などが方針の代表的な内容である。"]},{"id":"pms-29","type":"mc","chapterIndex":2,"stem":"役割・責任・権限の割当てに関する記述として、最も適切なものはどれか。","options":["PMSにおける役割・責任・権限を明確にし、必要な部門や担当者に割り当てて周知する。","役割と責任は口頭で伝えられていれば十分であり、文書化して明確にする必要はなく、担当者同士の了解があれば、運用の記録も残さなくてよい。","役割は個人情報保護管理者一人に集中させ、他の部門は関与しない。","権限は、担当者が必要と判断した場合に、その都度自由に変更してよい。"],"correctIndex":0,"explanations":["○ 正しい。箇条5では、役割・責任・権限を割り当てて伝達することが求められる。","× 役割と責任は文書などで明確にして、周知することが必要である。口頭だけでは足りない。","× 役割を一人に集中させると、PMSの運用が機能しにくい。関係する部門に割り当てる必要がある。","× 権限の変更は、統制された手続で行う必要がある。自由な変更は適切でない。"]},{"id":"pms-30","type":"mc","chapterIndex":2,"stem":"個人情報保護管理者の任命に関する記述として、最も適切なものはどれか。","options":["個人情報保護管理者は、特定の専門資格を保有していなければ任命できず、資格の保有者が社内に一人もいない場合は、PMSの運用そのものを開始できない。","個人情報保護管理者は、PMSの運用と有効性を管理する権限と責任を持つ者として、組織内で明確に任命する。","個人情報保護管理者は、業務の現場から切り離して、経営層の指示を受ける役割のみを担い、現場の運用状況については報告を受けず、担当者の判断に任せればよい。","個人情報保護管理者は複数名置くことを認められず、一人に限定される。"],"correctIndex":1,"explanations":["× 特定の資格を必須とする定めは、一般的な要求事項ではない。","○ 正しい。PMSの運用と有効性に対する権限と責任を持つ者を任命する必要がある。","× 管理者は現場の実態を把握していることが望ましく、現場から切り離すと運用が機能しにくい。","× 複数名の任命を禁止する定めはない。組織の規模に応じて分担することもある。"]},{"id":"pms-31","type":"mc","chapterIndex":3,"stem":"PMSの計画における個人情報保護のリスク及び機会への取組みに関して、最も適切なものはどれか。","options":["リスクは、事故が起きてから対応すればよいものとして、事前に特定する必要はなく、発生した後に個別に対処する方式を基本とすることで足りると整理されている。","リスクは個人情報の取扱いに関するものだけを対象とし、機会は個人情報保護の取組みとは無関係なものとして、計画の対象から外してよい。","個人情報保護に関するリスクと機会を特定し、それへの取組みを計画して、PMSに組み込む。","リスクは経営者の判断だけで決めればよく、評価の方法や基準を文書で定める必要はなく、担当者が必要に応じて個別に判断すれば十分とされる。"],"correctIndex":2,"explanations":["× 事前にリスクを特定して対応を計画することが求められる。事故の後の対応だけでは不十分である。","× リスクは取扱いに限らず、機会も含めて検討する必要がある。","○ 正しい。箇条6では、リスク及び機会に取り組むことを計画し、PMSに組み込むことが求められる。","× 評価の方法を定めて、体系的にリスクを扱う必要がある。経営者の判断だけでは不十分である。"]},{"id":"pms-32","type":"mc","chapterIndex":3,"stem":"個人情報のリスクアセスメントに関する記述として、最も適切なものはどれか。","options":["事業者の損害額だけを評価すればよい。","一度実施すれば、以後は見直さなくてよい。","リスクアセスメントの結果は、担当者が個人の判断で扱い、組織的に共有しない。","リスクアセスメントは、個人情報の漏えいの影響を、本人の権利利益の観点で評価する必要がある。"],"correctIndex":3,"explanations":["× 本人の権利利益への影響を考慮せずに評価することは、個人情報保護の観点に沿わない。","× 取扱いの変化に応じて、定期的に見直す必要がある。","× 結果は組織として共有し、対応に活かす必要がある。","○ 正しい。個人情報のリスクは、本人の権利利益への影響の観点から評価することが重要である。"]},{"id":"pms-33","type":"mc","chapterIndex":3,"stem":"リスク対応に関する記述として、最も適切なものはどれか。","options":["リスク対応は、低減、回避、移転、受容などの方法から、組織の状況に応じて選択し、必要な管理策を計画する。","リスク対応は、すべてのリスクをゼロにすることを目標とし、残留リスクを認めてはならない。","リスク対応は、既存の管理策がある場合は、新たな計画を作る必要はない。","リスク対応は、委託先に任せれば事業者の責任はなくなり、以後は委託先の運用状況を確認したり、契約内容を見直したりする必要もない。"],"correctIndex":0,"explanations":["○ 正しい。リスク対応では、低減・回避・移転・受容などの選択肢から適切な方法を選び、管理策を計画する。","× リスクをゼロにすることは現実的でない場合が多く、残留リスクの扱いを決めることが必要である。","× 既存の管理策が十分か評価し、必要に応じて計画を見直す必要がある。","× 委託しても、事業者の責任が消えるわけではない。委託先の監督も必要である。"]},{"id":"pms-34","type":"mc","chapterIndex":3,"stem":"PMSにおける個人情報保護目標の設定に関する記述として、最も適切なものはどれか。","options":["目標は、達成しやすさを優先し、測定の方法は定めない。","目標は、個人情報保護方針と整合させ、測定可能なものとして設定する。","目標は、経営者が毎年変更し、一貫性を持たせる必要はなく、状況に応じて担当部門ごとに都度定めてよいものとされる。","目標は、個人情報保護の担当部門だけが設定し、他の部門には伝えず、達成状況も担当部門の内部だけで把握すれば足りる。"],"correctIndex":1,"explanations":["× 測定の方法を定めないと、目標の達成を評価できない。","○ 正しい。箇条6では、目標を方針と整合させ、測定可能なものとして設定することが求められる。","× 目標は一貫性を持って管理し、見直しは計画的に行う必要がある。","× 目標は関係する部門に伝え、達成に向けて共有する必要がある。"]},{"id":"pms-35","type":"mc","chapterIndex":3,"stem":"個人情報保護目標の達成計画に関する記述として、最も適切なものはどれか。","options":["達成計画は、目標の達成後に作成すれば足り、実施事項や期限は結果を見てから事後的に整理して記録すれば十分である。","達成計画は、担当者の経験に基づいて作成し、文書化せず、必要が生じたときに口頭で関係者に伝えれば十分であると整理されている。","達成計画には、実施事項、必要な資源、責任者、期限、結果の評価方法を含める。","達成計画は、外部の専門家に任せて作成してもらい、組織内での確認や承認は、専門家の報告内容が妥当であれば不要とする。"],"correctIndex":2,"explanations":["× 計画は目標の達成に向けて事前に作成するものである。事後の作成では計画の意味がない。","× 計画は文書化し、組織内で共有する必要がある。","○ 正しい。計画には、何を、誰が、いつまでに、どのように行い、どう評価するかを含める必要がある。","× 組織内での確認を省くと、計画の実効性を管理できない。"]},{"id":"pms-36","type":"mc","chapterIndex":3,"stem":"PMSの変更の計画に関する記述として、最も適切なものはどれか。","options":["PMSの変更は、事故が起きた後に、その場で対応すればよい。","PMSの変更は、担当者の判断で随時行い、記録は残さない。","認証機関の承認が必ず必要である。","PMSに変更が生じる場合は、変更の目的と影響を検討し、計画的に行う。"],"correctIndex":3,"explanations":["× 事故後の場当たり的な対応は、計画的な変更とはいえない。","× 変更は記録を残し、統制された手続で行う必要がある。","× 認証機関の承認が必要となるとは限らない。組織内で検討し、計画的に進めることが基本である。","○ 正しい。変更の目的と影響を検討し、計画的に行うことが求められる。"]},{"id":"pms-37","type":"mc","chapterIndex":1,"stem":"PMSの適用範囲の文書化に関する記述として、最も適切なものはどれか。","options":["適用範囲の文書には、対象の事業・部門・個人情報の範囲と、除外する場合はその理由を含める。","適用範囲の文書には、組織の売上や従業員数を記載しなければならない。","適用範囲の文書は、対外的に公表する必要はなく、内部の資料として保存すれば足りる。","適用範囲は、文書化せずに口頭で伝えることができ、対象範囲の変更があった場合も、関係者への周知は個別の会話で足りるものとされる。"],"correctIndex":0,"explanations":["○ 正しい。適用範囲の決定と、除外の理由の明確化が求められる。","× 売上や従業員数は、適用範囲を定める要件ではない。","× 適用範囲を対外的に示す場合がある。内部資料にとどめる必要はない。","× 適用範囲は文書化して維持する必要がある。口頭では足りない。"]},{"id":"pms-38","type":"mc","chapterIndex":1,"stem":"組織の状況に関連して、グループ会社や業務委託先が個人情報を取り扱う場合の対応として、最も適切なものはどれか。","options":["グループ会社や委託先は、別の法人であるため、PMSの検討対象からは一切除外する。","グループ会社や委託先の取扱いは、組織の状況に含まれるため、適用範囲や管理の方法を検討する。","グループ会社の取扱いは親会社の判断にすべて任せ、自社は関与せず、親会社から求められた場合にのみ、必要に応じて取扱いの状況を回答すればよいと整理されている。","委託先の取扱いは、契約書に記載すれば、以後の確認は不要であり、委託先の変更や再委託があった場合も、契約書の更新だけで対応できる。"],"correctIndex":1,"explanations":["× 別の法人であっても、委託している個人情報の取扱いは組織の責任の範囲に関係する。","○ 正しい。組織が取り扱う個人情報の範囲には、グループ会社や委託先の取扱いが含まれる場合がある。","× 親会社に任せるだけでは、自社の責任を果たしたことにならない。","× 契約の締結後も、委託先の管理状況を確認し続ける必要がある。"]},{"id":"pms-39","type":"mc","chapterIndex":3,"stem":"内部・外部の課題の把握に関して、その結果の使い方として、最も適切なものはどれか。","options":["課題の把握は、経営者への報告のみに用い、PMSの計画や運用には反映させず、報告書として保存しておけば足りる。","課題の把握は、外部環境の変化が少ないため一度行えば見直しは不要であり、最初に実施した結果をそのまま長く使い続けてよい。","課題の把握は、個人情報保護の目標や計画、リスク対応などの検討に反映させる。","課題の把握は、組織の業績を示すためにのみ用い、個人情報保護の取組みの計画や運用とは切り離して管理し、対外的な説明の材料として使う。"],"correctIndex":2,"explanations":["× 課題の把握は、PMSの計画や運用に活かすことが目的である。報告だけでは不十分である。","× 外部環境は変化するため、定期的に見直す必要がある。","○ 正しい。課題の把握の結果は、目標・計画・リスク対応などの検討に反映させる。","× 課題の把握は、PMSの改善を目的とするものであり、業績の提示が目的ではない。"]},{"id":"pms-40","type":"mc","chapterIndex":4,"stem":"PMSの運用において、個人情報の取扱いに関する方針の一貫性を保つ取組みとして、最も適切なものはどれか。","options":["部門ごとに方針を独自に定め、事業の実態に合わせて自由に変更する。","方針は一度定めた後、変更せず長期間運用する。","方針は個人情報保護管理者だけが知っていればよい。","全社の方針と、部門ごとの運用ルールが整合するように、文書を管理し、周知する。"],"correctIndex":3,"explanations":["× 部門ごとに独自の方針を定めると、全社の方針との一貫性が失われる。","× 環境の変化に応じて、方針は見直す必要がある。","× 従業員への周知を欠くと、方針が運用に反映されない。","○ 正しい。全社の方針と部門の運用ルールの整合を確保し、周知することが求められる。"]},{"id":"pms-41","type":"mc","chapterIndex":1,"stem":"組織の状況の理解に関して、外部の課題の例として最も適切なものはどれか。","options":["個人情報保護に関する法令や社会的な要請の変化","従業員の人事評価制度の見直しに伴う、評価項目と報酬制度の大幅な変更","社内の会議室の予約と利用のルール","経理部門の月次決算に関する事務処理"],"correctIndex":0,"explanations":["○ 正しい。法令や社会的な要請の変化は、組織の外部の課題に当たる。","× 人事評価制度は内部の課題に当たる。","× 誤り。会議室の予約ルールは、外部の課題の例には当たらない。","× 誤り。経理の決算処理は、外部の課題の例には当たらない。"]},{"id":"pms-42","type":"mc","chapterIndex":1,"stem":"利害関係者の要求事項の例として、最も適切なものはどれか。","options":["事業者の売上目標の達成と、それに伴う新規事業の立ち上げに関する経営計画の策定","個人情報の取扱いについて、本人が求める説明や開示に関する要請","従業員の社内の表彰制度と、その表彰基準の年次見直しに関する運用ルール","備品の購入計画と執務スペースの段取り"],"correctIndex":1,"explanations":["× 売上目標は事業者の経営目標であり、利害関係者の要求事項の例ではない。","○ 正しい。本人は個人情報保護に関係する利害関係者であり、その要求事項を把握して対応する必要がある。","× 表彰制度は社内の制度であり、個人情報保護に関係する要求事項の例ではない。","× 備品の購入計画は、個人情報保護の要求事項とは関係がない。"]},{"id":"pms-43","type":"mc","chapterIndex":1,"stem":"PMSの適用範囲を定める際の考慮事項として、最も適切なものはどれか。","options":["適用範囲は、事業者の規模や業種にかかわらず一律に全社とする必要があり、子会社や関連する拠点についても例外なく同一の範囲で定めなければならない。","適用範囲は、認証の取得を容易にするため、審査の対象になりやすい最小限の部門だけに限定して定めればよく、取扱いの実態は範囲の判断に含めない。","適用範囲は、組織の実態、取り扱う個人情報の範囲、法令上の要求事項を考慮して定める。","適用範囲は、個人情報の取扱いと無関係な業務も含めて定め、対象となる事業部門の数を増やして組織全体を網羅することを優先する。"],"correctIndex":2,"explanations":["× 適用範囲は組織の状況に応じて定めるもので、一律の規定はない。","× 認証取得を理由に範囲を恣意的に狭めることは適切でない。","○ 正しい。組織の実態、取扱いの範囲、要求事項を踏まえて定める必要がある。","× 個人情報の取扱いと無関係な業務を含める必要はない。範囲は取扱いに基づいて定める。"]},{"id":"pms-44","type":"mc","chapterIndex":3,"stem":"PMSにおける計画の策定に関する記述として、最も適切なものはどれか。","options":["計画は、前年の計画をそのまま踏襲し、見直す必要はない。","計画は担当者の思いつきで作成し、実施後に目標を後から設定してよい。","計画は、経営者の承認を得ずに、現場の判断だけで実施する。","計画は、リスクや課題の把握をもとに、目標と、それを達成する方法を定めて作成する。"],"correctIndex":3,"explanations":["× 前年の計画をそのまま使うと、環境の変化に対応できない。","× 計画には根拠を示し、文書化する必要がある。","× 計画は経営者の承認を得て、組織として実施する必要がある。","○ 正しい。リスクや課題の把握を基礎に、目標と達成の方法を定めることが計画の基本である。"]},{"id":"pms-45","type":"mc","chapterIndex":2,"stem":"PMSにおける役割の分担に関して、最も適切な考え方はどれか。","options":["役割は、責任と権限の範囲を明確にし、重複や空白が生じないように割り当てる。","役割は、なるべく多くの担当者に重ねて割り当て、誰が責任を負うかは曖昧にしておく。","役割は、個人情報保護に関係する部門だけに限定し、経営層は含めない。","役割は、担当者の希望を優先し、組織の必要性は考慮しない。"],"correctIndex":0,"explanations":["○ 正しい。責任と権限が明確で、重複や空白がないことが役割分担の基本である。","× 責任の所在が曖昧になると、運用が機能しない。","× 経営層も役割を担い、方針や資源の確保に責任を持つ必要がある。","× 役割は組織の必要性に基づいて割り当てる必要がある。"]},{"id":"pms-46","type":"mc","chapterIndex":2,"stem":"PMSの有効性を確保するためにトップマネジメントが行う取組みとして、最も適切なものはどれか。","options":["事故が起きた時だけ報告を求め、それ以外の時期には運用の状況を把握せず、担当者の報告を待つ運用とする。","PMSの方針・目標に沿った運用を確認し、必要な資源を確保して、有効性の評価に関与する。","PMSの運用は担当者に任せ、経営層は一切関与しない。","PMSの有効性は、認証を取得した年にだけ確認すればよく、その後は運用の記録を残す必要もなく、担当者の判断で状況を把握すれば十分である。"],"correctIndex":1,"explanations":["× 事故が起きた時だけの関与では、継続的な有効性を確保できない。","○ 正しい。トップマネジメントは、運用の確認、資源の確保、有効性の評価に関与する責任を負う。","× 担当者への任せきりは、トップマネジメントの責任を果たさない。","× 有効性は継続的に確認する必要がある。取得した年だけでは足りない。"]},{"id":"pms-47","type":"mc","chapterIndex":3,"stem":"個人情報保護の目標と計画の関係に関する記述として、最も適切なものはどれか。","options":["目標は計画の結果であり、計画が完了するまで目標を定める必要はなく、計画の途中で目標の内容を変えることも自由に認められている。","計画は目標とは独立して作成し、達成の確認は行わず、計画の実施状況の記録も残さずに、担当者の判断で順次進めればよいものとされる。","目標は、計画の達成度を測る基準となるため、計画と整合させて設定する。","目標は年度末に一度だけ設定し、計画には反映させず、達成の確認は担当者の判断に委ねる運用とする。"],"correctIndex":2,"explanations":["× 目標は計画の前提として定めるものであり、計画の結果ではない。","× 計画と目標は関係があり、独立して扱うと達成の確認ができない。","○ 正しい。目標と計画を整合させ、達成度を測る基準として用いる。","× 目標は計画に反映させて管理する必要がある。"]},{"id":"pms-48","type":"mc","chapterIndex":4,"stem":"個人情報の取扱いに関する文書化の要求に関して、最も適切な考え方はどれか。","options":["文書は、量が多いほど望ましいため、詳細に作成する。","文書は、作成後に一切変更せず、最初の版を永久に使用する。","文書は、担当者が個人で保管すれば足り、組織の管理は不要である。","文書は、PMSの運用の有効性を示す範囲で、必要なものを作成し、維持する。"],"correctIndex":3,"explanations":["× 量の多さは目的ではない。必要な範囲で作成すれば十分である。","× 文書は変更の管理を行い、必要に応じて更新する必要がある。","× 文書は組織として管理し、関係者が参照できるようにする必要がある。","○ 正しい。文書は、PMSの運用と有効性を示すために必要な範囲で作成し、維持することが求められる。"]},{"id":"pms-49","type":"mc","chapterIndex":3,"stem":"PMSの計画における「変更の管理」に関する記述として、最も適切なものはどれか。","options":["PMSに関係する変更（業務、システム、組織、法令など）が生じた場合は、その影響を評価し、計画的に対応する。","変更は、影響を評価せずにそのまま実施し、問題が起きた後に対処する。","変更は、経営層だけが決定し、現場には伝えず、変更の内容が業務に与える影響も評価せずに、一律に実施してよいものとされる。","法令の改正は、PMSに影響を与えないため、対応は不要である。"],"correctIndex":0,"explanations":["○ 正しい。業務やシステム、組織、法令などの変更は、PMSへの影響を評価して計画的に扱う必要がある。","× 影響を評価せずに実施すると、個人情報の保護に支障が生じるおそれがある。","× 変更は関係者に伝え、必要な対応を行う必要がある。","× 法令の改正は、PMSの要求事項に影響しうるため、対応を検討する必要がある。"]},{"id":"pms-50","type":"mc","chapterIndex":1,"stem":"PMSにおいて、個人情報の取扱いの範囲を定める際の留意点として、最も適切なものはどれか。","options":["取扱いの範囲は、紙の帳票を除き、電子データだけを対象とし、紙で保管されている帳票や記録の管理は、PMSの対象とはしないものとする。","取扱いの範囲は、個人情報を取り扱う業務やシステム、委託の範囲を含めて把握する。","取扱いの範囲は、従業員の個人情報を除き、顧客の情報だけを対象とし、取引先や委託先が保有する情報は、組織の管理対象から外して扱ってよい。","取扱いの範囲は、一度定めれば、業務の変更にかかわらず見直さない。"],"correctIndex":1,"explanations":["× 紙の帳票も個人情報の取扱いに含まれる。電子データだけに限定するのは適切でない。","○ 正しい。個人情報を取り扱う業務、システム、委託の範囲を含めて把握することが求められる。","× 従業員の個人情報も対象に含める必要がある。顧客の情報だけに限定するのは適切でない。","× 業務の変更に応じて、取扱いの範囲は見直す必要がある。"]},{"id":"pms-51","type":"mc","chapterIndex":8,"stem":"PMSの見直しに関する記述として、最も適切なものはどれか。","options":["見直しは、認証の更新の時期に一度だけ行えばよく、認証を取得した後は、業務や法令の変化があっても、次の更新時まで方針を変えずに運用する。","見直しは、経営層の判断だけで行い、現場からの意見は取り入れず、決定した内容を速やかに組織へ周知する。","見直しは、事業環境や法令の変化、事故の発生などに応じて、計画的かつ適時に行う。","見直しを行うと、以前の方針との一貫性が失われるため、行ってはならず、一度定めた方針や目標は、組織の状況にかかわらず永続的に維持する必要がある。"],"correctIndex":2,"explanations":["× 認証更新の時期だけでは、環境の変化に対応できない。","× 現場の意見を取り入れることは、運用の実効性を高めるために望ましい。","○ 正しい。事業環境や法令の変化、事故などに応じて、PMSを適時に見直す必要がある。","× 見直しは一貫性を保ちながら行うことが基本であり、見直し自体を禁じるものではない。"]},{"id":"pms-52","type":"mc","chapterIndex":7,"stem":"個人情報保護の目標を測定する方法に関する記述として、最も適切なものはどれか。","options":["担当者の感覚で達成を判断する。","測定の結果は公表せず、内部での記録も残さない。","測定できない目標を設定し、確認は不要とする。","目標の達成度を示す指標を定め、測定の時期と方法を明確にする。"],"correctIndex":3,"explanations":["× 担当者の感覚による判断は客観性を欠き、適切でない。","× 測定の結果は内部で記録し、必要に応じて報告・改善に用いる必要がある。","× 測定できない目標は、達成の評価ができず、PMSの目標として適切でない。","○ 正しい。指標と測定の時期・方法を定めることで、目標の達成度を客観的に評価できる。"]},{"id":"pms-53","type":"mc","chapterIndex":4,"stem":"個人情報保護の教育・周知に関連して、計画段階で考慮すべき事項として、最も適切なものはどれか。","options":["教育の対象者、内容、時期、評価の方法を計画に含める。","教育は、経営層だけを対象にすれば十分であり、現場の従業員は対象としない。","事故が起きた後に実施すればよい。","外部の研修を一度受ければ以後は不要。"],"correctIndex":0,"explanations":["○ 正しい。対象者、内容、時期、評価を計画に含めることで、教育の実効性を確保できる。","× 現場の従業員も教育の対象となる。経営層だけでは不十分である。","× 誤り。教育は事故の後ではなく、計画に基づき事前に実施する必要がある。","× 教育は継続的に実施する必要があり、一度の受講で終わらせない。"]},{"id":"pms-54","type":"mc","chapterIndex":4,"stem":"PMSの運用に必要な資源の計画に関する記述として、最も適切なものはどれか。","options":["担当者の努力で補うものとし、計画には含めない。","資源（人員、予算、設備、情報など）の必要性を見積もり、計画に含めて確保する。","資源は、認証の取得後に必要な分だけを確保すればよく、取得前の段階では人員や予算を確保する必要はなく、準備は担当者の作業時間で賄う。","資源は、経営層が必要と判断した場合のみ確保し、計画には記載せず、必要性が生じたときに個別に検討して対応すればよいものとされる。"],"correctIndex":1,"explanations":["× 担当者の努力だけでは、必要な資源を補えない。計画に含めて確保する必要がある。","○ 正しい。人員・予算・設備・情報などの必要性を見積もり、計画に含めることが求められる。","× 資源は取得前から計画して確保する必要がある。","× 資源の計画は、経営層の判断だけで済ませず、組織として計画に記載する必要がある。"]},{"id":"pms-55","type":"mc","chapterIndex":3,"stem":"個人情報の取扱いにおけるリスク及び機会の検討で、機会に当たるものとして最も適切なものはどれか。","options":["個人情報の漏えい事故の発生と、それに伴う事故対応の混乱や、関係者への説明の負担が増えること。","法令違反による行政指導と、その後に取引先から取引停止を求められるおそれが生じること。","適切な個人情報の管理によって、顧客からの信頼を高められること","委託先による情報の不適切な取扱いと、委託元の監督不足を理由とした、再発防止策の検討"],"correctIndex":2,"explanations":["× 漏えい事故はリスクに当たる。","× 行政指導はリスクに当たる。","○ 正しい。適切な管理による信頼の向上は、PMSがもたらす機会に当たる。","× 委託先の不適切な取扱いはリスクに当たる。"]},{"id":"pms-56","type":"mc","chapterIndex":2,"stem":"個人情報保護方針の見直しに関する記述として、最も適切なものはどれか。","options":["方針は一度定めたら、以後の見直しは不要である。","方針の見直しは、担当者が個人の判断で行ってよい。","見直しを怠ると、認証の維持や信頼性が下がる。","方針は、組織の状況や法令の変化に応じて、適切な時期に見直す。"],"correctIndex":3,"explanations":["× 方針は、組織や法令の変化に応じて見直す必要がある。","× 方針の見直しは、トップマネジメントの承認を得て組織として行う必要がある。","× 誤り。見直しを行うことで信頼性が高まるのであり、見直しをすると下がるものではない。","○ 正しい。組織の状況や法令の変化に応じて、適時に見直すことが求められる。"]},{"id":"pms-57","type":"mc","chapterIndex":1,"stem":"PMSの適用範囲に含まれない個人情報の取扱いについて、事業者が定める「対象範囲外」の扱いとして、最も適切なものはどれか。","options":["範囲外とする場合は、その理由を文書化し、範囲外であってもリスクが管理されていることを確認する。","範囲外とする業務があっても、その理由を示さず、組織の判断だけで除外してよい。","範囲外とした業務は法の対象外になるため、管理は不要である。","範囲外とするかどうかは、事故が起きた後に決める。その際、除外の理由を文書化することは不要で、関係者への説明も後日で足りる。"],"correctIndex":0,"explanations":["○ 正しい。除外の理由を文書化し、範囲外であっても個人情報の保護が損なわれないことを確認する必要がある。","× 理由を示さない除外は、適用範囲の妥当性を説明できない。","× 範囲外であっても、個人情報保護法の対象となる取扱いは残りうる。管理が不要になるわけではない。","× 範囲の決定は事前に行う必要がある。事後の決定では意味がない。"]},{"id":"pms-58","type":"mc","chapterIndex":1,"stem":"組織の状況の理解の結果を活用する方法として、最も適切なものはどれか。","options":["課題の一覧は、認証審査のときに提示するためだけに作成し、審査が終わった後は保管せず、日常の運用では使わずに廃棄してよいものとされる。","課題の一覧を作成し、PMSの計画・リスク対応・目標の設定に結びつけ、定期的に見直す。","課題の一覧は、担当者の個人のメモとして保管し、組織では共有しない。","課題の一覧は、作成後に一度だけ使えばよく、更新は不要であるため、結果が変化した後も初回の内容を使い続けてよいとされる。"],"correctIndex":1,"explanations":["× 課題の一覧は、PMSの計画や運用に結びつけることが目的であり、審査のためだけのものではない。","○ 正しい。課題を計画、リスク対応、目標に結びつけ、定期的に見直すことが求められる。","× 課題の一覧を組織で共有しないと、PMSの運用に活かせない。","× 課題は状況の変化に応じて更新する必要がある。"]},{"id":"pms-59","type":"mc","chapterIndex":2,"stem":"個人情報の取扱いに関する経営層の関与の説明として、最も適切なものはどれか。","options":["経営層は、個人情報保護に関する事故が起きた時のみ関与すればよく、平時の方針承認や目標の確認、資源の配分には関与する必要はない。","経営層は、個人情報保護管理者の報告を受けるだけで、判断や承認は行わず、方針や目標の内容については現場の担当者に一任する。","経営層は、方針の承認、目標の設定、資源の確保、PMSの有効性の確認に関与する。","経営層は、PMSの運用を現場に任せ、関与の記録を残す必要はなく、問題が生じた場合にのみ報告を受けて対応を決める。"],"correctIndex":2,"explanations":["× 事故の時だけの関与では、継続的なPMSの運用を確保できない。","× 報告を受けるだけでは、トップマネジメントの責任を果たしたことにならない。","○ 正しい。経営層（トップマネジメント）は、方針・目標・資源・有効性の確認に責任を持つ。","× 関与の記録は、有効性の確認のために残すことが望ましい。"]},{"id":"pms-60","type":"mc","chapterIndex":5,"stem":"PMSにおいて、個人情報保護の要求事項を組織に組み込む際の考え方として、最も適切なものはどれか。","options":["要求事項は担当部門だけで扱い、他の部門には関係させない。","要求事項は、法令の条文を業務に当てはめず、担当者の判断に任せる。","要求事項は、事業の拡大後に対応すればよく、初期の設計には含めない。","要求事項を業務プロセスやシステムの設計に組み込み、組織全体で遵守できるようにする。"],"correctIndex":3,"explanations":["× 要求事項は組織全体で遵守する必要があり、担当部門だけに限定するものではない。","× 法令の内容を業務に当てはめて、統制された形で運用する必要がある。担当者の判断に任せるのは適切でない。","× 要求事項は初期の設計段階から組み込む必要がある。事業拡大後の対応では遅れる。","○ 正しい。要求事項を業務プロセスやシステム設計に組み込み、組織全体で遵守できるようにすることが基本である。"]},{"id":"pms-61","type":"mc","chapterIndex":5,"stem":"Webフォームで氏名・メールアドレス・年齢を取得する。利用目的の通知として最も適切なものはどれか。","options":["取得後に利用目的をまとめてWebサイトに掲載しておけば、本人への個別の通知は不要である。","取得の時点で、フォーム上などにより本人に利用目的を明示してから取得する。","社内の台帳に利用目的を記録すれば、本人への通知は不要である。","氏名やメールアドレスは利用目的が明らかなので、通知を省略してよい。"],"correctIndex":1,"explanations":["× 誤り。取得後の掲載だけでは、取得の時点での明示の要件を満たさない。","○ 正しい。直接本人から取得するときは、利用目的を明示してから取得する。","× 誤り。社内の記録だけでは、本人への通知や公表の要件は満たされない。","× 誤り。利用目的が明らかでも、取得時の通知や明示は省略できない。"]},{"id":"pms-62","type":"mc","chapterIndex":5,"stem":"要配慮個人情報の取得に関する記述として、最も適切なものはどれか。","options":["本人の同意を得ていれば、取得の目的や利用の範囲を問わず、社内のどの部門でも自由に利用でき、外部への提供も可能である。","業務上の必要があり、社内の承認を得ていれば、本人の同意がなくても要配慮個人情報を取得して差し支えない。","原則として本人の同意を得て取得する。同意を要しない例外は、法令で定める場合などに限られる。","健康診断の結果は要配慮個人情報に該当しないので、同意を得る必要はない。"],"correctIndex":2,"explanations":["× 誤り。同意を得ていても、取得目的と利用範囲の制限は残る。","× 誤り。社内の承認は、本人の同意に代わる要件ではない。","○ 正しい。要配慮個人情報は原則として本人の同意が必要で、例外は法令に定める場合などに限られる。","× 誤り。健康診断の結果は、病歴などを含むため要配慮個人情報に当たる。"]},{"id":"pms-63","type":"mc","chapterIndex":5,"stem":"次のうち、不適正な方法による取得に当たる可能性が最も高いものはどれか。","options":["展示会で名刺を受け取り、その情報を当社の新商品の営業案内の送付に使う。","問い合わせフォームで本人が入力した情報を、問い合わせへの回答に使う。","取引先から提供された個人データを、契約上の許諾範囲で利用する。","本人に身分を偽り、本人だと思わせて個人情報を聞き出す。"],"correctIndex":3,"explanations":["× 誤り。名刺を受け取り営業案内に使うことは、通常は不適正な取得に当たらない。","× 誤り。本人が自ら入力し、目的どおりに使う場合は、不適正な取得に当たらない。","× 誤り。許諾範囲で利用する場合は、不適正な取得に当たらない。","○ 正しい。身分を偽って個人情報を取得することは、不適正な方法による取得に当たる。"]},{"id":"pms-64","type":"mc","chapterIndex":5,"stem":"利用目的を「商品発送のため」として取得した住所を、社内の別のキャンペーンのダイレクトメール送付に使うことになった。最も適切な対応はどれか。","options":["関連性の範囲内かを確認したうえで利用目的を変更し、本人に通知または公表してから利用する。","社内のキャンペーンに使うなら、本人に通知せずに利用してよい。","以前の目的と同じ「販売促進」に含まれるとみなして、そのまま利用する。","社内で利用するのであれば、目的外利用にはあたらない。"],"correctIndex":0,"explanations":["○ 正しい。利用目的の変更は関連性の範囲内で認められ、変更後は通知または公表が必要である。","× 誤り。関連性を確認せず、通知もしないで利用することは認められない。","× 誤り。以前の目的とは別の利用であり、みなしでそのまま利用することは認められない。","× 誤り。社内での利用であっても、目的外利用に当たりうる。"]},{"id":"pms-65","type":"mc","chapterIndex":5,"stem":"本人の同意なく個人データを第三者に提供できる場合として、最も適切なものはどれか。","options":["顧客リストを取引先に渡す。","法令に基づく場合に該当するとき。","提供先が同業他社で、提供後に本人へ知らせるとき。","関連会社へ渡すとき。"],"correctIndex":1,"explanations":["× 誤り。取引関係の維持は、本人の同意なく提供できる理由にならない。","○ 正しい。法令に基づく場合は、本人の同意なしに第三者へ提供できる例外である。","× 誤り。事後の通知だけでは、本人の同意なしの提供は認められない。","× 誤り。関連会社であっても、本人の同意なしの第三者提供は原則として認められない。"]},{"id":"pms-66","type":"mc","chapterIndex":5,"stem":"オプトアウト方式で個人データを第三者に提供する場合の要件として、適切でないものはどれか。","options":["本人が提供の停止を求められることを、本人に容易に知り得る状態に置いている。","提供する個人データの項目を、提供の前にあらかじめ本人に知り得る状態に置いている。","個人情報保護委員会への届出は不要で、提供後の連絡で足りる。","本人の求めに応じて、第三者への提供を停止する。"],"correctIndex":2,"explanations":["× 適切である。提供の停止を求められることを、本人が容易に知り得る状態に置くことは要件である。","× 適切である。提供する項目などを、あらかじめ公表しておくことは要件である。","○ 適切でない。オプトアウトで提供するには、個人情報保護委員会への届出が必要であり、提供後の連絡では足りない。","× 適切である。本人の求めに応じて提供を停止することは、要件として定められている。"]},{"id":"pms-67","type":"mc","chapterIndex":6,"stem":"個人データの取り扱いを外部業者に委託する際の管理として、最も適切なものはどれか。","options":["委託先が信頼できる大手企業であれば、契約書の作成は口頭の合意で省略してよい。","委託先の安全管理状況は、委託を開始した後は一度も確認しなくてよく、定期的な報告も求めない。","委託先が再委託する場合、委託元の承認は不要であり、再委託先の選定も委託先の判断に任せてよい。","契約で安全管理措置の内容を定め、委託先を必要かつ適切に監督する。"],"correctIndex":3,"explanations":["× 誤り。委託先の規模にかかわらず、契約で安全管理措置を定める必要がある。","× 誤り。委託先の安全管理状況は、委託後も継続して確認する必要がある。","× 再委託の可否と条件は契約で定め、委託元が管理する必要がある。","○ 正しい。委託元は契約で安全管理措置を定め、委託先を必要かつ適切に監督しなければならない。"]},{"id":"pms-68","type":"mc","chapterIndex":6,"stem":"委託先で個人データの漏えいが起きた。委託元の対応として最も適切なものはどれか。","options":["委託元が事実関係を確認し、必要な報告・本人対応を行うとともに、委託先の監督状況を見直す。","委託先の責任なので、委託元は事実確認も本人への対応も行わなくてよい。","漏えいは委託先の内部問題なので、本人に知らせる必要はない。","委託先との契約を解除すれば、委託元の対応は終わる。"],"correctIndex":0,"explanations":["○ 正しい。委託元は事実確認、報告、本人対応と、監督状況の見直しを行う必要がある。","× 誤り。委託元は、委託先の事故であっても事実確認と本人対応を行う必要がある。","× 誤り。委託先で起きた漏えいでも、本人への対応が必要な場合がある。","× 誤り。契約を解除しても、事実確認や報告などの対応は残る。"]},{"id":"pms-69","type":"mc","chapterIndex":5,"stem":"グループ会社間で個人データを共同利用する場合に、本人へ通知等すべき事項として適切でないものはどれか。","options":["共同利用する者の範囲","利用目的は通知する必要はない","共同利用する個人データの管理責任者の氏名または名称","個人データの項目"],"correctIndex":1,"explanations":["× 適切である。共同利用する者の範囲は、本人へ通知等すべき事項である。","○ 適切でない。共同利用では利用目的を本人に通知または公表する必要がある。","× 適切である。管理責任者の氏名または名称は、本人へ通知等すべき事項である。","× 適切である。共同利用される個人データの項目は、本人へ通知等すべき事項である。"]},{"id":"pms-70","type":"mc","chapterIndex":5,"stem":"外国にある第三者へ個人データを提供する場合の記述として、適切なものはどれか。","options":["国内の委託先を経由すれば、外国の提供先への提供とはみなされない。","同意を得ていれば、提供先の国の個人情報保護制度や提供先の措置を、本人に説明する必要はない。","本人の同意を得る際に、提供先の所在国の制度や提供先の措置について情報提供を行う。","提供先が外国の関連会社であれば、同じグループに属する限り、利用目的の通知や本人の同意は不要であり、提供先の確認も省略してよい。"],"correctIndex":2,"explanations":["× 誤り。国内の委託先を経由しても、外国の提供先への提供に当たりうる。","× 誤り。同意を得る際には、提供先の制度などの情報提供が求められる。","○ 正しい。外国にある第三者への提供では、同意を得る際に所在国の制度などの情報提供が求められる。","× 誤り。外国の関連会社であっても、外国にある第三者への提供の要件は省略できない。"]},{"id":"pms-71","type":"mc","chapterIndex":5,"stem":"第三者に個人データを提供したときの記録義務の説明として、適切なものはどれか。","options":["提供した記録は、提供のつど1か月以内に廃棄し、社内の台帳にも残さず、監査の対象にもしない。","記録は、本人の同意を得た場合にのみ作成し、同意がない提供については、記録を作成しなくてよい。","記録は、提供を受けた側だけが作成すればよく、提供した側は、提供先や提供日を記録する必要はなく、保存もしなくてよい。","提供者は、提供日・提供先・本人を特定する事項などを記録し、一定期間保存する。"],"correctIndex":3,"explanations":["× 誤り。提供の記録は一定期間保存する義務があり、すぐに廃棄してはならない。","× 記録は同意の有無にかかわらず、第三者への提供について作成する必要がある。","× 誤り。提供者も、提供日や提供先などを記録し、保存する義務がある。","○ 正しい。提供者は提供日や提供先などを記録し、一定期間保存する義務を負う。"]},{"id":"pms-72","type":"mc","chapterIndex":5,"stem":"第三者から個人データの提供を受ける側の義務として、適切なものはどれか。","options":["提供元の取得経緯などを確認し、確認の記録を作成・保存する。","提供元が適法に取得したかどうかは確認しなくてよい。","提供を受けたら、確認なしに直ちに利用を開始してよい。","同意取得済みとして扱い、確認を省略する。"],"correctIndex":0,"explanations":["○ 正しい。受領者は提供元の取得経緯などを確認し、その記録を作成・保存する義務がある。","× 誤り。受領者は、提供元の取得経緯などを確認する必要がある。","× 誤り。確認の記録を作成せずに利用を開始することは、義務に反する。","× 誤り。提供元が同意を得ているとしても、受領者の確認義務は免除されない。"]},{"id":"pms-73","type":"mc","chapterIndex":5,"stem":"本人から保有個人データの開示請求を受けた。最も適切な対応はどれか。","options":["請求者が誰か確認せずに、請求の内容を速やかに判断し、請求から数日以内に直ちに全部を開示する。","本人確認を行い、所定の手続きに沿って期限内に対応し、開示しない場合は理由を説明する。","社内の規程で定めていない請求は、受け付けない。","請求者が不満なら、これ以上の対応を行わない。"],"correctIndex":1,"explanations":["× 誤り。本人確認を行わずに開示すると、第三者への情報漏えいのおそれがある。","○ 正しい。本人確認を行い、所定の手続きで対応し、開示しない場合は理由を説明する必要がある。","× 誤り。規程にない形式でも、本人からの請求は適切に受け付けて対応する必要がある。","× 誤り。不満がある場合も、請求者への説明や対応を省略してはならない。"]},{"id":"pms-74","type":"mc","chapterIndex":5,"stem":"次のうち、保有個人データの全部または一部を開示しなくてもよい場合の例として、最も適切なものはどれか。","options":["開示により、本人の社会的評価が不利益になることが想定されるため、開示を当然に拒否してよい。","請求者が開示の理由を説明しなかった。","開示により、本人以外の第三者の権利利益を害するおそれがある。","開示に費用がかかるため、請求の内容にかかわらず、開示の請求を一律に受け付けないことにしてよい。"],"correctIndex":2,"explanations":["× 誤り。本人の不利益が想定されることは、非開示の正当な理由として法定されていない。","× 誤り。請求の理由は、開示の要件ではない。","○ 正しい。本人または第三者の権利利益を害するおそれがある場合などは、非開示の例外となりうる。","× 誤り。費用を理由に請求を一律に拒否することは、認められない。"]},{"id":"pms-75","type":"mc","chapterIndex":5,"stem":"本人から保有個人データの内容の誤りについて、訂正の請求があった。適切な対応はどれか。","options":["誤りではないと判断したら、本人の主張を聞くことなく、理由を示さずに訂正の請求を拒否する。","訂正の必要性を確認せず、本人の主張どおりに直ちに内容を変更してよい。","社内で誤りを認めた場合のみ、訂正の結果を本人に知らせるための報告を省略してよい。","必要な調査を行い、訂正の要否を判断し、結果を本人に通知する。"],"correctIndex":3,"explanations":["× 誤り。本人の主張を聞かずに理由も示さず拒否することは、認められない。","× 誤り。訂正の要否は、必要な調査を行ったうえで判断する必要がある。","× 誤り。訂正の結果は、誤りの有無にかかわらず本人に通知する必要がある。","○ 正しい。必要な調査を行って訂正の要否を判断し、結果を本人に通知する。"]},{"id":"pms-76","type":"mc","chapterIndex":5,"stem":"本人から個人情報の利用停止を求められた。適切な対応はどれか。","options":["利用停止の要件（目的外利用・不適正取得など）に該当するかを検討し、該当すれば対応し、該当しなければ理由を説明する。","利用停止は本人の自由なので、すべて無条件に応じる。","拒否する場合の理由説明は不要である。","社内規程にない請求なので、受け付けずに処理を終わらせてよい。"],"correctIndex":0,"explanations":["○ 正しい。要件に該当するかを検討し、結果に応じて対応または理由の説明を行う。","× 利用停止は要件に該当する場合に認められるもので、無条件に応じる必要はない。","× 拒否する場合は理由を説明する必要がある。","× 誤り。規程にない請求であっても、要件に該当するかを検討し、理由を説明する必要がある。"]},{"id":"pms-77","type":"mc","chapterIndex":5,"stem":"保有個人データに関して、本人が知り得る状態に置くべき事項として適切なものはどれか。","options":["個人情報取扱い担当者の個人的な連絡先","事業者の名称、住所、代表者の氏名、利用目的、開示等の請求の手続き","過去の漏えい件数と、その原因・対応の詳細","従業者の給与水準と、個人ごとの人事評価の詳細、および社内の雇用契約の内容"],"correctIndex":1,"explanations":["× 誤り。担当者の個人的な連絡先は、本人が知り得る状態に置く事項ではない。","○ 正しい。事業者の名称・住所・代表者、利用目的、開示等の手続きは本人の知り得る状態に置く事項である。","× 誤り。過去の漏えい件数は、本人が知り得る状態に置くべき事項には含まれない。","× 誤り。従業者の給与や人事評価は、本人が知り得る状態に置く事項ではない。"]},{"id":"pms-78","type":"mc","chapterIndex":6,"stem":"安全管理措置のうち、物理的安全管理措置の例として最も適切なものはどれか。","options":["従業者への定期的な教育と、教育後の理解度の確認テストの実施を行う。","アクセス権限を業務ごとに設定し、システムの操作ログを取得する。","個人データを保管するキャビネットの施錠と、入退室の管理","安全管理規程の策定と責任者の任命"],"correctIndex":2,"explanations":["× 誤り。教育や確認テストは、人的安全管理措置の例である。","× 誤り。アクセス権限やログの管理は、技術的安全管理措置の例である。","○ 正しい。施錠や入退室管理は、物理的安全管理措置の例である。","× 誤り。規程の策定や責任者の任命は、組織的安全管理措置の例である。"]},{"id":"pms-79","type":"mc","chapterIndex":6,"stem":"個人データの漏えい等が発生した場合の報告として、適切なものはどれか。","options":["社内で原因が判明するまで、報告は行わず、原因の確定後にまとめて報告すれば足りる。","漏えい件数が少なく、被害も確認されていない場合は、報告を省略し、社内の記録だけにとどめてよい。","本人の被害が確認されない限り、本人への連絡は不要であり、社内の報告のみで対応を終えてよい。","規則で定める速報・確報の要件に従い、個人情報保護委員会へ報告する。"],"correctIndex":3,"explanations":["× 誤り。原因の確定を待って報告することは、速報の要件に反する。","× 誤り。件数や被害の有無にかかわらず、規則で定める報告が必要な場合がある。","× 誤り。被害の有無にかかわらず、本人への連絡が必要な場合がある。","○ 正しい。規則で定める速報・確報の要件に従い、個人情報保護委員会へ報告する。"]},{"id":"pms-80","type":"mc","chapterIndex":6,"stem":"従業者に個人データを取り扱わせる際の監督として、適切なものはどれか。","options":["従業者に対して適切な教育を行い、必要に応じて指導・監督を行う。","従業者の業務は信頼しているので、監督は不要である。","私物端末での閲覧は、管理者の判断で認める。","退職者のアクセス権限は、退職後もしばらく残しておく。"],"correctIndex":0,"explanations":["○ 正しい。従業者への教育と指導・監督は、従業者監督義務の内容である。","× 誤り。従業者を信頼するだけでは、監督義務を果たしたことにならない。","× 誤り。私物端末での取扱いも、管理者が統制する必要がある。","× 誤り。退職後は速やかにアクセス権限を削除する必要がある。"]},{"id":"pms-81","type":"mc","chapterIndex":5,"stem":"Cookieなどで取得した閲覧履歴を、外部の事業者へ提供する場合の注意として、適切なものはどれか。","options":["閲覧履歴は個人情報ではないので、提供の際に本人の同意や提供先の利用目的の確認は不要であり、契約書への記載も省略してよい。","提供先で個人データとして特定されることが想定されるなら、提供先が本人の同意を得ていることを確認する。","契約書には記載せず、問題が起きたときに個別に確認すればよい。","本人が同意しなくても、提供先が利用しなければ問題ない。"],"correctIndex":1,"explanations":["× 誤り。閲覧履歴であっても、提供先で個人データとして特定されるなら、確認が必要である。","○ 正しい。提供先が個人データとして取得することが想定される場合は、本人の同意を得ていることを確認する必要がある。","× 誤り。契約で定めず事後に確認するだけでは、安全管理は不十分である。","× 誤り。提供先が利用するかどうかにかかわらず、同意の確認は必要である。"]},{"id":"pms-82","type":"mc","chapterIndex":5,"stem":"利用目的の特定の記述として、最も適切なものはどれか。","options":["事業に必要な場合に使う、と記載する。","当社の業務全般に必要な範囲で、個人情報を利用するため、と記載する。","顧客への商品発送と請求の連絡のため、と記載する。","個人情報の利用目的は社内で自由に決めてよい、と記載する。"],"correctIndex":2,"explanations":["× 誤り。事業活動に必要という記載だけでは、利用目的を具体的に特定したことにならない。","× 誤り。業務全般という記載は抽象的で、利用目的の特定として不十分である。","○ 正しい。利用目的は本人が利用の範囲を予測できる程度に具体的に特定する必要がある。","× 誤り。利用目的は社内で自由に決めるものではなく、具体的に特定する必要がある。"]},{"id":"pms-83","type":"mc","chapterIndex":5,"stem":"退職者の個人データの取り扱いとして、最も適切なものはどれか。","options":["保存期間と廃棄の基準を定め、期限が来たら確実に消去する。","将来役立つ可能性があるので、退職者の個人データを無期限に保存する。","保存期間は、担当者が業務の状況を見て個別に判断し、規程には記載しないこととする。","本人の退職後は、廃棄や消去の記録を作らず、そのまま保管しておいてよい。"],"correctIndex":0,"explanations":["○ 正しい。利用の必要がなくなった個人データは、定めた基準に従って確実に消去する。","× 誤り。利用の必要がなくなったデータは、無期限に保存せず消去する必要がある。","× 保存期間は規程で定め、担当者の個別判断に任せるべきでない。","× 誤り。廃棄や消去の記録を残すことは、取扱いの管理として必要である。"]},{"id":"pms-84","type":"mc","chapterIndex":5,"stem":"本人から個人情報の取扱いについて苦情が寄せられた。適切な対応はどれか。","options":["苦情は窓口で受け付けず、問題が解決したら報告する。","苦情の内容は担当者だけで判断し、記録しない。","苦情には期限を設けず、後回しにして必要な時に対応する。","苦情窓口で受け付け、事実を確認し、迅速に対応して結果を本人に伝える。"],"correctIndex":3,"explanations":["× 苦情は窓口で受け付け、適切に対応する仕組みが必要である。","× 苦情は記録し、組織として対応する必要がある。","× 誤り。苦情には期限を設けて速やかに対応する必要がある。","○ 正しい。苦情窓口で受け付け、事実確認と迅速な対応、結果の通知を行う。"]},{"id":"pms-85","type":"mc","chapterIndex":6,"stem":"委託先が再委託を行う場合の取り扱いとして、最も適切なものはどれか。","options":["再委託先は委託先の判断で自由に選んでよい。","再委託の可否と条件を契約で定め、再委託先の監督状況も確認する。","再委託は委託元の知らない間に行われても問題ない。","再委託先の安全管理は委託先だけに任せ、委託元は契約上の確認も含めて一切行わない。"],"correctIndex":1,"explanations":["× 誤り。再委託先の選定は、委託元が契約で定めた条件に従う必要がある。","○ 正しい。再委託の可否と条件を契約で定め、再委託先の監督状況を確認する必要がある。","× 誤り。委託元が知らないまま再委託させることは、監督義務に反する。","× 誤り。再委託先の安全管理も、委託元が確認する必要がある。"]},{"id":"pms-86","type":"mc","chapterIndex":4,"stem":"従業者教育の記録として、最も適切なものはどれか。","options":["実施日、対象者、内容、理解度の確認結果を記録し、保管する。","口頭で伝えた教育は記録しなくてよく、実施日や対象者を残す必要もない。","全員が同じ内容を受けたことは、記録せず担当者の記憶で確認し、保管もしない。","研修は一度行えば、以後は記録と確認を省略してよい。"],"correctIndex":0,"explanations":["○ 正しい。実施日、対象者、内容、理解度の確認結果を記録することで、教育の実施を証明できる。","× 誤り。口頭で伝えた教育も、実施日や対象者などを記録する必要がある。","× 誤り。担当者の記憶による確認は、記録としての証拠にならない。","× 誤り。研修は継続的に行い、その都度記録と確認が必要である。"]},{"id":"pms-87","type":"mc","chapterIndex":5,"stem":"利用者の同意を取得する画面の設計として、最も適切なものはどれか。","options":["同意のチェックボックスを初期状態でオンにしておき、利用者が気づいて外せば同意を取り消せるようにする。","同意しないと利用できないことを、理由を説明せずに画面へ表示し、利用者が選べない形式にする。","同意の対象と利用目的を分かりやすく示し、本人が任意に選べるようにする。","同意の内容は小さな文字で、利用規約の末尾にまとめて表示し、読まれなくてもよいとする。"],"correctIndex":2,"explanations":["× 初期状態でオンにすると、本人の意思による同意とはいえない。","× 誤り。同意を求める理由や内容を説明せずに示すことは、本人が任意に選べない。","○ 正しい。同意の対象と利用目的を分かりやすく示し、本人が自ら選べることが求められる。","× 誤り。同意の内容は、本人が読んで理解できるように表示する必要がある。"]},{"id":"pms-88","type":"mc","chapterIndex":5,"stem":"個人データの正確性の確保について、適切なものはどれか。","options":["一度登録したデータは、誤りがあっても変更しない。","正確性は担当者だけが確認すればよく、点検は不要である。","利用の必要がなくなったデータも、念のため無期限に保管する。","利用目的の達成に必要な範囲で、正確かつ最新の内容に保つよう努める。"],"correctIndex":3,"explanations":["× 誤りは訂正して正確性を保つ必要があり、そのままにはできない。","× 誤り。正確性の確保には、組織としての確認や点検が必要である。","× 誤り。利用の必要がなくなったデータは、無期限に保管せず消去する必要がある。","○ 正しい。利用目的の達成に必要な範囲で、正確かつ最新の内容に保つよう努める必要がある。"]},{"id":"pms-89","type":"mc","chapterIndex":4,"stem":"PMSの文書化として、適切なものはどれか。","options":["個人情報の取扱いに関するルールを規程・手順書として文書化し、改版管理をする。","ルールは担当者の口頭の申し送りで共有すれば十分である。","文書は作成した時点のまま、業務が変わっても見直しは不要であり、改版の記録も残さなくてよい。","文書は最新版だけを残し、旧版の記録は破棄する。"],"correctIndex":0,"explanations":["○ 正しい。取扱いのルールを文書化し、改版を管理することで、組織として統一された運用ができる。","× 口頭の申し送りでは、ルールが共有されず、記録も残らない。","× 文書は、業務やルールの変化に応じて見直す必要がある。","× 旧版の記録は、改版の経緯を示すために保管する必要がある。"]},{"id":"pms-90","type":"mc","chapterIndex":6,"stem":"従業者が誤って個人データを送信してしまった。初動として最も適切なものはどれか。","options":["送信先への削除依頼は後回しにし、まず原因を確定させる。","直ちに被害の拡大を防ぎ、事実関係を確認し、責任者へ報告する。","誤送信は本人に知られないよう、報告を控えて内々に処理し、記録にも残さない。","誤送信が少数であれば、対応を記録に残す必要はなく、担当者の判断で再発防止の対策を省略してよい。"],"correctIndex":1,"explanations":["× 誤り。被害の拡大を防ぐため、削除依頼は速やかに行う必要がある。","○ 正しい。被害の拡大を防ぎ、事実確認と責任者への報告を速やかに行うことが初動である。","× 誤り。隠して処理することは、事故の把握と再発防止を妨げる。","× 誤り。件数にかかわらず、対応の記録と再発防止の検討は必要である。"]},{"id":"pms-91","type":"mc","chapterIndex":7,"stem":"PMSのパフォーマンス評価の対象として、適切なものはどれか。","options":["従業者の人数や、年齢構成、勤続年数の内訳に関する情報を集計した資料","社内の売上の推移や、製品ごとの利益率、および営業部門の目標達成状況を集計する。","苦情件数、インシデント件数、教育の実施状況などの指標","施設の面積と、建物の築年数、および駐車場の台数といった設備の情報"],"correctIndex":2,"explanations":["× 誤り。従業者の人数などは、PMSの有効性を評価する指標ではない。","× 誤り。売上や利益率は、PMSのパフォーマンス評価の対象ではない。","○ 正しい。苦情やインシデント、教育の実施状況などは、PMSの運用状況を評価する指標になる。","× 誤り。施設や設備の情報は、PMSのパフォーマンス評価の指標ではない。"]},{"id":"pms-92","type":"mc","chapterIndex":7,"stem":"内部監査の独立性の確保について、適切なものはどれか。","options":["監査員は、自部門の業務を監査しない。","責任者が自部門を監査する。","監査員が業務を兼務する。","監査員は部門の希望で決める。"],"correctIndex":0,"explanations":["○ 正しい。監査の客観性を保つため、監査員は自部門の業務を監査しない。","× 誤り。自部門の監査では、監査の客観性と独立性が確保できない。","× 誤り。業務を兼務する監査員は、対象を客観的に評価できない。","× 誤り。監査員の選任を監査対象部門に委ねると、独立性が損なわれる。"]},{"id":"pms-93","type":"mc","chapterIndex":7,"stem":"内部監査の計画として、適切なものはどれか。","options":["監査は年度末に一度、直前に実施すればよい。","監査対象は、過去に指摘のなかった部門だけに絞る。","監査計画は担当者が口頭で決めればよく、監査の対象や時期は、状況に応じてその都度決めればよい。","監査の対象・時期・方法・監査員を計画として文書化し、計画に沿って実施する。"],"correctIndex":3,"explanations":["× 直前の一度だけの監査では、PMSの継続的な運用を確認できない。","× 過去に指摘のない部門に絞ると、リスクに応じた監査にならない。","× 計画は文書化する必要があり、口頭だけで決めるものではない。","○ 正しい。対象・時期・方法・監査員を計画として文書化し、計画どおりに実施する。"]},{"id":"pms-94","type":"mc","chapterIndex":7,"stem":"内部監査の結果の報告先として、最も適切なものはどれか。","options":["担当部門のみ","PMSの代表者（経営層）","監査員の上司の個人的な判断で止める","外部の関係者は除き、社内の誰にも報告しない"],"correctIndex":1,"explanations":["× 誤り。対象部門だけに報告すると、経営層による改善の判断につながらない。","○ 正しい。内部監査の結果はPMSの代表者に報告し、改善の判断に使われる必要がある。","× 報告を個人の判断で止めることは、適切な管理とはいえない。","× 社内で結果を共有しないと、改善の判断ができない。"]},{"id":"pms-95","type":"mc","chapterIndex":7,"stem":"監査報告書の取扱いとして、適切なものはどれか。","options":["保管し、必要に応じて参照できるようにする。","指摘が解消したら、直ちに報告書を廃棄し、記録も残さない。","代表者に報告したら、社内では保管せず、直ちに廃棄して記録も残さない。","監査報告書の作成は省略し、口頭で代表者に伝える。"],"correctIndex":0,"explanations":["○ 正しい。報告書は保管し、必要に応じて参照できるようにする必要がある。","× 誤り。指摘の解消後も、報告書は必要に応じて参照できるよう保管する必要がある。","× 誤り。報告後も、監査報告書は保管して参照できるようにする必要がある。","× 報告書を作成せず口頭だけでは、監査の結果を記録として残せない。"]},{"id":"pms-96","type":"mc","chapterIndex":8,"stem":"内部監査で不適合（指摘）が見つかった。次に行うべき対応として最も適切なものはどれか。","options":["指摘を記録だけして、是正は次回の監査で確認する。","指摘は担当者の誤りとして処理し、個人の責任で対応させる。","原因を分析し、是正計画を立てて是正処置を行い、再発防止の確認をする。","指摘は支障がなければ放置し、次回の指摘で対応する。"],"correctIndex":2,"explanations":["× 次回の監査まで放置すると、不適合が継続するおそれがある。","× 個人の責任に押し付けると、組織としての原因分析と再発防止ができない。","○ 正しい。原因を分析し、是正計画に基づいて是正処置を行い、再発防止を確認する。","× 誤り。支障がなくても、指摘には是正計画を立てて対応する必要がある。"]},{"id":"pms-97","type":"mc","chapterIndex":8,"stem":"是正処置の有効性の確認方法として、適切なものはどれか。","options":["是正を実施した事実を報告するだけでよく、是正後の運用記録の確認や、再発の有無の確認は省略してよい。","是正の内容を担当者の自己申告で確認する。","是正後に一度だけ確認し、それ以降は確認しない。","是正後の運用記録などで、同じ不適合が再発していないかを確認する。"],"correctIndex":3,"explanations":["× 実施の報告だけでは、是正の効果を確認したことにならない。","× 自己申告だけでは客観的な確認にならない。","× 一度の確認では、再発の有無を確認できない。","○ 正しい。運用記録などの客観的な証拠で、同じ不適合が再発していないかを確認する。"]},{"id":"pms-98","type":"mc","chapterIndex":7,"stem":"マネジメントレビューへの入力情報として、適切なものはどれか。","options":["内部監査の結果、苦情・インシデントの状況、パフォーマンス評価の結果","社員の趣味の情報や、個人的な交友関係、および私的な連絡先の一覧を、人事の資料として集める。","競合他社の製品価格や、市場での販売動向の分析結果を、社内の会議資料として配布する。","個人の休暇取得予定と、勤務時間の変更記録"],"correctIndex":0,"explanations":["○ 正しい。内部監査、苦情やインシデント、パフォーマンス評価の結果は、マネジメントレビューの入力になる。","× 誤り。私的な情報は、マネジメントレビューの入力として扱うべきものではない。","× 誤り。競合他社の価格情報は、PMSのマネジメントレビューの入力ではない。","× 誤り。休暇の予定は、マネジメントレビューへの入力情報とはならない。"]},{"id":"pms-99","type":"mc","chapterIndex":7,"stem":"マネジメントレビューの結果として、適切なものはどれか。","options":["レビューは記録を残さず、口頭で行い、結論は担当者の判断に任せて、その場で終わらせる。","改善の機会、PMSの変更の必要性、必要な資源についての決定を行い、記録する。","次回のレビュー日は、決めずに保留し、必要が生じたときに改めて日程を調整すればよい。","PMSの運用を一時的に停止し、結論は次年度の見直しまで先送りして、次の経営会議の議題として保留する。"],"correctIndex":1,"explanations":["× 誤り。マネジメントレビューは記録を残し、経営層が判断する必要がある。","○ 正しい。改善の機会、変更の必要性、資源についての決定を行い、記録する。","× レビューの日程は計画的に定める必要がある。","× 誤り。運用の停止や結論の先送りは、PMSの継続的な運用の要求に反する。"]},{"id":"pms-100","type":"mc","chapterIndex":8,"stem":"個人情報の漏えい等の事故が発生した後の再発防止策の例として、適切なものはどれか。","options":["担当者への注意だけで終わらせ、手順の見直しは行わない。","事故の内容を秘匿し、社内での情報共有は行わない。","原因を分析し、手順の見直し、教育の強化、アクセス制御の改善などを行う。","再発防止策は、事故から一定期間が過ぎれば不要とする。"],"correctIndex":2,"explanations":["× 誤り。注意だけでは、再発防止の仕組みとして不十分である。","× 情報共有をしないと、同種の事故を防げない。","○ 正しい。原因に応じて手順、教育、アクセス制御などを改善し、再発を防止する。","× 再発防止策は継続して運用し、確認する必要がある。"]},{"id":"pms-101","type":"mc","chapterIndex":8,"stem":"PMSの継続的改善（PDCA）の説明として、適切なものはどれか。","options":["計画、実施、評価、改善のサイクルを回し、PMSの有効性を高める。","一度作成した計画は、状況が変わっても修正しない。","評価は行わず、改善の判断は経験のみで行う。","改善は大きな事故が起きたときだけに行い、日常的な監視や苦情の分析は、改善の対象として扱わない。"],"correctIndex":0,"explanations":["○ 正しい。計画、実施、評価、改善を繰り返して、PMSの有効性を継続的に高める。","× 状況の変化に応じて計画を修正する必要がある。","× 評価に基づく改善が必要であり、経験のみで判断するものではない。","× 改善は日常的に継続して行う必要があり、事故の後だけに限らない。"]},{"id":"pms-102","type":"mc","chapterIndex":7,"stem":"内部監査の記録の管理として、適切なものはどれか。","options":["記録は監査員の個人のパソコンだけに保存し、共有フォルダや管理台帳への登録は、必要がない場合には省略する。","記録は、監査の結果が変わったときに都度書き換える。","記録は監査終了後に個人の判断ですべて廃棄し、報告書だけを残して、計画や証拠は保管しない。","監査の計画、証拠、報告書を一貫して記録し、改ざんや紛失を防ぐ形で保管する。"],"correctIndex":3,"explanations":["× 個人の端末だけでは、組織として記録を管理できない。","× 記録を書き換えると、監査の証拠としての信頼性が失われる。","× 誤り。監査の計画や証拠を残さなければ、後から監査の妥当性を検証できない。","○ 正しい。計画、証拠、報告書を一貫して記録し、改ざんや紛失を防ぐ形で保管する。"]},{"id":"pms-103","type":"mc","chapterIndex":7,"stem":"教育の効果を確認する方法として、適切なものはどれか。","options":["研修の出席者数のみを数え、理解度の確認や実務での運用状況の確認は、担当者の判断で省略してよい。","理解度の確認テストや実務での運用状況を確認し、結果を教育の改善に反映する。","研修後のアンケートは実施せず、理解度の確認も行わないまま、次回の研修を計画する。","教育は効果を測定せず、実施した事実を報告書に記載するだけで、改善の検討は行わない。"],"correctIndex":1,"explanations":["× 出席者数だけでは、理解の程度や運用の状況を確認できない。","○ 正しい。理解度の確認や実務での運用状況の確認により、教育の効果を評価し、改善につなげる。","× 誤り。研修後の効果を確認せずに次の研修を計画すると、教育の改善につながらない。","× 誤り。効果を測定せずに改善を検討しないことは、教育の改善を妨げる。"]},{"id":"pms-104","type":"mc","chapterIndex":4,"stem":"内部監査員に求められる力量として、適切なものはどれか。","options":["規格や社内規程を理解していれば、監査技法の知識は不要である。","監査対象の業務に精通していれば、独立性は不要で、担当を兼務してよい。","規格・規程の理解、監査技法（質問・証拠の確認）の習得、独立した立場での判断力を備える。","内部監査員は記録の作成も担当し、評価の一貫性を確保する。"],"correctIndex":2,"explanations":["× 規格や規程の理解だけでは、監査を適切に行えない。監査技法の知識も必要である。","× 誤り。独立性は内部監査員の必須の要件であり、業務への精通で代えることはできない。","○ 正しい。規格・規程の理解、監査技法、独立した立場での判断が、内部監査員の力量として必要である。","× 誤り。記録の作成を監査員が担うと、監査の独立性が損なわれる。"]},{"id":"pms-105","type":"mc","chapterIndex":7,"stem":"内部監査の範囲の設定として、適切なものはどれか。","options":["PMSの対象となる個人情報の取扱い全体を、リスクに応じて範囲に含める。","過去に指摘がない部署は、範囲から永久に除外し、その後の業務の変更があった場合でも、監査の対象に含めない。","範囲は、監査員が都合のよい部署だけを選んで決める。","範囲は、担当者の希望に従い、全体を網羅しないことを前提とする。"],"correctIndex":0,"explanations":["○ 正しい。PMSの対象となる個人情報の取扱い全体を、リスクに応じて監査の範囲に含める。","× 指摘がない部署も、リスクの変化があれば監査の対象とする必要がある。","× 都合のよい部署だけを選ぶと、リスクに応じた監査にならない。","× 範囲を担当者の希望に任せると、監査の網羅性と客観性が損なわれる。"]},{"id":"pms-106","type":"mc","chapterIndex":4,"stem":"規程類の改版管理として、適切なものはどれか。","options":["改版内容を記録せず、最新の内容だけを現場で共有する。","改版の内容は記録せず、承認は担当者が単独で行い、承認の記録は残さない。","改版の履歴、承認者、施行日を記録し、旧版を現場から回収する。","旧版は現場が使い続けられるように、改版後も現場に残しておき、新旧の版が混在しても問題としない。"],"correctIndex":2,"explanations":["× 改版の経緯が残らず、どの版が正しいかを確認できない。","× 誤り。改版の承認は複数の関係者で行い、その記録を残す必要がある。","○ 正しい。改版の履歴、承認者、施行日を記録し、旧版を現場から回収して最新版に統一する。","× 旧版が現場で使われ続けると、古いルールに基づく運用が生じる。"]},{"id":"pms-107","type":"mc","chapterIndex":3,"stem":"リスクアセスメントの見直しの時期として、適切なものはどれか。","options":["一度評価したら、その後はリスクアセスメントを見直さず、結果を保管するだけにする。","事故が起きたときだけ見直し、事故がない限りは、業務やシステムの変更があっても見直しを行わない。","担当者の異動があったときだけ見直し、業務の変更時には見直しを行わない。","定期的に行うほか、業務やシステムの変更時など必要に応じて見直す。"],"correctIndex":3,"explanations":["× 誤り。一度の評価で固定すると、業務やリスクの変化に対応できない。","× 事故の発生を待つのでは、リスクの変化に対応できない。","× 誤り。業務の変更時にも見直しが必要であり、異動時だけでは不十分である。","○ 正しい。定期的な見直しに加えて、業務やシステムの変更時など必要に応じて見直す。"]},{"id":"pms-108","type":"mc","chapterIndex":6,"stem":"委託先の監督状況の評価として、適切なものはどれか。","options":["委託先の安全管理状況を定期的に確認し、問題があれば改善を求める。","委託先の評価は、契約締結時の1回だけで十分である。","委託先の評価は、自己申告だけで判断してよい。","委託先の監督は、委託費用を基準に、低い委託先ほど省略する。"],"correctIndex":0,"explanations":["○ 正しい。委託先の安全管理状況を定期的に確認し、問題があれば改善を求める。","× 契約締結時だけでは、その後の運用状況を確認できない。","× 誤り。自己申告だけでは、委託先の安全管理状況を確認したことにならない。","× 委託費用の多寡で監督を省略することはできず、委託先のリスクに応じて監督する必要がある。"]},{"id":"pms-109","type":"mc","chapterIndex":7,"stem":"プライバシーマークの更新審査と内部監査の関係として、適切なものはどれか。","options":["内部監査は更新審査の結果を報告するための事後の確認にすぎない。","内部監査で自らPMSの適合・有効性を確認しておくことは、審査への準備としても重要である。","内部監査は、審査で指摘されてから実施すればよく、指摘への対応計画は審査の後にまとめて立てればよい。","審査の対象外となるため、内部監査は実施しなくてよい。"],"correctIndex":1,"explanations":["× 内部監査は、審査の前に自らPMSを確認し、改善につなげるための活動である。","○ 正しい。内部監査で適合と有効性を確認しておくことは、審査への準備として重要である。","× 指摘を受けてから監査するのでは、改善の時間が不足する。","× 内部監査は審査の対象かどうかにかかわらず、PMSの運用に必要である。"]},{"id":"pms-110","type":"mc","chapterIndex":7,"stem":"監査プログラムの見直しとして、適切なものはどれか。","options":["監査プログラムは一度策定したら変更せず、監査の結果や環境が変わっても、当初の計画を継続して実施する。","監査の結果や環境の変化を踏まえて、監査の頻度・対象・方法を見直す。","監査の対象は毎年同じ部署に固定し、見直しは行わない。","監査プログラムは、監査員が個人の判断で、その都度、内容を変えて実施する。"],"correctIndex":1,"explanations":["× 環境や結果の変化に応じて、監査プログラムを見直す必要がある。","○ 正しい。監査の結果や環境の変化を踏まえて、頻度・対象・方法を見直す。","× 対象を固定すると、リスクの変化に対応できない。","× 誤り。監査プログラムは組織として管理し、個人の判断で改変してはならない。"]},{"id":"pms-111","type":"mc","chapterIndex":7,"stem":"インシデントの傾向分析として、適切なものはどれか。","options":["インシデントの種類・発生部署・原因を分類し、傾向から重点的な対策を決める。","個々のインシデントを独立したものとみなし、傾向や共通の原因は確認せず、その都度対応だけを行う。","インシデントは件数だけを報告し、内容や原因は記録せず、再発防止の対策の検討も行わない。","発生件数が少なければ、分析は不要とし、件数が増えた場合にのみ、原因の分析と対策の検討を行う。"],"correctIndex":0,"explanations":["○ 正しい。種類、発生部署、原因を分類し、傾向から重点的な対策を決めることで、再発を防げる。","× 誤り。個々の事故を独立に扱うと、共通の原因と再発を防げない。","× 誤り。件数だけでは、原因の分析や対策の検討ができない。","× 件数が少なくても、傾向の分析により見落とされた原因を把握できることがある。"]},{"id":"pms-112","type":"mc","chapterIndex":8,"stem":"是正が完了した後の経営者への報告として、適切なものはどれか。","options":["是正完了の状況は、次回のマネジメントレビューまで共有しなくてよい。","担当者の判断だけで是正完了とし、経営者には報告しない。","是正の完了は、次回の審査まで伝えなくてよい。","是正の内容と有効性の確認結果を、マネジメントレビューなどで経営者に報告する。"],"correctIndex":3,"explanations":["× 誤り。是正の完了は、経営者に適時に報告して共有する必要がある。","× 経営者への報告を省略すると、PMSの責任者が状況を把握できない。","× 審査を待つのでは、是正の状況の把握と改善の判断が遅れる。","○ 正しい。是正の内容と有効性の確認結果を、マネジメントレビューなどで経営者に報告する。"]},{"id":"pms-113","type":"mc","chapterIndex":4,"stem":"従業者への教育訓練の計画として、適切なものはどれか。","options":["対象者、内容、時期、実施方法を計画に定め、実施記録を残す。","教育は新入社員のみに行い、既存の社員は対象外とする。","教育は全員で同じ内容を一度行えば、以後は不要とし、規程の改定や業務の変化があっても再教育は行わない。","教育は担当者が必要と感じたときに実施する。"],"correctIndex":0,"explanations":["○ 正しい。対象者、内容、時期、方法を計画に定め、実施記録を残すことで、計画的な教育ができる。","× 誤り。既存の従業員も、規程の改定や業務の変化に応じて教育の対象とする必要がある。","× 一度の教育では、規程の変更や新たな業務への対応が不足する。","× 誤り。教育は計画的に実施する必要があり、担当者の判断任せでは不十分である。"]},{"id":"pms-114","type":"mc","chapterIndex":7,"stem":"JIS Q 15001における内部監査の頻度の定め方として、適切なものはどれか。","options":["規格で「年1回」と定められているので、必ずそれに従う。","「定期的に」実施することが求められ、頻度は組織が規程と監査計画で定める。","規格で頻度が定められていないので、内部監査は必要に応じて行えばよく、定期的な実施は不要である。","頻度は経営者の指示によって毎回変え、指示がない年は内部監査を実施しなくてもよい。"],"correctIndex":1,"explanations":["× 誤り。規格は年1回を定めておらず、頻度は組織が決める。","○ 正しい。規格は内部監査を定期的に行うことを求めており、頻度は組織が定める。","× 誤り。規格は内部監査を定期的に行うことを求めており、必要に応じてだけでは足りない。","× 誤り。指示がない年に監査を省略することは、定期的な実施の要求に反する。"]},{"id":"pms-115","type":"mc","chapterIndex":7,"stem":"内部監査の結果が経営層に報告されず、指摘も放置されていた。最も適切な対応はどれか。","options":["報告しなかった担当者を処分して終わらせ、報告の仕組みや改善の決定については見直さない。","監査の結果は社内で保管するだけにし、改善の検討は、次の監査で指摘されるまで行わない。","報告の仕組みを見直し、経営層へ報告し、マネジメントレビューで改善の決定を行う。","次回の監査で同じ指摘が出ないよう、監査員の人数と監査の回数だけを増やし、結果の報告も省いて対応する。"],"correctIndex":2,"explanations":["× 誤り。担当者の処分で終わらせ、仕組みを見直さないことは、原因への対策にならない。","× 誤り。結果を保管するだけでは、改善にはつながらない。","○ 正しい。報告の仕組みを見直し、経営層への報告とマネジメントレビューでの改善決定を行う。","× 誤り。監査員の人数を増やしても、報告の仕組みや改善の決定の欠陥は解消しない。"]},{"id":"pms-116","type":"mc","chapterIndex":8,"stem":"ヒヤリハット（事故に至らなかった事象）の扱いとして、適切なものはどれか。","options":["収集して原因を分析し、再発防止や改善につなげる。","事故に至らなければ、記録は不要である。","ヒヤリハットは報告者の責任として処理する。","件数が多いと困るので、報告を控えさせる。"],"correctIndex":0,"explanations":["○ 正しい。ヒヤリハットを収集して原因を分析し、事故の予防と改善に活かす。","× 誤り。事故に至らなくても、収集して分析し、改善に生かす必要がある。","× 報告者を責めると、報告が集まらず改善の機会を失う。","× 誤り。報告を控えさせると、潜在的なリスクを把握できなくなる。"]},{"id":"pms-117","type":"mc","chapterIndex":7,"stem":"内部監査で得る証拠として、適切なものはどれか。","options":["監査員の個人的な推測や、過去の経験に基づく思い込みを、そのまま監査の根拠として扱うこと","監査対象の担当者が口頭で述べた内容のみ","作成者が自ら作成して、後から作られた記録","実際の運用記録や記録の抜き取り確認などの客観的な証拠"],"correctIndex":3,"explanations":["× 推測は監査の証拠にならず、客観的な根拠が必要である。","× 口頭の説明だけでは、客観的な裏付けとして不十分である。","× 後から作られた記録は、運用の実態を示す証拠として信頼性が低い。","○ 正しい。実際の運用記録や抜き取りの確認などの客観的な証拠に基づいて判断する。"]},{"id":"pms-118","type":"mc","chapterIndex":4,"stem":"個人情報保護の規程を改定する場合の手続きとして、適切なものはどれか。","options":["改定内容を審議し、承認者の承認を得てから施行し、周知する。","担当者が自由に改定し、施行後に報告すれば足り、改定の内容を審議する場や承認の手続きは省略してよい。","改定は、部署の必要な範囲だけに周知する。","改定は、規程の見直しを行わずに、現場の判断で変えてよく、審議や承認は省略する。"],"correctIndex":0,"explanations":["○ 正しい。審議と承認を経て施行し、関係者に周知することで、規程が組織に定着する。","× 施行前の審議と承認が必要であり、施行後の報告だけでは統制が効かない。","× 誤り。改定は全社に周知する必要があり、一部の部署だけでは不十分である。","× 誤り。規程の改定は審議と承認を経る必要があり、現場の判断で変えてはならない。"]},{"id":"pms-119","type":"mc","chapterIndex":8,"stem":"利害関係者（本人を含む）からの苦情を、PMSの改善に活かす方法として、適切なものはどれか。","options":["苦情は個別の対応だけで終わらせ、傾向は分析せず、対応の結果も社内では共有しない。","苦情の内容を分類・分析し、原因を特定して、PMSの改善に反映する。","苦情の件数が少ないほど、PMSが優れていると判断し、苦情の内容を分析する必要はない。","苦情は外部に漏れないよう、記録を残さず、対応の結果も苦情を寄せた本人にだけ伝え、社内では共有しない。"],"correctIndex":1,"explanations":["× 誤り。個別対応だけでは、苦情の傾向と原因が見えず、改善につながらない。","○ 正しい。苦情を分類・分析して原因を特定し、PMSの改善に反映する。","× 誤り。苦情が少ないことだけでは、PMSの有効性を判断できない。","× 記録がないと、苦情の傾向や原因を分析できない。"]},{"id":"pms-120","type":"mc","chapterIndex":7,"stem":"PMSが有効に機能しているかを判断する方法として、適切なものはどれか。","options":["規程が整備されていれば、有効であると判断する。","文書が作成されていれば、実際の運用を確認しなくてよい。","PMSの目的に照らして、運用状況と成果（指標・監査結果など）を確認して判断する。","担当者が問題ないと言えば、有効とみなし、確認は省略する。"],"correctIndex":2,"explanations":["× 規程の整備だけでは、実際に運用されているかを確認できない。","× 文書の作成だけでは、運用の実態を確認したことにならない。","○ 正しい。PMSの目的に照らして、運用状況と成果を指標や監査結果などで確認する。","× 誤り。担当者の自己判断だけでは、有効性の客観的な確認にならない。"]},{"id":"pms-121","type":"mc","chapterIndex":6,"stem":"個人情報の漏えい等が発生した場合の速報について、適切なものはどれか。","options":["事実関係の調査が完了するまで報告を保留し、確報と同時にまとめて行う。","年次の報告書で、委員会へまとめて提出する。","漏えい等を確認してから、概ね3〜5日以内に速報を行う。","本人へ通知した後に、まとめて報告する。"],"correctIndex":2,"explanations":["× 速報は調査完了を待たずに行うものであり、保留は認められない。","× 誤り。年次報告による提出では、速報や確報の期限に間に合わない。","○ 速報は漏えい等を確認してから概ね3〜5日以内が目安とされる。","× 速報は本人への通知を待って行うものではなく、確認後できるだけ早く行うものである。"]},{"id":"pms-122","type":"mc","chapterIndex":6,"stem":"報告の確報について、報告期限が「知った日から60日以内」とされるのはどのような事態か。","options":["不正の目的をもって行われたおそれがある漏えい等。","誤送付で個人データが1件漏えいした場合。","従業員が誤って個人データを削除し、後に復元できた場合。","要配慮個人情報を含まない個人データが1,000件を超えて漏えいした場合。"],"correctIndex":0,"explanations":["○ 不正の目的による漏えい等は確報の期限が60日以内とされる。","× 誤送付1件は報告対象事態に当たらない場合が多く、60日の期限の対象ではない。","× 削除後に復元できた場合は、期限を延ばす根拠にはならない。","× 件数の多さは報告対象の判断に関係するが、60日の期限を定める理由ではない。"]},{"id":"pms-123","type":"mc","chapterIndex":5,"stem":"外国にある第三者へ個人データを提供する際、本人の同意が不要となる場合として適切なものはどれか。","options":["提供先が日本国内に登記された法人の子会社であり、国内法に基づく管理体制が整っているため、外国にある第三者への提供に当たらない場合。","提供先が国内の子会社であり、本人への移転先や保護措置の説明を省略しても、外国にある第三者への提供として例外的に認められる場合。","提供する個人データが委託契約書の対象外であり、委託に伴う提供として取り扱われるために、外国にある第三者への提供の規律を受けない場合。","提供先が、事業者が講ずべき措置に相当する措置を継続的に講ずるための体制を整備している場合。"],"correctIndex":3,"explanations":["× 提供先の所在地や国内法の適用の有無を理由に、外国にある第三者への提供の規律を免れるわけではない。","× 国名を知らせないことは同意取得の要件を満たさず、例外にはならない。","× 委託契約の範囲外であれば、委託に伴う提供の扱いにはならず、外国にある第三者への提供の規律を受ける。","○ 体制基準を満たす場合は同意の取得が不要となる例外の一つである。"]},{"id":"pms-124","type":"mc","chapterIndex":5,"stem":"外国にある第三者への提供について、本人に同意を求める際に情報提供すべき事項として適切なものはどれか。","options":["提供先の役員の氏名と居住地、提供先の年間売上高。","移転先の国名、その国の個人情報保護制度に関する情報、提供先が講ずる保護措置に関する情報。","提供先の従業員数と取引先銀行の名称。","提供先の国名だけを本人に知らせれば足り、制度に関する情報は省略してよい。"],"correctIndex":1,"explanations":["× 役員の氏名や居住地は、同意取得時の提供義務の対象ではない。","○ 本人に対し、国名・制度・保護措置の情報を提供することが求められている。","× 従業員数や取引銀行は、同意取得時に求められる情報ではない。","× 国名だけでは足りず、制度に関する情報と保護措置の情報を本人に示す必要がある。"]},{"id":"pms-125","type":"mc","chapterIndex":5,"stem":"第三者提供を行う提供者側の記録義務について、適切なものはどれか。","options":["記録は提供後1年間保存すれば足りるが、提供先から求められた場合には、記録の写しをすべて提供先へ渡さなければならず、保存期間の延長も不要である。","記録は本人から開示の請求があった場合にのみ作成すればよい。","個人データを第三者に提供したときは、提供の年月日や第三者の氏名等の記録を作成し、原則として3年間保存する。","オプトアウト方式で提供する場合は、記録義務は一切ない。"],"correctIndex":2,"explanations":["× 提供の記録は3年間の保存が求められ、提供先から求められても記録の写しを渡す義務が生じるわけではない。","× 記録は開示請求の有無に関係なく作成が必要である。","○ 記録の作成と原則3年間の保存が求められている。","× オプトアウト方式でも提供の記録義務は生じる。"]},{"id":"pms-126","type":"mc","chapterIndex":5,"stem":"第三者から個人データの提供を受ける側（受領者）の確認義務について、提供者から確認すべき事項として適切でないものはどれか。","options":["当該第三者の年間売上高。","当該第三者の氏名又は名称（法人の場合は商号）。","当該第三者の住所。","当該第三者による当該個人データの取得の経緯。"],"correctIndex":0,"explanations":["○ 年間売上高は、受領者が提供者に確認すべき事項には含まれない。","× 氏名又は名称は、提供者が確認すべき事項に含まれる。","× 住所は確認事項に含まれる。","× 取得の経緯は確認事項に含まれる。"]},{"id":"pms-127","type":"mc","chapterIndex":5,"stem":"匿名加工情報の作成に関する説明として適切なものはどれか。","options":["氏名と住所のみを削除すれば、残りの購買履歴や年齢の情報を残したままでも、匿名加工情報として扱え、加工方法の公表は不要である。","匿名加工情報は個人情報ではないため、作成時に加工方法を公表する必要はなく、社内の判断だけで第三者へ提供してよい。","作成した匿名加工情報は、加工方法の記録を残しておけば、利用の必要がなくなった後も、保存期間の定めなく保管し続けてよい。","特定の個人を識別できず、元の個人データを復元できないように加工し、加工方法等の一定事項を公表する。"],"correctIndex":3,"explanations":["× 氏名と住所を削除しても、他の情報から個人が特定できる場合があり、匿名加工情報の要件を満たさない。","× 匿名加工情報は作成時に加工方法等を公表する義務がある。","× 保存期間の定めがないまま保管し続けてよいわけではなく、利用の必要がなくなれば適切に管理・廃棄する。","○ 識別と復元の防止、および作成時の公表が求められる。"]},{"id":"pms-128","type":"mc","chapterIndex":5,"stem":"利用目的を変更する場合の対応として適切なものはどれか。","options":["変更前の目的と関連性がない場合も、社内決裁を経ればいつでも変更できる。","変更前の利用目的と関連性を有すると合理的に認められる範囲内であれば、変更後の目的を本人に通知又は公表する。","利用目的の変更は本人の同意なしには一切できず、委員会の承認が必要である。","変更後の利用目的は、本人から求められた場合に事後に通知すればよい。"],"correctIndex":1,"explanations":["× 関連性のない目的への変更は、社内決裁では認められない。","○ 関連性がある範囲での変更は可能で、変更後の通知又は公表が必要となる。","× 委員会の承認は必要ない。通知又は公表が求められる。","× 利用目的を変更したときは、変更後の目的を本人に通知又は公表する必要がある。"]},{"id":"pms-129","type":"mc","chapterIndex":5,"stem":"要配慮個人情報の取得について、適切なものはどれか。","options":["利用目的を公表していれば、取得時に本人の同意は不要である。","要配慮個人情報は、社内の限られた者だけが管理する限り、本人の同意を得なくても取得して利用することが認められる。","要配慮個人情報は、原則として本人の同意を得ずに取得してはならない。","委員会への事前届出があれば、同意が不要となる。"],"correctIndex":2,"explanations":["× 利用目的の公表だけでは、同意の例外にはならない。","× 社内管理かどうかは、同意の要否とは関係がない。","○ 要配慮個人情報の取得は原則として本人の同意が必要である。","× 委員会への届出は、同意の例外の根拠にはならない。"]},{"id":"pms-130","type":"mc","chapterIndex":6,"stem":"個人データの取扱いを委託先に任せた場合の委託元の責任について、一般的に適切なものはどれか。","options":["委託元は委託先に対する監督義務を負い、委託先で生じた漏えい等についても委託元として対応が求められる。","委託先で発生した漏えいは、委託先が単独で責任を負うため、委託契約上も委託元が事故の報告や原因調査に関与する必要はない。","委託先が委託元の承諾を得て再委託すれば、委託元の監督義務は消滅する。","委託契約を締結していれば、委託先が定期的に報告する内容を確認せず、委託先の管理状況を委託元が確認する必要はない。"],"correctIndex":0,"explanations":["○ 委託元の監督義務が基本であり、委託先の事故でも委託元の対応が求められる。","× 委託先の事故でも、委託元は監督者として対応を求められ、単独で責任を免れるわけではない。","× 再委託があっても、委託元の監督義務は残る。","× 契約の締結だけでは監督義務を果たしたことにならない。"]},{"id":"pms-131","type":"mc","chapterIndex":5,"stem":"オプトアウト方式で個人データを第三者に提供する場合の要件として適切なものはどれか。","options":["本人の同意を取得して、同意の撤回を受け付ける体制を整え、提供先の利用目的や再提供の範囲を契約で制限し、提供後の管理状況を定期的に確認して提供する。","提供先の全社員から個別に同意を書面で取得し、提供を行う際にはその写しを保管すれば、オプトアウトの要件を満たすものとして扱われる。","提供の対象を要配慮個人情報に限定し、本人の求めに応じて提供を停止する仕組みを設けずに、提供の事実を公表しないまま提供する。","本人の求めに応じて提供を停止することを認め、提供する個人データの項目等を本人へ通知又は公表し、委員会へ届け出る。"],"correctIndex":3,"explanations":["× オプトアウトは本人の同意を得ずに提供する方式であり、同意を取得する方式とは要件が異なる。","× 全社員の同意を取得する方式は、オプトアウトの要件ではなく、本人の同意による提供の方法である。","× 要配慮個人情報は本来オプトアウトによる第三者提供の対象にできず、停止の仕組みや公表も必要である。","○ オプトアウトでは、停止の求めへの対応と通知・公表、委員会への届出が要件となる。"]},{"id":"pms-132","type":"mc","chapterIndex":5,"stem":"保有個人データの開示請求への対応として適切なものはどれか。","options":["開示請求は書面に限られ、口頭での請求は受け付けてはならない。","本人から開示請求があった場合、法の定める例外を除き、遅滞なく開示しなければならない。","開示請求を受けた場合は、必ず手数料を徴収し、無料での開示は認められない。","開示請求は、請求から1年を経過すると応じる義務がなくなる。"],"correctIndex":1,"explanations":["× 口頭での請求を一律に拒否することは適切でない。","○ 開示は原則として義務であり、例外は法で定められた場合に限られる。","× 手数料は実費の範囲で定めることができるが、無料での開示を一律に禁じるものではない。","× 請求から1年経過で義務が消えるとする規定はない。"]},{"id":"pms-133","type":"mc","chapterIndex":6,"stem":"報告対象事態の一つとして適切なものはどれか。","options":["個人データを暗号化して誤送信したが、暗号鍵の漏えいがなく、第三者が復号できない状態にあった場合。","従業員が個人データの入力を1件誤り、本人の依頼で直ちに修正した場合。","要配慮個人情報が含まれる個人データの漏えい等が発生し、又はそのおそれがある場合。","社内で個人データを閲覧する権限を持つ者が、業務上必要な閲覧を行った場合。"],"correctIndex":2,"explanations":["× 暗号化され鍵も漏えいしていない場合は、報告対象の例外とされる。","× 誤入力の修正は漏えい等に当たらない。","○ 要配慮個人情報を含む漏えい等は、報告対象事態の代表例である。","× 業務上必要な閲覧は、漏えい等に当たらない。"]},{"id":"pms-134","type":"mc","chapterIndex":6,"stem":"個人データの漏えい等が報告対象事態に当たる場合の本人への通知について、適切なものはどれか。","options":["原則として本人へ通知しなければならず、通知が困難な場合は代替措置をとる。","個人データが1件のみの場合は、報告対象事態に当たるものの、本人への通知は、件数が少ないことを理由に省略して差し支えない。","本人への通知は、委員会への報告が完了した後、事情が落ち着いてから1年以内に行えばよく、通知の時期に特段の制限はない。","本人への通知は、本人から問い合わせがあった場合にのみ行う。"],"correctIndex":0,"explanations":["○ 原則として本人への通知が求められ、困難な場合は代替措置が認められる。","× 件数が少ないことは、通知の免除理由にはならない。","× 通知は速やかに行うことが求められ、委員会への報告後も期限を先延ばしにしてよいわけではない。","× 問い合わせを待つ運用では、通知の義務を果たしたことにはならない。"]},{"id":"pms-135","type":"mc","chapterIndex":6,"stem":"安全管理措置の説明として適切なものはどれか。","options":["安全管理措置は、物理的な施錠や入退室管理の仕組みを整えるだけで足り、アクセス制御といった技術的な対策は要しない。","従業員が個人データに触れない業務体制をとっている場合は、個人情報保護に関する教育や訓練は、実施しなくてもよい。","委託先に個人データの取扱いを全面的に任せ、委託先の安全管理の状況や事故の有無について、事業者自身が確認を行う必要はない。","組織的・人的・物理的・技術的の観点から、取り扱う個人データの安全管理措置を講じる。"],"correctIndex":3,"explanations":["× 安全管理措置には技術的な対策も含まれ、物理的な対策だけでは足りない。","× 個人データに触れない場合でも、従業員への教育や訓練は安全管理措置として必要である。","× 委託先任せは、事業者の安全管理義務を果たさない。","○ 安全管理措置は4つの観点で整理され、組織全体で講じることが求められる。"]},{"id":"pms-136","type":"mc","chapterIndex":0,"stem":"「第三者」に該当しないものとして適切なものはどれか。","options":["同じグループに属する独立した別法人への提供。","利用目的の達成に必要な範囲で個人データの取扱いを委託する先（委託先）。","業務提携先の別法人へ、協力目的で提供する場合。","研究機関への提供は、共同研究の目的であれば同意は不要である。"],"correctIndex":1,"explanations":["× 別法人は原則として第三者に当たる。","○ 委託先への提供は、第三者提供の例外となる。","× 業務提携先は第三者に当たる。","× 研究機関は第三者に当たり、共同研究の目的であっても、原則として本人の同意が必要である。"]},{"id":"pms-137","type":"mc","chapterIndex":5,"stem":"個人情報の利用目的の特定について、適切なものはどれか。","options":["利用目的は「事業活動のため」と記載すれば、特定したものとみなされる。","利用目的は社内の内部文書に記載すれば、本人への通知は不要である。","利用目的をできる限り具体的に特定し、本人が利用目的を予測できる程度に明示する。","利用目的は、取得後1年を経過した時点で一度だけ特定すればよく、その後に利用目的を変更する場合も、特定し直す必要はない。"],"correctIndex":2,"explanations":["× 「事業活動のため」のような包括的な記載では、利用目的を特定したとは認められない。","× 社内文書への記載だけでは、通知の要件を満たさない。","○ できる限り具体的に特定することが求められる。","× 利用目的は取得時点で特定が必要であり、1年後に一度だけ行えばよいわけではない。"]},{"id":"pms-138","type":"mc","chapterIndex":0,"stem":"個人情報取扱事業者の説明として適切なものはどれか。","options":["個人情報データベース等を事業の用に供している者であれば、取り扱う件数にかかわらず該当する。","取り扱う個人情報が5,000件以下の事業者は、該当しない。","営利事業者に限られ、学校法人や公益法人、NPO法人は、個人情報を事業の用に供していても該当しない。","個人情報取扱事業者は法人に限られ、個人事業主が個人情報データベース等を事業の用に供していても、法の義務は一切課されない。"],"correctIndex":0,"explanations":["○ 件数に関係なく、個人情報データベース等を事業の用に供していれば該当する。","× 件数で該当性が決まるわけではなく、5,000件以下でも該当しうる。","× 非営利の団体も、個人情報データベース等を事業の用に供していれば、個人情報取扱事業者に該当しうる。","× 個人事業主も該当しうるため、法人に限られるわけではなく、義務が一切課されないことはない。"]},{"id":"pms-139","type":"mc","chapterIndex":6,"stem":"漏えい等の事故が発覚した際に、最初に行うべき対応として最も適切なものはどれか。","options":["原因が特定できるまで社内外へ一切報告せず、影響範囲や関係者の状況を把握し、調査を終えてから、すべての報告をまとめて行う。","漏えいの事実が判明したら、本人に個別に連絡して謝罪し、本人が納得したことを確認できた時点で、委員会への報告は省略する。","事実を公表せず、社内の関係者だけで原因と再発防止策を決め、被害を受けた本人や委員会への連絡は、必要性を判断して個別に行う。","被害の拡大を防ぐ措置をとり、影響範囲を確認したうえで、社内の報告体制に従って速やかに責任者へ報告する。"],"correctIndex":3,"explanations":["× 報告を調査終了まで止めると、速報や本人への通知が遅れ、被害の拡大を防げなくなる。","× 本人への連絡だけで報告義務は代替されない。","× 本人や委員会への連絡の要否を社内だけで判断して省略するのは、適切な対応ではない。","○ まず被害の拡大防止と影響範囲の把握、そして速やかな報告が基本である。"]},{"id":"pms-140","type":"mc","chapterIndex":0,"stem":"仮名加工情報と匿名加工情報の違いとして適切なものはどれか。","options":["仮名加工情報は、事業者内部でも他の情報と照合してはならないものである。","仮名加工情報は他の情報と照合すれば本人を識別できるが、匿名加工情報は特定の個人を識別できないように加工したものである。","匿名加工情報は、氏名や住所を仮IDに置き換えたものを指し、他の情報は元のまま残してよい。","両者はいずれも、本人の同意なく第三者に自由に提供できる点で同一と言える。"],"correctIndex":1,"explanations":["× 事業者内部での照合が禁止されるわけではない。","○ 仮名加工情報は照合により識別が可能な点が特徴である。","× 仮IDへの置き換えだけでは匿名加工情報にはならず、他の情報の加工も必要である。","× 仮名加工情報は第三者への提供が原則として制限されており、同一ではない。"]},{"id":"pms-141","type":"mc","chapterIndex":5,"stem":"個人データの第三者提供で、同意の取得方法として適切なものはどれか。","options":["同意は提供の後に包括的に得ればよく、提供の前に提供先や利用目的を本人に示す必要はなく、事後の通知で足りるものとされている。","同意は一度得れば、すべての提供に永続的に有効である。","本人が同意の内容を認識できる方法で、提供先や利用目的を明示して同意を得る。","本人が沈黙していれば、同意が成立したとみなす。"],"correctIndex":2,"explanations":["× 提供の後の包括的な同意では、提供時の同意の要件を満たさない。","× 同意は得た範囲・目的に限って有効であり、すべての提供に永続的に及ぶものではない。","○ 同意は提供の前に、本人が内容を認識できる形で得ることが必要である。","× 沈黙を同意とみなす取扱いは認められない。"]},{"id":"pms-142","type":"mc","chapterIndex":0,"stem":"要配慮個人情報の例として適切なものはどれか。","options":["病歴、犯罪の経歴、障害の事実。","氏名、住所、電話番号。","購買履歴や閲覧履歴、位置情報といった行動に関する記録は、取り扱いに注意が必要な情報として、要配慮個人情報に含まれるものである。","勤務先の名称、職種、勤務地、雇用形態に関する情報。"],"correctIndex":0,"explanations":["○ 病歴・犯罪の経歴・障害の事実は要配慮個人情報の例である。","× 氏名・住所・電話番号は、要配慮個人情報には当たらない。","× 行動に関する記録は、一般に要配慮個人情報には含まれず、取扱いに注意は必要でも要配慮個人情報の定義には当たらない。","× 勤務先や職種は要配慮個人情報に当たらない。"]},{"id":"pms-143","type":"mc","chapterIndex":5,"stem":"個人関連情報の第三者提供について、適切なものはどれか。","options":["個人関連情報は個人情報に当たるため、提供先で本人の同意がなくても、提供元が提供の記録を残せば、第三者に提供することができる。","個人関連情報は、提供元が本人から直接取得したものであれば、提供先の確認や同意の取得を行わなくても、第三者提供は自由に行うことができる。","個人関連情報を第三者へ提供する場合には、提供先で個人データとして取得されるかどうかにかかわらず、委員会へ事前に届け出ることが必要である。","提供先が個人データとして取得することが想定される場合、提供元は提供先で本人の同意が得られていることを確認する。"],"correctIndex":3,"explanations":["× 個人関連情報は個人情報ではないが、提供先で個人データとして取得されるなら、同意の確認が必要である。","× 取得の経緯にかかわらず、提供先が個人データとして取得する場合は同意の確認が必要である。","× 事前の届出が求められるわけではない。","○ 提供先が個人データとして取得する場合は、同意の確認が求められる。"]},{"id":"pms-144","type":"mc","chapterIndex":6,"stem":"個人データの取扱いの委託先に対する監督について、適切なものはどれか。","options":["委託先が業者である場合は、監督義務は生じない。","委託契約の締結や定期的な確認などにより、委託先の安全管理が図られるよう必要かつ適切な監督を行う。","委託先の選定は、価格や納期だけで決めてよく、安全管理の能力は基準に含めなくてよい。","委託後は、委託先の管理状況を一度確認すれば、以後の確認は不要である。"],"correctIndex":1,"explanations":["× 業者への委託でも監督義務は生じる。","○ 委託元は必要かつ適切な監督の義務を負う。","× 委託先の選定では、安全管理の措置を講じられるかどうかを基準に含める必要がある。","× 委託後も継続的な確認が求められる。"]},{"id":"pms-145","type":"mc","chapterIndex":5,"stem":"共同利用を行う場合の本人への通知等について、適切なものはどれか。","options":["共同利用は、同じグループ会社の間で行う限り、共同利用の範囲や利用目的を本人へ通知する必要はなく、社内で周知するだけで足りる。","共同利用の範囲は、事業者が社内で決めれば、本人への通知は不要である。","共同して利用する者の範囲、利用目的、管理責任者の氏名等を本人に通知するか、本人が容易に知り得る状態に置く。","共同利用する者の範囲は、本人から申し出があった場合にのみ公表すればよい。"],"correctIndex":2,"explanations":["× グループ会社間でも、共同利用の通知又は公表は必要である。","× 社内での決定だけでは、本人への通知の要件を満たさない。","○ 共同利用の要件として、本人への通知又は本人が知り得る状態の確保が求められる。","× 求めがあった場合のみの公表では、要件を満たさない。"]},{"id":"pms-146","type":"mc","chapterIndex":5,"stem":"保有個人データの訂正等の請求への対応として適切なものはどれか。","options":["利用目的の達成に必要な範囲で、遅滞なく訂正等を行い、その旨を本人に通知する義務がある（例外を除く）。","訂正請求には、事業者は応じる義務はない。","訂正は、本人が費用を負担する場合にのみ行い、事業者が必要と認める範囲に限って、利用目的とは関係なく訂正内容を決めてよい。","訂正請求は、訂正の対象となる保有個人データが1件に限られ、複数の項目にまたがる訂正を求める請求には、応じる義務がない。"],"correctIndex":0,"explanations":["○ 訂正等の請求には原則として応じる義務がある。","× 応じる義務がないとする規定はない。","× 訂正の判断は利用目的の達成に必要な範囲で行うもので、事業者の裁量で範囲を決めてよいわけではない。","× 訂正の請求は1件に限られるものではない。"]},{"id":"pms-147","type":"mc","chapterIndex":0,"stem":"個人情報の不正な取扱いと罰則について、適切なものはどれか。","options":["個人情報の漏えいは、事業者に過失がなければ、本人への通知や委員会への報告を含め、いかなる罰則の対象にもならない。","罰則の対象は、故意に漏えいした従業員のみであり、個人情報を取り扱う事業者は、組織として管理義務を負うものの罰則の対象外である。","個人情報保護法に違反する取扱いがあっても、事業者が自主的に改善していれば、委員会からの指導や勧告が行われることはない。","個人情報データベース等を不正な利益を図る目的で提供又は盗用した者は、刑事罰の対象となる。"],"correctIndex":3,"explanations":["× 罰則の範囲は法律で具体的に定められており、「過失がなければいかなる罰則もない」とまでは言えない。","× 従業員だけでなく、法人である事業者も両罰規定により罰金刑の対象となりうる。","× 違反に対しては指導や勧告が行われうる。","○ 不正な利益を図る目的での提供・盗用は、刑事罰の対象となる。"]},{"id":"pms-148","type":"mc","chapterIndex":5,"stem":"個人情報の取得時の利用目的の通知又は公表について、適切なものはどれか。","options":["利用目的の通知は、取得後3年以内に行えばよく、それまでは本人へ知らせなくてもよい。","あらかじめ公表している場合を除き、個人情報を取得した後、速やかに利用目的を本人に通知又は公表する。","利用目的は、本人から求められた場合にのみ通知すればよい。","ホームページに掲載していれば、取得時の通知は何があっても不要である。"],"correctIndex":1,"explanations":["× 利用目的は取得後速やかに通知又は公表する必要があり、3年の猶予はない。","○ 取得後は速やかな通知又は公表が求められる。","× 求めがあった場合のみという運用は、通知の義務を満たさない。","× 公表の方法は、取得時の状況により判断すべきで、常に不要とはならない。"]},{"id":"pms-149","type":"mc","chapterIndex":0,"stem":"個人情報の定義について、適切なものはどれか。","options":["死者に関する情報も、遺族が識別できる場合には個人情報に含まれる。","法人に関する情報は、役員の氏名を含む場合でも個人情報に該当しない。","生存する個人に関する情報であって、氏名・生年月日等により特定の個人を識別できるもの、又は個人識別符号を含むもの。","会社の代表電話番号や、部署の代表メールアドレスといった情報は、いずれも特定の個人を識別できるため、すべて個人情報に該当する。"],"correctIndex":2,"explanations":["× 死者に関する情報は個人情報の対象ではない。","× 役員の氏名は、個人を識別できる限り個人情報に該当しうる。","○ 個人情報は生存する個人に関する情報が対象である。","× 会社や部署の代表的な連絡先は、特定の個人を識別できる場合に限って個人情報に当たる。"]},{"id":"pms-150","type":"mc","chapterIndex":6,"stem":"再委託を行う場合の取扱いとして適切なものはどれか。","options":["委託契約に定めた条件（委託元の承諾等）を満たし、再委託先についても監督が必要となる。","再委託は、委託先が委託元に事前に知らせれば、委託先の判断だけで自由に行うことができ、委託元の承諾を得る必要はない。","再委託先は、委託元が直接選定しなければ監督義務の対象外である。","再委託先に対する監督は、最初の委託先に任せれば足り、委託元が再委託の状況や再委託先の安全管理を確認する義務は、以後一切消える。"],"correctIndex":0,"explanations":["○ 再委託には委託契約上の条件を満たすことが必要である。","× 委託元の承諾など、選定の関与が求められる場合がある。","× 再委託先への監督も含めて、委託元の義務は残る。","× 再委託先に対する監督義務は、最初の委託先に任せても委託元から消えるものではない。"]},{"id":"pms-151","type":"mc","chapterIndex":7,"stem":"内部監査の目的として最も適切なものはどれか。","options":["従業員の業務態度や勤務成績を評価し、その結果を人事考課や昇進の判断材料として活用することを目的とする。","監査で指摘された件数を減らし、審査機関の審査員から高い評価を得て、認証の更新を確実にすることを目的とする。","内部監査の結果は、外部の審査機関が行う審査の結論を先取りして、内部監査の担当者が直接決定するものとして扱うべきである。","PMSが要求事項に適合し、有効に運用されているかを、独立した立場から確認・評価すること。"],"correctIndex":3,"explanations":["× 内部監査は人事評価のための制度ではなく、PMSの適合性と有効性を確認するものである。","× 指摘件数の削減や審査での評価を目的とすると、監査の独立性と客観性が損なわれる。","× 審査結果を決めるのは外部の審査機関であり、内部監査ではない。","○ 内部監査はPMSの適合性と有効性を確認するための監査である。"]},{"id":"pms-152","type":"mc","chapterIndex":7,"stem":"内部監査員の独立性について、適切なものはどれか。","options":["監査対象部門の管理者が監査員を兼務すれば、効率的である。","監査対象の業務から独立した者が監査を行い、自己の業務を自ら監査しない。","監査対象部門の日常業務を担当していても、公正さは損なわれない。","内部監査員は、監査の直前にだけ任命し、終われば任を解いてもよい。"],"correctIndex":1,"explanations":["× 管理者の兼務は、自己監査になるため独立性を損なう。","○ 独立性は、自己の業務を監査しないことで確保される。","× 監査対象の業務を担当する者は、自己の業務を監査することになり、独立性が保てない。","× 監査員は計画的に任命し、監査の独立性を継続的に保つ必要がある。"]},{"id":"pms-153","type":"mc","chapterIndex":7,"stem":"内部監査の計画について、適切なものはどれか。","options":["全部門を毎月同じ内容で監査する計画が、最も適切である。","前回の監査で指摘のあった部門は、同じ指摘を繰り返さないよう、その後の監査対象から除外し、改善の確認を次回以降も行わない。","監査プログラムで、各部門のリスクや前回の結果を考慮し、監査の対象・範囲・頻度・方法を計画する。","監査計画は、被監査部門に事前に全ての監査項目を伝えておく必要がある。"],"correctIndex":2,"explanations":["× 毎回同じ内容の監査は、リスクに応じた計画とはいえない。","× 前回指摘のあった部門は、むしろ重点的に確認すべきである。","○ リスクや過去の結果に基づく計画が基本である。","× 監査項目を全て事前に伝える義務はなく、計画の基準にもならない。"]},{"id":"pms-154","type":"mc","chapterIndex":7,"stem":"監査証拠の評価について、適切なものはどれか。","options":["監査証拠は、記録・観察・照合などの客観的な裏付けに基づき、担当者の口頭説明のみに依存しない。","担当者の口頭説明が一貫しており、説明の内容に矛盾が見られなければ、記録や現物を確認しなくても監査の根拠として十分である。","電子データは改ざんの可能性があるため、監査証拠として一切使えない。","監査証拠は、監査の結論を先に決めてから、結論に都合の良いものを選んで集め、反証となる記録は必要に応じて除外する。"],"correctIndex":0,"explanations":["○ 客観的な裏付けを重視し、口頭説明のみに頼らないことが求められる。","× 一貫した説明があっても、記録の確認は省略できない。","× 電子データも適切な統制のもとでは監査証拠として使える。","× 結論に都合の良い証拠だけを集め、反証を除外することは、監査証拠の客観性を損なう。"]},{"id":"pms-155","type":"mc","chapterIndex":8,"stem":"監査で検出された指摘事項の扱いとして適切なものはどれか。","options":["すべての指摘は不適合として扱い、指摘の件数が多いほど、被監査部門の管理上の問題を網羅的に示せた優れた監査であると評価する。","不適合は、事業者の判断で是正が不要と決められ、是正の期限や是正処置の記録を残さなくても、監査上の問題にはならない場合がある。","観察事項は、是正期限を必ず定めて是正報告を求め、改善の状況を次回の監査まで継続して確認し、確認結果と改善の効果を記録として残し、次回の監査計画に反映する。","要求事項を満たしていない事象は不適合として是正処置を求め、改善の機会は観察事項として助言にとどめることが多い。"],"correctIndex":3,"explanations":["× 指摘件数の多さは監査の優劣を示すものではなく、不適合と観察事項を区別して扱う必要がある。","× 不適合と判定したものは、事業者の判断だけで是正を不要とすることはできず、記録も必要である。","× 観察事項は不適合ではないため、是正期限を定めて是正報告を求めるものではない。","○ 要求事項を満たさない場合は不適合として扱い、是正処置を求める。"]},{"id":"pms-156","type":"mc","chapterIndex":8,"stem":"是正処置について、適切なものはどれか。","options":["不適合の表面的な症状だけを直せば、原因分析は不要である。","不適合の原因を特定し、再発防止のための是正処置を実施して、その有効性を確認する。","是正処置は、監査員が自ら実施し、被監査部門が行うことは認められていない。","是正処置を実施した時点で、有効性の確認は不要と判断してよい。"],"correctIndex":1,"explanations":["× 症状の修正だけでは、再発防止にならない。","○ 原因の特定と再発防止が是正処置の基本である。","× 是正処置は原則として被監査部門が原因に基づいて実施するものであり、監査員が代行するものではない。","× 有効性の確認は是正処置の一部であり、省略はできない。"]},{"id":"pms-157","type":"mc","chapterIndex":4,"stem":"PMSの文書（規程・手順・記録）の管理について、適切なものはどれか。","options":["文書は紙で一部だけ保存すれば足り、改訂の履歴を残す必要も、旧版の扱いを記録する必要もないため、版管理は不要である。","改訂した文書の旧版は、直ちに全て破棄し、記録は残さない。","文書の版管理を行い、最新版を利用できるように配布・改訂履歴を管理する。","文書は作成者のみが閲覧できるように管理し、他部門には共有しない。"],"correctIndex":2,"explanations":["× 紙の一部保存では、版管理の要件を満たさない。","× 旧版の扱いは、適切な管理と記録が求められる。","○ 版管理と配布の管理が文書管理の基本である。","× 必要な部門が閲覧できない管理は、運用に支障をきたす。"]},{"id":"pms-158","type":"mc","chapterIndex":7,"stem":"マネジメントレビューについて、適切なものはどれか。","options":["経営層が、PMSの適切性・妥当性・有効性を定期的にレビューし、改善の判断を行う。","マネジメントレビューは、担当者レベルで年に1回だけ行えば足り、経営層が結果の報告を受けて改善の判断を行う必要はない。","経営層は、監査結果の報告を受ける必要はない。","外部の審査機関による審査の前にのみ、審査の準備の一環として実施すれば、その他の時期には行う必要がない。"],"correctIndex":0,"explanations":["○ マネジメントレビューは経営層が行い、改善の判断を下すことが求められる。","× 担当者レベルだけでは、経営層の関与が不足する。","× 監査結果は経営層へのインプットであり、報告が必要である。","× マネジメントレビューは審査前だけでなく、計画した間隔で定期的に行う必要がある。"]},{"id":"pms-159","type":"mc","chapterIndex":4,"stem":"教育・訓練について、適切なものはどれか。","options":["教育は新入社員のみを対象とし、入社後に業務内容や取り扱う個人情報が変わっても、以後は改めて受ける必要はない。","教育は、個人情報を扱わない部門には実施しなくてよく、個人情報を扱う部門についても、受講記録は残さなくてもよい。","教育の効果は、受講者の人数や受講の回数だけで評価すればよく、受講後の理解度や業務での実践の状況を確認する必要はない。","従業員の役割に応じて、個人情報保護に関する教育を計画的に実施し、その実施記録を残す。"],"correctIndex":3,"explanations":["× 業務内容や扱う個人情報が変わったときは、役割に応じた教育を改めて受ける必要がある。","× 個人情報を扱う部門の教育では、受講の記録を残すことが求められる。","× 受講者数だけでは、理解度などの効果を評価できない。","○ 役割に応じた計画的な教育と記録が求められる。"]},{"id":"pms-160","type":"mc","chapterIndex":7,"stem":"Pマーク（PMS）の審査の観点として適切なものはどれか。","options":["規程の文言が要求事項に似ていれば、運用の確認は省略される。","規程・手順が要求事項に適合しているかと、実際の運用で記録が残っているかの両面を確認する。","審査は、担当者の知識量のみで評価され、規程や運用の状況は対象にならない。","審査の指摘は、審査後に記録しなくても有効である。"],"correctIndex":1,"explanations":["× 規程の文言だけでは、運用の適合性を確認したことにならない。","○ 審査は規程と運用の両面から確認される。","× 審査では、規程や記録の整備だけでなく、実際の運用の状況も確認される。","× 指摘は記録して改善に結び付けることが求められる。"]},{"id":"pms-161","type":"mc","chapterIndex":7,"stem":"内部監査の報告について、適切なものはどれか。","options":["被監査部門の意向に沿って、指摘を削除したほうが円滑である。","報告書には、指摘事項を記載せず、良好な点のみを記載する。","監査結果を事実に基づき、根拠・指摘事項・推奨事項を明確にして、経営層等に報告する。","監査報告は、監査員が口頭で被監査部門と経営層に伝えれば足り、報告の内容を文書として残す必要はないため、文書化は不要である。"],"correctIndex":2,"explanations":["× 指摘事項を削除すると、報告の客観性を損なう。","× 指摘事項を記載しないと、改善につながらない。","○ 事実と根拠に基づく報告が基本である。","× 文書による報告が必要であり、口頭だけでは足りない。"]},{"id":"pms-162","type":"mc","chapterIndex":8,"stem":"事故の発生後の再発防止について、適切なものはどれか。","options":["事故の原因を分析し、手順の見直しや教育などの再発防止策を実施する。","担当者を交代させれば、原因の分析と再発防止策は不要である。","事故の内容は、原因の究明に関わった一部の関係者にのみ伝えることとし、社内の記録には残さず、外部に知られないように管理する。","再発防止策は、事故から3年経過するまで実施しなくてよく、その間は原因の分析や手順の見直しも行わなくてよい。"],"correctIndex":0,"explanations":["○ 原因分析に基づく再発防止が求められる。","× 担当者の交代だけでは、組織の原因の解決にならない。","× 記録の保持と組織的な共有が必要である。","× 再発防止策は事故後に速やかに実施するもので、期間を空けてよいものではない。"]},{"id":"pms-163","type":"mc","chapterIndex":7,"stem":"Pマーク認証の維持について、適切なものはどれか。","options":["認証は、一度取得すれば以後の運用は任意となり、定期的な審査や内部監査、PMSの見直しを行わなくても、認証の効力は続くとされている。","認証の維持には、審査機関に毎月報告し、その都度、審査機関の承認を得てPMSの運用計画を変更する必要がある。","認証は、取得時の審査結果があれば、以後の運用状況や従業員の教育の実施状況を問われることなく、有効性が保たれる。","PMSを継続的に運用し、定期的な審査・内部監査を通じて改善を続ける。"],"correctIndex":3,"explanations":["× 一度の取得で運用が任意になるわけではない。","× 認証の維持に毎月の報告や承認は要求されておらず、定期的な審査と内部監査が求められる。","× 認証の維持には、運用状況や教育の実施状況の継続的な確認が必要で、取得時の結果だけでは足りない。","○ 継続的な運用と改善が認証の維持に必要である。"]},{"id":"pms-164","type":"mc","chapterIndex":7,"stem":"内部監査のサンプリングについて、適切なものはどれか。","options":["監査員が気になる件だけを選び、抽出根拠は残さない。","監査対象の母集団から代表的な標本を抽出し、抽出の根拠を記録しておく。","サンプルは前回と同じものを使えば、判断材料として十分である。","最初の1件のみを確認すれば、全体の判断として十分である。"],"correctIndex":1,"explanations":["× 恣意的な選択は、代表性を損なう。","○ 代表性のある抽出と根拠の記録が求められる。","× 前回と同じサンプルでは、今回の監査対象の状況を反映できない。","× 1件のみでは、全体の状況を判断する根拠にならない。"]},{"id":"pms-165","type":"mc","chapterIndex":7,"stem":"委託先の管理状況の監査について、適切なものはどれか。","options":["委託先の管理は、契約書を締結し、個人情報の取扱いに関する条項を盛り込んだ時点で完了したものとみなし、以後の確認は不要とする。","委託先の監査は、委託先の自己申告のみで行うのが原則である。","委託先の管理状況を、契約内容と照らして定期的に確認し、記録を残す。","委託先で事故があった場合、委託元側は内部監査の対象外とする。"],"correctIndex":2,"explanations":["× 契約締結は管理の始まりであり、完了ではない。","× 自己申告だけでは、客観的な確認にならない。","○ 契約内容に照らした定期的な確認が求められる。","× 委託先の事故は、委託元の内部監査で確認すべき対象である。"]},{"id":"pms-166","type":"mc","chapterIndex":1,"stem":"個人情報の棚卸しについて、適切なものはどれか。","options":["取り扱う個人情報の種類・利用目的・保管場所・保存期間等を棚卸しし、台帳として定期的に更新する。","棚卸しは、システム担当者が一度だけ行えば、以後の更新は不要である。","台帳には、利用しているシステムの名称や担当部署を記載すれば足り、取り扱う個人情報の種類や保管場所は記載の対象に含めなくてよい。","保管場所は台帳に記載せず、担当者の記憶や個人の判断で管理してよく、台帳の更新も必要に応じて行えばよい。"],"correctIndex":0,"explanations":["○ 棚卸し台帳は定期的な更新が求められる。","× 棚卸しは一度きりでは足りず、定期的な更新が必要である。","× 台帳には、利用目的や保管場所などを含める必要があり、システム名や担当部署だけでは足りない。","× 保管場所は台帳に記載し、担当者の記憶に頼らず管理する必要がある。"]},{"id":"pms-167","type":"mc","chapterIndex":5,"stem":"個人情報に関する苦情・問い合わせへの対応について、適切なものはどれか。","options":["苦情は、担当者が個人的に処理し、組織としての記録は残さず、対応した内容を報告する必要もない。","苦情や問い合わせは、一定の期間が過ぎたものについては、受付の記録を残し、担当者の判断により対応しないことができる。","問い合わせは、窓口を公表せず、個別に申し出があったものだけ対応し、対応の記録や結果の共有は行わなくてよい。","苦情・問い合わせの窓口を定め、受付・対応・記録の手順を整備し、対応結果を記録する。"],"correctIndex":3,"explanations":["× 苦情は組織として受け付け、対応の記録を残す必要がある。","× 受付の記録を残しても、担当者の判断で苦情への対応を省略することはできない。","× 窓口は公表して受付の仕組みを整えるものであり、対応の記録や共有を省略してはならない。","○ 窓口の設置と手順の整備、記録が求められる。"]},{"id":"pms-168","type":"mc","chapterIndex":8,"stem":"内部監査で発見された不適合の是正期限について、適切なものはどれか。","options":["是正期限は、影響度に関係なく一律に同じ期限とする。","是正期限は不適合の影響度に応じて決め、期限内に是正結果を確認する。","是正期限は設けず、完了の報告があれば足りる。","是正期限は、被監査部門の判断で自由に延長できる。"],"correctIndex":1,"explanations":["× 一律の期限は、影響度を反映しない。","○ 影響度に応じた期限設定と、結果の確認が求められる。","× 期限を設けないと、是正の進捗を管理できない。","× 是正期限の延長は、理由と承認者を記録し、監査上の管理の下で行う必要がある。"]},{"id":"pms-169","type":"mc","chapterIndex":4,"stem":"内部監査員に求められる力量について、適切なものはどれか。","options":["内部監査員の資格を取得すれば、以後は監査の知識や技能を維持するための教育や訓練を受ける必要はなく、力量が自然に維持される。","監査員の力量は、監査対象部門の業務知識だけで十分である。","監査に必要な知識・技能（規格・監査手法）を備え、教育・訓練によって力量を維持する。","監査員は、監査の経験があれば、規格の知識は不要である。"],"correctIndex":2,"explanations":["× 資格取得後も、監査の力量は維持のための教育・訓練が必要であり、自然に維持されるわけではない。","× 業務知識だけでは、監査の知識・技能の要件を満たさない。","○ 監査に必要な知識・技能を備え、教育・訓練で力量を維持することが求められる。","× 規格の知識は、監査の基礎として必要であり、経験だけで代えられない。"]},{"id":"pms-170","type":"mc","chapterIndex":7,"stem":"監査プログラムの見直しについて、適切なものはどれか。","options":["監査結果や組織の変化を踏まえ、監査プログラムを定期的に見直す。","監査プログラムは最初に一度作成すれば、以後は組織の変化や監査結果にかかわらず、変更してはならず、同じ内容で繰り返し実施する。","見直しは審査機関の指示がある場合にのみ行う。","監査プログラムは、監査員の都合や予定に合わせて毎回変えるのが望ましく、変更の理由を記録する必要はない。"],"correctIndex":0,"explanations":["○ 監査結果や組織の変化に応じて見直すことが求められる。","× 監査プログラムは、監査結果や組織の変化を踏まえて見直す必要がある。","× 見直しは審査機関の指示を待つものではなく、監査結果や組織の変化に応じて定期的に行う。","× 監査員の都合で毎回変えることは、監査の計画性や一貫性を損なう。"]},{"id":"pms-171","type":"mc","chapterIndex":4,"stem":"PMSの運用記録の保管について、適切なものはどれか。","options":["記録は、作成者が個人のパソコンや手元で保管すれば足り、組織としての保管や保管場所の管理は一切不要であり、廃棄の記録も残さなくてよい。","監査の記録は、監査が終了した直後に全て廃棄し、次回の監査では前回の記録を参照せずに、ゼロから計画を立て直すことが望ましい。","記録は電子化すれば、いつでも内容を書き換えてよく、書き換えた履歴や改訂の記録を残す必要はなく、保管期間の管理も一切不要である。","教育記録・点検記録・監査記録などの運用記録を、定められた期間保管し、必要に応じて提示できるようにする。"],"correctIndex":3,"explanations":["× 運用記録は組織として保管し、必要に応じて提示できるようにしておく必要がある。","× 監査記録の直ちの廃棄は、運用の証拠を失う。","× 電子化した記録でも、内容を書き換える場合は履歴を残し、改ざんを防ぐ必要がある。","○ 運用記録は組織として定められた期間保管し、提示できる状態にする必要がある。"]},{"id":"pms-172","type":"mc","chapterIndex":7,"stem":"各部門の運用点検について、適切なものはどれか。","options":["点検は、事故が起きた後にのみ実施すればよい。","各部門の責任者が、個人情報の取扱いが規程どおり行われているかを定期的に点検し、結果を記録する。","点検は、担当者が必要ないと判断した場合には省略してよい。","点検結果は部門内で保管すれば、経営層に報告する必要はない。"],"correctIndex":1,"explanations":["× 事故後にのみ点検するのでは、事前に問題を把握できず、定期的な点検が必要である。","○ 各部門の責任者による定期的な点検と結果の記録は、規程どおりの運用確認に必要である。","× 規程どおりの運用の点検は省略できず、定期的に実施して記録する必要がある。","× 点検結果を部門内だけで保管し、経営層に報告しないことは、組織としての管理に欠ける。"]},{"id":"pms-173","type":"mc","chapterIndex":3,"stem":"個人情報のリスクアセスメントについて、適切なものはどれか。","options":["リスクは、過去に事故がなかった場合は評価不要である。","リスクは、担当者の感覚だけで評価すれば十分であり、リスクの大きさを根拠や数値で示す必要はなく、評価の記録も残さなくてよい。","個人情報の取扱いのリスクを特定・評価し、対策の優先順位を決めて対応する。","リスク対策は、コストが最小のものだけを選べばよい。"],"correctIndex":2,"explanations":["× 過去に事故がなくてもリスクは存在しうるため、事故がないことを理由に評価を省略してはならない。","× 感覚のみでは、客観的な評価にならない。","○ リスクを特定・評価し、対策の優先順位を決めて対応するのが基本である。","× 対策はリスクの大きさに応じて選ぶべきで、コストだけでは決められない。"]},{"id":"pms-174","type":"mc","chapterIndex":5,"stem":"個人情報の流れ（業務フロー）の把握について、適切なものはどれか。","options":["個人情報の取得から廃棄までの流れを把握し、各段階で必要な安全管理措置を確認する。","個人情報の流れは、取得を担当する部門のみを把握すれば足り、利用や提供、保管、廃棄を担当する部門の取扱いを把握する必要はない。","廃棄は、一時的に保管した後に行えばよく、記録は不要である。","業務フローは、システムの流れのみを対象とし、紙の書類や外部へ委託した業務の取扱いは、フローの対象外とする。"],"correctIndex":0,"explanations":["○ 取得から廃棄までのライフサイクル全体の把握が必要である。","× 取得部門だけでは、利用・提供・廃棄の流れを把握できない。","× 廃棄の記録も管理の一部として必要である。","× 業務フローは紙の書類や委託業務も含めて把握する必要がある。"]},{"id":"pms-175","type":"mc","chapterIndex":7,"stem":"監査における実地確認について、適切なものはどれか。","options":["文書が整っていれば、現場の確認は省略してよく、規程どおりに運用されているかの確認は、報告書の記載内容だけで判断してよい。","現場確認は、事前に通知して整えられた状態のみを見ればよく、通常の業務で起きている実態を確認する必要はない。","実地確認は、監査が終了した後に、監査の結果を検証する目的でのみ行うものであり、監査の過程で現場を確認する必要はない。","文書の確認に加え、現場の実地確認（観察・立会い）を行い、規程どおりに運用されているかを確かめる。"],"correctIndex":3,"explanations":["× 文書だけでは運用の実態は確認できず、現場の確認が必要である。","× 事前に整えられた状態だけでは、実際の運用を確認できない。","× 実地確認は監査の過程で行うものであり、終了後だけでは足りない。","○ 文書と実際の運用の両面を確認することが求められる。"]},{"id":"pms-176","type":"mc","chapterIndex":7,"stem":"監査結論の導き方について、適切なものはどれか。","options":["監査結論は、被監査部門の合意が得られるまで保留する。","監査結論は、根拠となる監査証拠と照らして、事実に基づいて導く。","監査結論は、監査員の経験に基づく印象で決定してもよい。","監査結論は、指摘が一件でもあれば必ず不適合とする。"],"correctIndex":1,"explanations":["× 被監査部門の合意は、結論の要件ではない。","○ 結論は監査証拠に基づいて導く必要がある。","× 監査結論は印象ではなく、根拠となる監査証拠に基づいて導く必要がある。","× 観察事項などを区別せず、一律に不適合とすることは適切でない。"]},{"id":"pms-177","type":"mc","chapterIndex":6,"stem":"重大な違反や漏えいのおそれを発見した際の対応として適切なものはどれか。","options":["重大な問題も、次回の定例監査まで報告を待つ。","被監査部門とだけ協議し、報告は省略する。","直ちに責任者へ報告し、定められた手順に従って対応する。","問題の発見者が、被害の拡大を防ぐために自ら修正し、報告の手順を経ずに、修正の内容を記録に残さず処理を終えてよい。"],"correctIndex":2,"explanations":["× 定例監査まで待つと、被害の拡大を招く。","× 重大な問題は経営層を含む責任者へ報告する必要があり、報告の省略は認められない。","○ 重大な問題は速やかな報告と対応が求められる。","× 修正したとしても、報告の手順を省略し記録を残さないことは認められない。"]},{"id":"pms-178","type":"mc","chapterIndex":5,"stem":"目的外利用を防ぐ運用について、適切なものはどれか。","options":["利用の申請・承認の仕組みを設け、ログ等で利用の実態を確認できるようにする。","利用目的の範囲は、担当者が必要と判断すれば広げてよい。","目的外利用は、本人が問題視しなければ問題にならず、社内で把握していなくても、利用の経緯を記録する必要はない。","承認の仕組みは、業務の効率を落とすため設けないこととし、利用の実態は担当者の判断にゆだね、事後の確認も行わないものとする。"],"correctIndex":0,"explanations":["○ 申請と承認、ログによる確認は目的外利用の防止に有効である。","× 利用目的の範囲は、組織の決定と本人への通知に基づく必要がある。","× 本人の問題視の有無にかかわらず、目的外利用は法令違反のおそれがあり、経緯の記録が必要である。","× 承認の仕組みは、目的外利用の防止に必要である。"]},{"id":"pms-179","type":"mc","chapterIndex":7,"stem":"第三者提供の記録の監査について、適切なものはどれか。","options":["第三者提供の記録は、内部監査の対象から外し、記録の作成や保管の状況は、担当部門の自己点検にのみゆだねてよいものとする。","記録がなくても、提供の事実を担当者が覚えていれば足り、提供先や提供日を改めて確認する必要はない。","第三者提供の記録は、提供先から受領書を受け取らなくてもよく、提供先の名称や提供日を後から記録すればよい。","第三者提供の記録（提供日・提供先等）が、規程どおり作成・保管されているかを監査で確認する。"],"correctIndex":3,"explanations":["× 記憶では、記録の代わりにならない。","× 第三者提供の記録は、提供の事実を後から確認できるよう文書として残す必要がある。","× 記録は提供の時点で作成し、提供先の情報を後から記録するという扱いは認められない。","○ 記録の作成と保管は、監査で確認すべき対象である。"]},{"id":"pms-180","type":"mc","chapterIndex":7,"stem":"内部監査の結果の活用について、適切なものはどれか。","options":["内部監査は、結果を保管するだけにとどめ、原因分析や改善の検討には使わないこととする。","内部監査の結果を、PMSの見直しやマネジメントレビューへのインプットとして活用し、改善サイクルを回す。","内部監査の結果は、次回の監査で改善されていなければ、以後は無視してよい。","内部監査の結果は、審査機関だけに提出し、社内では共有しない。"],"correctIndex":1,"explanations":["× 監査結果は改善の検討に活用し、PMSの見直しに反映させる必要がある。","○ 監査結果は改善のためのインプットとして活用すべきである。","× 改善されていない場合こそ、継続的な対応が必要である。","× 社内での共有を欠くと、改善の仕組みが機能しない。"]}];
+  const CHAPTERS = ["箇条3 用語及び定義","箇条4 組織の状況","箇条5 リーダーシップ","箇条6 計画","箇条7 支援","箇条8 運用（取得・利用・提供・本人対応）","箇条8 運用（安全管理・委託・事故対応）","箇条9 パフォーマンス評価","箇条10 改善"];
+  const BASE_CHAPTER_COUNT = 9;   // これ以降の章は新シラバス仮問題集（deck:'extra3'）用
+// GAS_WEBAPP_URL / EXAM_ID / EXAM_SHORT_TITLE / TRACKING_EXAM_ID / QUESTIONS / CHAPTERS は build_html.js が
+// ビルド時にこのファイルの直前へ注入する。QUESTIONS は {id, type:'mc'|'tf'|'mc-multi', chapterIndex, stem, ...}
+// の配列。TRACKING_EXAM_ID は成績記録シート名（<TRACKING_EXAM_ID>_<mode>）専用のIDで、
+// 同じexam.id配下に複数の問題集（quiz/quiz2）がある場合に成績を分離するため EXAM_ID とは別に持つ
+// （EXAM_ID はチャットへ戻る遷移先ページなので exam.id のまま変えない）。
+// 'mc-multi' は「すべて選びなさい」形式（正解が複数）。見た目は 'mc' と同じ選択肢ボタンだが、
+// クリックのたびにトグル選択（複数選択可）になり、正解は correctIndexes（配列）で持つ。
+
+const MODE_LABEL = { mc: '模擬試験', tf: '一問一答', extra: '追加問題', extra2: '追加問題2', extra3: '新シラバス仮問題', review: '復習' };
+// 成績記録（QuizTracking.js）のシートを分けるための mode 変換。
+// 'extra'（追加問題、別ソースの問題集）は既存の 模擬試験(seiseiai_mc) と混在しないよう
+// 'mc2' という別モード名で記録する。'extra2'（3つ目の問題集）は同様に'mc3'。
+// 'review'（復習モード）は章別推移表には記録せず、専用の復習ログへ書く（recordResults参照）。
+const TRACKING_MODE = { mc: 'mc', tf: 'tf', extra: 'mc2', extra2: 'mc3', extra3: 'mc4', review: 'review' };
+
+// 復習モードの「卒業」条件。復習でこの回数だけ連続正解したら、既定の出題対象から外す
+// （「記録にある全部」を選べば卒業ぶんも出題できる）。バックエンド QuizReview.js は
+// 生の連続正解数(streak)だけを返し、閾値の判断はこの画面側で持つ。
+const GRADUATE_STREAK = 2;
+// 復習の範囲「最近間違えた問題」が遡る日数。
+const RECENT_MISS_DAYS = 14;
+
+let mode = null;             // 'mc' | 'tf' | 'extra' | 'extra2' | 'extra3' | 'review'
+let modePool = [];           // モードごとの出題プール（下記参照）
+let scopeChapterIndex = null; // null = 全部、それ以外は対象chapterIndex
+let scopeGroup = null;        // null = 章全体、それ以外は章の中のテーマ別グループ名
+let questions = [];          // 範囲確定時に modePool を全部 or 該当章でfilterしたもの
+let idx = 0;
+let selectedOption = null;   // mc: 0-3 の数値、tf: true/false、mc-multi: 選択中indexの配列、未選択は null（mc-multiは[]）
+let revealed = false;
+let sessionResults = [];     // [{id, chapterIndex, correct, selectedOption}]
+let skippedCount = 0;        // 回答せずに飛ばした問題数（正答率の母数には入れない）
+
+// 復習モード用の状態。reviewEntries はバックエンド apiGetReviewPool の戻り
+// [{id, mode, missCount, lastMissAt, reviewCount, streak, lastReviewAt}]。
+let reviewEntries = [];
+let reviewEntryById = {};
+let reviewScopeKey = null;   // 'active' | 'repeat' | 'recent' | 'all' | chapterIndex(数値)
+let reviewMissingCount = 0;  // 記録にあるが今の問題集に見つからない問題数（ID未記録の旧データなど）
+
+(function initCounts() {
+  document.getElementById('mcCount').textContent = QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).length;
+  document.getElementById('tfCount').textContent = QUESTIONS.filter((q) => q.type === 'tf' && !q.deck).length;
+  document.getElementById('extraCount').textContent = QUESTIONS.filter((q) => q.deck === 'extra').length;
+  document.getElementById('extra2Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra2').length;
+  document.getElementById('extra3Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra3').length;
+  // 問題が1問も無いモードのカードは出さない（FP3のように問題集が1本だけの資格向け）。
+  [['tfCard', 'tfCount'], ['extraCard', 'extraCount'], ['extra2Card', 'extra2Count'], ['extra3Card', 'extra3Count']].forEach(([card, count]) => {
+    if (!Number(document.getElementById(count).textContent)) document.getElementById(card).style.display = 'none';
+  });
+  // 模擬試験カードの選択肢数表記（FP3は3択）。選択肢数が混在するときは「3〜4択」のように範囲で出す。
+  const sizes = Array.from(new Set(QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).map((q) => q.options.length)));
+  if (sizes.length) {
+    const lo = Math.min.apply(null, sizes), hi = Math.max.apply(null, sizes);
+    document.getElementById('mcKind').textContent = (lo === hi ? lo : lo + '〜' + hi) + '択';
+  }
+  // 問題集1本だけの資格は「模擬試験」ではなく exams.js の quiz.mcTitle で呼び替える。
+  if (typeof MC_TITLE === 'string' && MC_TITLE) {
+    MODE_LABEL.mc = MC_TITLE;
+    document.getElementById('mcTitle').textContent = MC_TITLE;
+  }
+})();
+
+function showScreen(id) {
+  ['screenMode', 'screenScope', 'screenQuestion', 'screenSummary'].forEach((s) => {
+    document.getElementById(s).style.display = s === id ? '' : 'none';
+  });
+}
+
+function chooseMode(m) {
+  if (m === 'review') { startReview(); return; }
+  const pool = m === 'extra' || m === 'extra2' || m === 'extra3'
+    ? QUESTIONS.filter((q) => q.deck === m)
+    : QUESTIONS.filter((q) => q.type === m && !q.deck);
+  if (!pool.length) { alert('このモードの問題がまだ登録されていません。'); return; }
+  mode = m;
+  modePool = pool;
+  renderScopeScreen();
+}
+
+// ── 復習モード（間違えた問題だけの再学習） ────────────────────────────────
+// 出題プールはスプレッドシートの記録（<examId>_<mode>_ミス、全モードぶん）から作る。
+// 端末のlocalStorageは使わない: このページはGASのサンドボックスiframe（*.googleusercontent.com）
+// で配信されるため保存先が端末・ブラウザごとにバラバラになり、スマホとPCで復習状況が
+// 食い違ってしまう。記録は既にスプレッドシートにあるのでそれを唯一の正とする。
+async function startReview() {
+  const card = document.getElementById('reviewCard');
+  const desc = document.getElementById('reviewCount');
+  const prevDesc = desc.textContent;
+  card.disabled = true;
+  desc.textContent = '記録を読み込み中...';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+    });
+    if (!data.ok) {
+      alert('復習リストを取得できませんでした: ' + (data.error || ''));
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    reviewEntries = data.entries || [];
+    reviewEntryById = {};
+    reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+
+    const pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+    reviewMissingCount = reviewEntries.length - pool.length;
+    if (!pool.length) {
+      alert(reviewEntries.length
+        ? '記録にある問題が今の問題集に見つかりませんでした（問題IDの無い古い記録のみです）。'
+        : 'まだ間違えた問題の記録がありません。\n各モードを解いたあとサマリー画面で「この回の結果を記録」を押すと、ここに溜まっていきます。');
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    mode = 'review';
+    modePool = pool;
+    desc.textContent = pool.filter((q) => !isGraduated(q)).length + '問が未克服';
+    renderScopeScreen();
+  } catch (err) {
+    alert('通信エラー: ' + (err && err.message ? err.message : err));
+    desc.textContent = prevDesc;
+  } finally {
+    card.disabled = false;
+  }
+}
+
+// 復習プールの1問あたりの状態を引く小物。記録に無い問題（通常は起きない）は0扱い。
+function isGraduated(q) {
+  const e = reviewEntryById[q.id];
+  return !!e && e.streak >= GRADUATE_STREAK;
+}
+function missCountOf(q) {
+  const e = reviewEntryById[q.id];
+  return e ? e.missCount : 0;
+}
+function lastMissTimeOf(q) {
+  const e = reviewEntryById[q.id];
+  return e && e.lastMissAt ? new Date(e.lastMissAt).getTime() : 0;
+}
+
+// 復習の範囲キー → 出題対象の絞り込み条件。
+function reviewFilter(key) {
+  if (key === 'all') return function () { return true; };
+  if (key === 'repeat') return function (q) { return !isGraduated(q) && missCountOf(q) >= 2; };
+  if (key === 'recent') {
+    const since = Date.now() - RECENT_MISS_DAYS * 24 * 60 * 60 * 1000;
+    return function (q) { return !isGraduated(q) && lastMissTimeOf(q) >= since; };
+  }
+  if (typeof key === 'number') return function (q) { return !isGraduated(q) && q.chapterIndex === key; };
+  return function (q) { return !isGraduated(q); }; // 'active'（既定）
+}
+
+function reviewScopeLabel(key) {
+  if (key === 'all') return '記録にある全部';
+  if (key === 'repeat') return '2回以上間違えた問題';
+  if (key === 'recent') return '最近' + RECENT_MISS_DAYS + '日で間違えた問題';
+  if (typeof key === 'number') return chapterLabelText(key);
+  return '未克服の問題';
+}
+
+// 復習モードでは色々なデッキの問題が混ざるので、その問題がどの問題集のものかを示す。
+function deckLabelOf(q) {
+  if (q.deck === 'extra') return '追加問題';
+  if (q.deck === 'extra2') return '追加問題2';
+  if (q.deck === 'extra3') return '新シラバス仮問題';
+  return q.type === 'tf' ? '一問一答' : '模擬試験';
+}
+
+// モード確定後、「全部」か「章ごとにチャレンジ」かを選ぶ画面を組み立てる。
+function renderScopeScreen() {
+  if (mode === 'review') { renderReviewScopeScreen(); return; }
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">📚 全部</div><div class="scope-all-desc">' + modePool.length + '問すべて出題</div>';
+  allBtn.onclick = () => chooseScope(null);
+  el.appendChild(allBtn);
+
+  const chapterIndexes = Array.from(new Set(modePool.map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとにチャレンジ';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const count = modePool.filter((q) => q.chapterIndex === ci).length;
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + count + '問</span>';
+      btn.onclick = () => chooseScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+
+    // 章の下のテーマ別グループ（問題に group が付いているときだけ）。
+    if (modePool.some((q) => q.group)) {
+      const gHeading = document.createElement('div');
+      gHeading.className = 'scope-chapter-heading';
+      gHeading.textContent = 'テーマ別にチャレンジ';
+      el.appendChild(gHeading);
+      chapterIndexes.forEach((ci) => {
+        const inChapter = modePool.filter((q) => q.chapterIndex === ci && q.group);
+        const names = [];
+        inChapter.slice().sort((a, b) => (a.groupIndex || 0) - (b.groupIndex || 0)).forEach((q) => { if (names.indexOf(q.group) < 0) names.push(q.group); });
+        if (!names.length) return;
+        const sub = document.createElement('div');
+        sub.className = 'scope-note';
+        sub.textContent = chapterLabelText(ci);
+        el.appendChild(sub);
+        const gList = document.createElement('div');
+        gList.className = 'scope-chapter-list';
+        names.forEach((name) => {
+          const n = inChapter.filter((q) => q.group === name).length;
+          const btn = document.createElement('button');
+          btn.className = 'scope-chapter-btn';
+          btn.innerHTML = '<span class="name">' + escapeHtml(name) + '</span><span class="count">' + n + '問</span>';
+          btn.onclick = () => chooseScope(ci, name);
+          gList.appendChild(btn);
+        });
+        el.appendChild(gList);
+      });
+    }
+  }
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲選択画面。章ではなく「未克服／繰り返しミス／最近／全部」で切る。
+function renderReviewScopeScreen() {
+  document.getElementById('headerSub').textContent = '復習　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const countOf = (key) => modePool.filter(reviewFilter(key)).length;
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">🔁 未克服の問題</div><div class="scope-all-desc">'
+    + countOf('active') + '問・間違えたまま克服できていない問題</div>';
+  allBtn.onclick = () => chooseReviewScope('active');
+  el.appendChild(allBtn);
+
+  const presets = [
+    { key: 'repeat', name: '🔥 2回以上間違えた問題' },
+    { key: 'recent', name: '📅 最近' + RECENT_MISS_DAYS + '日で間違えた問題' },
+    { key: 'all', name: '📚 記録にある全部（克服済みも含む）' },
+  ];
+  const presetList = document.createElement('div');
+  presetList.className = 'scope-chapter-list';
+  presets.forEach((p) => {
+    const n = countOf(p.key);
+    const btn = document.createElement('button');
+    btn.className = 'scope-chapter-btn';
+    btn.disabled = n === 0;
+    btn.innerHTML = '<span class="name">' + escapeHtml(p.name) + '</span><span class="count">' + n + '問</span>';
+    btn.onclick = () => chooseReviewScope(p.key);
+    presetList.appendChild(btn);
+  });
+  el.appendChild(presetList);
+
+  // 章ごと（未克服のぶんだけ）。0問の章はボタン自体を出さない。
+  const chapterIndexes = Array.from(new Set(modePool.filter(reviewFilter('active')).map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとに復習（未克服ぶん）';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const n = countOf(ci);
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + n + '問</span>';
+      btn.onclick = () => chooseReviewScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+  }
+
+  const note = document.createElement('div');
+  note.className = 'scope-note';
+  note.textContent = '復習で' + GRADUATE_STREAK + '回連続で正解した問題は「克服」として既定の出題から外れます。'
+    + (reviewMissingCount > 0 ? '（記録のうち' + reviewMissingCount + '問は今の問題集に無いため対象外）' : '');
+  el.appendChild(note);
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲確定。ミスが多い問題・最近間違えた問題から先に出す。
+function chooseReviewScope(key) {
+  const pool = modePool.filter(reviewFilter(key));
+  if (!pool.length) { alert('この条件に当てはまる問題がありません。'); return; }
+  reviewScopeKey = key;
+  scopeChapterIndex = typeof key === 'number' ? key : null;
+  scopeGroup = null;
+  questions = pool.slice().sort((a, b) => (missCountOf(b) - missCountOf(a)) || (lastMissTimeOf(b) - lastMissTimeOf(a)));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = '復習　' + reviewScopeLabel(key) + '（' + questions.length + '問）';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function chooseScope(chapterIndex, group) {
+  scopeChapterIndex = chapterIndex;
+  scopeGroup = group || null;
+  questions = chapterIndex == null ? modePool : modePool.filter((q) => q.chapterIndex === chapterIndex && (!scopeGroup || q.group === scopeGroup));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　' + (chapterIndex == null ? '全部' : chapterLabelText(chapterIndex) + (scopeGroup ? '／' + scopeGroup : ''));
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function restartMode() {
+  if (mode === 'review') { chooseReviewScope(reviewScopeKey); return; }
+  chooseScope(scopeChapterIndex, scopeGroup);
+}
+
+// 今のセッションで間違えた問題だけを、その場でもう一度出題する（記録を待たない簡易復習）。
+// 記録ベースの本格的な復習はモード選択の「🔁 復習」。
+function retryWrongInSession() {
+  const wrong = sessionResults.filter((r) => !r.correct)
+    .map((r) => questions.find((q) => q.id === r.id))
+    .filter(Boolean);
+  if (!wrong.length) return;
+  questions = wrong;
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent =
+    (mode === 'review' ? '復習' : MODE_LABEL[mode]) + '　間違えた' + wrong.length + '問をもう一度';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function backToScopeSelect() {
+  renderScopeScreen();
+}
+
+function backToModeSelect() {
+  mode = null;
+  modePool = [];
+  scopeChapterIndex = null;
+  scopeGroup = null;
+  document.getElementById('headerSub').textContent = 'モードを選んでください';
+  showScreen('screenMode');
+}
+
+function chapterLabelText(chapterIndex) {
+  if (chapterIndex == null || !CHAPTERS[chapterIndex]) return '';
+  // BASE_CHAPTER_COUNT 以降は新シラバス仮問題集の章（旧シラバスの章と名前が重なるので「新」を付ける）
+  if (chapterIndex >= BASE_CHAPTER_COUNT) return '新シラバス第' + (chapterIndex - BASE_CHAPTER_COUNT + 1) + '章：' + CHAPTERS[chapterIndex];
+  return '第' + (chapterIndex + 1) + '章：' + CHAPTERS[chapterIndex];
+}
+
+function renderQuestion() {
+  const q = questions[idx];
+  selectedOption = q.type === 'mc-multi' ? [] : null;
+  revealed = false;
+
+  // 復習モードは色々なデッキが混ざるので、どの問題集の何問目かと通算ミス回数も出す。
+  const progressLabel = mode === 'review'
+    ? '復習（' + deckLabelOf(q) + '）　' + (idx + 1) + ' / ' + questions.length + '　通算' + missCountOf(q) + '回ミス'
+    : MODE_LABEL[mode] + '　' + (idx + 1) + ' / ' + questions.length;
+  document.getElementById('progress').textContent = progressLabel;
+  document.getElementById('chapterLabel').textContent = chapterLabelText(q.chapterIndex) + (q.group ? '／' + q.group : '');
+  document.getElementById('stem').textContent = q.stem + (q.type === 'mc-multi' ? '（複数選択可）' : '');
+
+  const optionsEl = document.getElementById('options');
+  optionsEl.innerHTML = '';
+
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    q.options.forEach((text, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = '(' + (i + 1) + ') ' + text;
+      btn.onclick = () => selectOption(i);
+      optionsEl.appendChild(btn);
+    });
+  } else {
+    const trueBtn = document.createElement('button');
+    trueBtn.className = 'option-btn tf-btn';
+    trueBtn.textContent = '○ 正しい';
+    trueBtn.onclick = () => selectOption(true);
+    const falseBtn = document.createElement('button');
+    falseBtn.className = 'option-btn tf-btn';
+    falseBtn.textContent = '× 誤り';
+    falseBtn.onclick = () => selectOption(false);
+    optionsEl.appendChild(trueBtn);
+    optionsEl.appendChild(falseBtn);
+  }
+
+  // 「回答」ボタンは複数選択（mc-multi）専用。mc / tf は選択した時点で即判定するため出さない。
+  const answerBtn = document.getElementById('answerBtn');
+  answerBtn.disabled = true;
+  answerBtn.style.display = q.type === 'mc-multi' ? '' : 'none';
+  document.getElementById('questionActions').style.display = '';
+  document.getElementById('revealArea').style.display = 'none';
+}
+
+// 回答せずに次の問題へ飛ばす。スキップした問題は sessionResults に入れないので
+// 正答率の母数にも、間違えた問題の記録にも入らない（＝ミス扱いにはしない）。
+function skipQuestion() {
+  if (revealed) return;
+  skippedCount++;
+  saveProgress(idx + 1);
+  nextQuestion();
+}
+
+// mc / tf は「選択＝回答」で、選択肢を押した時点でそのまま正誤を表示する（回答ボタンは出さない）。
+// mc-multi（すべて選びなさい）は複数選んでから確定する必要があるため、従来どおり
+// トグル選択 →「回答」ボタンで reveal() する。
+function selectOption(v) {
+  if (revealed) return;
+  const q = questions[idx];
+
+  if (q.type !== 'mc-multi') {
+    selectedOption = v;
+    reveal();
+    return;
+  }
+
+  const i = selectedOption.indexOf(v);
+  if (i === -1) selectedOption.push(v);
+  else selectedOption.splice(i, 1);
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, j) => {
+    btn.classList.toggle('selected', selectedOption.includes(j));
+  });
+  document.getElementById('answerBtn').disabled = selectedOption.length === 0;
+}
+
+function sameIndexSet(a, b) {
+  if (a.length !== b.length) return false;
+  const sortedA = a.slice().sort();
+  const sortedB = b.slice().sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+// ── 効果音（正解＝ピンポン／不正解＝ブブー） ─────────────────────────────────────
+// 音声ファイルは使わず Web Audio で合成する。鳴らすのは回答の瞬間（利用者のクリック直後）なので
+// ブラウザの自動再生制限にかからない。失敗しても回答の処理は止めない。ON/OFFは端末ごとの好みなので
+// localStorage に覚える（読めない環境ではONのまま）。
+let soundOn = true;
+let audioCtx = null;
+try { soundOn = localStorage.getItem('quizSound') !== 'off'; } catch (e) { /* 読めなければON */ }
+
+function getAudioCtx() {
+  if (audioCtx) return audioCtx;
+  const AC = typeof AudioContext !== 'undefined' ? AudioContext
+    : (typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null);
+  if (!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+
+// 1音: 立ち上がりを素早く、あとは指数的に減衰させる（ぷつっというノイズを避ける）。
+function playTone(ctx, start, freq, dur, type, peak) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
+function playResultSound(correct) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const t = ctx.currentTime;
+    // 音量: 同時に鳴る音の合計が 1.0 を超えない範囲（超えると割れる）。
+    if (correct) {
+      // ピン（高）→ポーン（低）。倍音を足してベルらしくする。
+      playTone(ctx, t, 1175, 0.3, 'sine', 0.65);
+      playTone(ctx, t, 2350, 0.2, 'sine', 0.18);
+      playTone(ctx, t + 0.18, 880, 0.6, 'sine', 0.65);
+      playTone(ctx, t + 0.18, 1760, 0.35, 'sine', 0.18);
+    } else {
+      // ブッ、ブー。少しずらした低いのこぎり波2本でブザーらしいざらつきを出す。
+      [150, 157].forEach((f) => {
+        playTone(ctx, t, f, 0.16, 'sawtooth', 0.31);
+        playTone(ctx, t + 0.22, f, 0.5, 'sawtooth', 0.31);
+      });
+    }
+  } catch (e) { /* 音が鳴らなくても学習の邪魔をしない */ }
+}
+
+function updateSoundBtn() {
+  const btn = document.getElementById('soundBtn');
+  if (!btn) return;
+  btn.textContent = soundOn ? '🔊 音' : '🔇 音';
+  btn.title = soundOn ? '効果音ON（押すとOFF）' : '効果音OFF（押すとON）';
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('quizSound', soundOn ? 'on' : 'off'); } catch (e) { /* 保存できなくても今回は有効 */ }
+  updateSoundBtn();
+  if (soundOn) playResultSound(true);   // ONにしたときに音を確かめられるよう、ピンポンを鳴らす
+}
+updateSoundBtn();
+
+function reveal() {
+  if (selectedOption === null || revealed) return;
+  if (Array.isArray(selectedOption) && selectedOption.length === 0) return;
+  revealed = true;
+
+  const q = questions[idx];
+  const correct = q.type === 'mc' ? selectedOption === q.correctIndex
+    : q.type === 'mc-multi' ? sameIndexSet(selectedOption, q.correctIndexes)
+    : selectedOption === q.correct;
+  sessionResults.push({ id: q.id, chapterIndex: q.chapterIndex, correct, selectedOption });
+  saveProgress(idx + 1);   // 回答した時点で保存（次へを押す前に閉じても、次の問題から再開できる）
+  playResultSound(correct);
+
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, i) => {
+    btn.disabled = true;
+    btn.classList.remove('selected');
+    const isCorrectChoice = q.type === 'mc' ? i === q.correctIndex
+      : q.type === 'mc-multi' ? q.correctIndexes.includes(i)
+      : (i === 0) === q.correct;
+    const isSelectedChoice = q.type === 'mc' ? i === selectedOption
+      : q.type === 'mc-multi' ? selectedOption.includes(i)
+      : (i === 0) === selectedOption;
+    if (isCorrectChoice) btn.classList.add('correct');
+    else if (isSelectedChoice) btn.classList.add('incorrect');
+  });
+
+  const revealOptions = document.getElementById('revealOptions');
+  revealOptions.innerHTML = '';
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    // バッジは「選択肢として選ぶべきか(correctIndex/correctIndexes)」ではなく、解説文が本来持つ○/×
+    // （その文が事実として正しいか）をそのまま使う。「最も不適切なものはどれか」形式の設問では
+    // 正解の選択肢が「事実として誤り（×）」であるため、correctIndexだけで○/×を決めると意味が逆転する。
+    q.explanations.forEach((text, i) => {
+      const row = document.createElement('div');
+      row.className = 'option-explain';
+      const m = text.match(/^([○×])\s*/);
+      const fallbackCorrect = q.type === 'mc-multi' ? q.correctIndexes.includes(i) : i === q.correctIndex;
+      const badge = m ? m[1] : (fallbackCorrect ? '○' : '×');
+      row.innerHTML = '<span class="option-badge">' + badge + '</span>' + escapeHtml(text.replace(/^[○×]\s*/, ''));
+      revealOptions.appendChild(row);
+    });
+  } else {
+    const row = document.createElement('div');
+    row.className = 'option-explain';
+    row.innerHTML = '<span class="option-badge">' + (q.correct ? '○ 正しい' : '× 誤り') + '</span><br>' + escapeHtml(q.explanation.replace(/^[○×]\s*/, ''));
+    revealOptions.appendChild(row);
+  }
+
+  document.getElementById('questionActions').style.display = 'none';
+  document.getElementById('revealArea').style.display = '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 選択肢のindex（mc/mc-multi）やbool（tf）を、スプレッドシート出力・アドバイス用に
+// 人が読めるテキストへ変換する。
+function answerText(q, val) {
+  if (q.type === 'mc') return val == null ? '（未回答）' : q.options[val];
+  if (q.type === 'mc-multi') return (val || []).map((i) => q.options[i]).join(' / ');
+  return val ? '正しい' : '誤り';
+}
+
+function buildAskPrompt(q, selected) {
+  // ラベルは問題タイプではなく、現在解いているモード（MODE_LABEL）から決める。
+  // mc3（追加問題2）もtype:'mc'なので、type起点だと「模擬試験」と誤表示されてしまうため。
+  // 復習モードは複数デッキが混ざるので、その問題自身の出自（deckLabelOf）を使う。
+  const deckLabel = mode === 'review' ? deckLabelOf(q) : (MODE_LABEL[mode] || '問題集');
+  if (q.type === 'mc') {
+    const selfAnswerLine = selected != null && selected !== q.correctIndex
+      ? '\n自分は(' + (selected + 1) + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + (q.correctIndex + 1) + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  if (q.type === 'mc-multi') {
+    const selectedList = (selected || []).map((i) => i + 1).join(', ');
+    const correctList = q.correctIndexes.map((i) => i + 1).join(', ');
+    const selfAnswerLine = selected != null && !sameIndexSet(selected, q.correctIndexes)
+      ? '\n自分は(' + selectedList + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題（複数選択）について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + correctList + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  const selfAnswerLine = selected != null && selected !== q.correct
+    ? '\n自分は「' + (selected ? '正しい' : '誤り') + '」と回答して間違えました。なぜそれが誤りかも教えてください。'
+    : '';
+  return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の文の正誤について教えてください。\n\n' +
+    '問題文：' + q.stem + '\n' +
+    '正解：' + (q.correct ? '正しい' : '誤り') + selfAnswerLine +
+    '\nこの論点の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+}
+
+function askInChat() {
+  const q = questions[idx];
+  // GASのHtmlServiceはページをiframe（サンドボックス）内に読み込むため、
+  // location.href だとiframe内だけが遷移してしまう（top.location.hrefが必要）。
+  // さらに相対URLはiframeの内部配信元（googleusercontent.com）を基準に解決
+  // されてしまうため、GAS_WEBAPP_URLを前置した絶対URLにする必要がある。
+  // チャットの「元の問題に戻る」ボタン用に、戻り先（この問題を開き直すURL）を一緒に渡す。
+  // 復習モードは記録の読み込みが要るので、その問題が属する通常モード（出自のデッキ）へ戻す。
+  const backMode = mode === 'review' ? (q.deck || q.type) : mode;
+  let backUrl = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '-quiz&resume=' + encodeURIComponent(q.id) + '&m=' + encodeURIComponent(backMode);
+  if (mode !== 'review' && scopeChapterIndex != null) backUrl += '&c=' + scopeChapterIndex;
+  if (mode !== 'review' && scopeGroup) backUrl += '&g=' + encodeURIComponent(scopeGroup);
+  top.location.href = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '&ask=' + encodeURIComponent(buildAskPrompt(q, selectedOption))
+    + '&back=' + encodeURIComponent(backUrl);
+}
+
+// チャットの「元の問題に戻る」から開かれたとき、?resume=<問題ID>&m=<モード>[&c=<章>][&g=<グループ>] の問題を開き直す。
+// 出題順は固定（シャッフルなし）なので、同じ範囲を作り直して該当の位置へ移れば続きから解ける。
+function initResumeParam() {
+  if (typeof google === 'undefined' || !google.script || !google.script.url || !google.script.url.getLocation) return;
+  google.script.url.getLocation(function (loc) {
+    const p = (loc && loc.parameter) || {};
+    if (!p.resume || !p.m) return;
+    const target = QUESTIONS.find((q) => q.id === p.resume);
+    if (!target) return;
+    chooseMode(p.m);
+    if (mode !== p.m) return;
+    const c = p.c != null && p.c !== '' ? Number(p.c) : null;
+    chooseScope(Number.isInteger(c) ? c : null, p.g || null);
+    let at = questions.findIndex((q) => q.id === target.id);
+    if (at < 0) { chooseScope(null, null); at = questions.findIndex((q) => q.id === target.id); }
+    if (at < 0) return;
+    idx = at;
+    renderQuestion();
+  });
+}
+initResumeParam();
+
+// ── 中断→再開 ─────────────────────────────────────────────────────────
+// 1問回答／スキップするたびに、いまの出題セッションの途中経過をバックエンド（UserProperties）へ送る。
+// 次に開いたとき、モード選択画面の先頭に「続きから再開」を出し、中断した次の問題から続けられる。
+// 1資格につき1枠（最後に解いていたセッション）。端末をまたいで再開できる。最後まで解くと消える。
+// 状態は小さく詰める（UserProperties は1値約9KB上限）: q=出題順のID列、a=[[ID, 正誤(1/0), 選んだ答え]…]、i=次に解く位置。
+let pendingProgress = null;
+
+function hasGoogleRun() {
+  return typeof google !== 'undefined' && google && google.script && google.script.run;
+}
+
+function saveProgress(nextIdx) {
+  if (!hasGoogleRun() || !mode || !questions.length) return;
+  const state = {
+    v: 1, t: Date.now(), mode: mode, c: scopeChapterIndex, g: scopeGroup, r: reviewScopeKey,
+    h: document.getElementById('headerSub').textContent,
+    q: questions.map((q) => q.id).join(','), i: nextIdx,
+    a: sessionResults.map((r) => [r.id, r.correct ? 1 : 0, r.selectedOption]), sk: skippedCount,
+  };
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiSaveQuizProgress({ examId: TRACKING_EXAM_ID, state: state });
+  } catch (e) { /* 保存に失敗しても出題は続ける */ }
+}
+
+function clearProgress() {
+  pendingProgress = null;
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiClearQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 無視 */ }
+}
+
+// 保存された途中経過が、今の問題集でそのまま復元できるか（問題が差し替わっていたら諦める）。
+function isResumableProgress(s) {
+  if (!s || s.v !== 1 || typeof s.q !== 'string' || !Array.isArray(s.a) || !Number.isInteger(s.i)) return false;
+  const ids = s.q.split(',');
+  if (s.i < 0 || s.i >= ids.length) return false;
+  const known = {};
+  QUESTIONS.forEach((q) => { known[q.id] = true; });
+  return ids.every((id) => known[id]) && s.a.every((r) => Array.isArray(r) && known[r[0]]);
+}
+
+function offerResume(s) {
+  if (!isResumableProgress(s)) return;
+  pendingProgress = s;
+  const total = s.q.split(',').length;
+  document.getElementById('resumeText').textContent =
+    '📌 途中の問題集があります：' + (s.h || '') + '　' + (s.i + 1) + '問目から（全' + total + '問・回答済み' + s.a.length + '問）';
+  document.getElementById('resumeBanner').style.display = '';
+}
+
+(function initProgress() {
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) { if (res && res.ok && res.state) offerResume(res.state); })
+      .withFailureHandler(function () {})
+      .apiLoadQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 再開バナーが出ないだけ */ }
+})();
+
+function discardProgress() {
+  document.getElementById('resumeBanner').style.display = 'none';
+  clearProgress();
+}
+
+async function resumeProgress() {
+  const s = pendingProgress;
+  if (!s || !isResumableProgress(s)) { discardProgress(); return; }
+  const btn = document.getElementById('resumeBtn');
+  btn.disabled = true;
+  try {
+    let pool;
+    if (s.mode === 'review') {
+      // 復習は問題ごとの通算ミス回数・卒業判定が画面に出るので、記録を読み直してから復元する。
+      const data = await new Promise(function (resolve, reject) {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+      });
+      if (!data.ok) { alert('復習の記録を取得できませんでした: ' + (data.error || '')); return; }
+      reviewEntries = data.entries || [];
+      reviewEntryById = {};
+      reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+      pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+      reviewMissingCount = reviewEntries.length - pool.length;
+    } else {
+      pool = s.mode === 'extra' || s.mode === 'extra2' || s.mode === 'extra3'
+        ? QUESTIONS.filter((q) => q.deck === s.mode)
+        : QUESTIONS.filter((q) => q.type === s.mode && !q.deck);
+    }
+    const byId = {};
+    QUESTIONS.forEach((q) => { byId[q.id] = q; });
+    mode = s.mode;
+    modePool = pool;
+    scopeChapterIndex = s.c == null ? null : s.c;
+    scopeGroup = s.g || null;
+    reviewScopeKey = s.r == null ? null : s.r;
+    questions = s.q.split(',').map((id) => byId[id]);
+    idx = s.i;
+    sessionResults = s.a.map((r) => ({ id: r[0], chapterIndex: byId[r[0]].chapterIndex, correct: !!r[1], selectedOption: r[2] }));
+    skippedCount = s.sk || 0;
+    pendingProgress = null;
+    document.getElementById('resumeBanner').style.display = 'none';
+    document.getElementById('headerSub').textContent = s.h || MODE_LABEL[mode] || '';
+    showScreen('screenQuestion');
+    renderQuestion();
+  } catch (err) {
+    alert('再開できませんでした: ' + (err && err.message ? err.message : err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function nextQuestion() {
+  idx++;
+  if (idx >= questions.length) showSummary();
+  else renderQuestion();
+}
+
+// CHAPTERS の全章を常に含めて返す（今回未出題の章は total:0）。
+// スプレッドシート側は最初の記録時に受け取った章名で行を確定するため、
+// 章の集合が回によってブレると2回目以降の記録で行が見つからなくなる。
+// 常に全章を送ることでこれを防ぐ。
+function aggregateByChapter(results) {
+  const byIndex = {};
+  results.forEach((r) => {
+    if (!byIndex[r.chapterIndex]) byIndex[r.chapterIndex] = { correct: 0, total: 0 };
+    byIndex[r.chapterIndex].total++;
+    if (r.correct) byIndex[r.chapterIndex].correct++;
+  });
+  // 新シラバス仮問題集（extra3）は新シラバスの章だけ、それ以外の問題集は旧シラバスの章だけを送る
+  // （新しい成績シートに旧章の行が並んだり、既存シートの章の集合が変わって行が見つからなくなるのを防ぐ）。復習は全章。
+  const inScope = (i) => mode === 'review' || (mode === 'extra3' ? i >= BASE_CHAPTER_COUNT : i < BASE_CHAPTER_COUNT);
+  return CHAPTERS.map((label, i) => ({
+    chapterIndex: i,
+    chapterLabel: i >= BASE_CHAPTER_COUNT ? chapterLabelText(i) : label,
+    correct: (byIndex[i] && byIndex[i].correct) || 0,
+    total: (byIndex[i] && byIndex[i].total) || 0,
+  })).filter((c) => inScope(c.chapterIndex));
+}
+
+function showSummary() {
+  clearProgress();   // 最後まで解いたので、途中経過は不要
+  showScreen('screenSummary');
+  const total = sessionResults.length;
+  const correct = sessionResults.filter((r) => r.correct).length;
+  const wrongCount = total - correct;
+  const pct = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
+  document.getElementById('summaryScore').textContent =
+    correct + ' / ' + total + '（' + pct + '%）' + (skippedCount > 0 ? '　スキップ ' + skippedCount + '問' : '');
+
+  const byChapter = aggregateByChapter(sessionResults);
+  const chaptersEl = document.getElementById('summaryChapters');
+  chaptersEl.innerHTML = '';
+  byChapter.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'summary-chapter-row';
+    const scoreText = c.total > 0
+      ? c.correct + '/' + c.total + '（' + Math.round((c.correct / c.total) * 1000) / 10 + '%）'
+      : '未出題';
+    row.innerHTML = '<span class="name">' + escapeHtml(c.chapterLabel) + '</span><span class="score">' + scoreText + '</span>';
+    chaptersEl.appendChild(row);
+  });
+
+  document.getElementById('recordStatus').textContent = '';
+  const recordBtn = document.getElementById('recordBtn');
+  // 全問スキップ（回答0問）のときは記録しても中身が無いので押させない。
+  recordBtn.disabled = total === 0;
+  recordBtn.textContent = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+
+  // 間違えた問題があるときだけ、その場で解き直すボタンを出す。
+  const retryBtn = document.getElementById('retryWrongBtn');
+  retryBtn.style.display = wrongCount > 0 ? '' : 'none';
+  retryBtn.textContent = '🔁 間違えた' + wrongCount + '問だけもう一度';
+
+  const note = document.getElementById('summaryNote');
+  if (mode === 'review') {
+    note.textContent = '復習の結果は「' + TRACKING_EXAM_ID + '_復習ログ」に記録され、'
+      + GRADUATE_STREAK + '回連続で正解した問題は次回から「克服」として出題対象から外れます'
+      + '（章別の正答率推移シートには影響しません）。';
+    note.style.display = '';
+  } else {
+    note.style.display = 'none';
+    note.textContent = '';
+  }
+
+  document.getElementById('adviceArea').style.display = 'none';
+  document.getElementById('adviceStatus').textContent = '';
+  document.getElementById('adviceBtn').disabled = false;
+  document.getElementById('adviceBtn').textContent = '🎯 学習アドバイスを見る';
+}
+
+// 今回の結果（章別正答率・間違えた問題）と、過去に蓄積した「ミス」シートの履歴を
+// バックエンドで突き合わせ、Geminiに弱点分野・復習優先度・次のアクションをまとめさせる。
+async function getAdvice() {
+  const btn = document.getElementById('adviceBtn');
+  const status = document.getElementById('adviceStatus');
+  const area = document.getElementById('adviceArea');
+  btn.disabled = true;
+  btn.textContent = 'アドバイスを作成中...';
+  status.textContent = '';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiQuizAdvice({
+          examId: EXAM_ID,
+          trackingExamId: TRACKING_EXAM_ID,
+          mode: TRACKING_MODE[mode] || mode,
+          chapters: aggregateByChapter(sessionResults),
+          wrongAnswers: buildWrongAnswers(),
+        });
+    });
+    if (data.ok) {
+      area.textContent = data.advice;
+      area.style.display = '';
+      btn.textContent = '🎯 学習アドバイスを見る';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || 'アドバイスの取得に失敗しました');
+      btn.textContent = '🎯 学習アドバイスを見る';
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.textContent = '🎯 学習アドバイスを見る';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 間違えた問題だけを、問題文・自分の回答・正解を添えたスプレッドシート出力用の形へ整形する。
+function buildWrongAnswers() {
+  return sessionResults.filter((r) => !r.correct).map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+// 復習モードの記録用。正解した問題も含めて全問を送る（連続正解＝克服の判定に必要なため）。
+function buildReviewResults() {
+  return sessionResults.map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      deckLabel: deckLabelOf(q),
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      correct: r.correct,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+async function recordResults() {
+  const btn = document.getElementById('recordBtn');
+  const status = document.getElementById('recordStatus');
+  const labelWhenIdle = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+  btn.disabled = true;
+  btn.textContent = '記録中...';
+  status.textContent = '';
+
+  const byChapter = aggregateByChapter(sessionResults);
+  try {
+    // fetchではなく google.script.run を使う（理由は chat-app.js の callBackend 参照）。
+    // 復習モードは章別の正答率推移シートに混ぜない（出題が間違えた問題に偏っていて
+    // 推移のグラフが本来の実力より低く歪むため）。専用の復習ログへ全問を書く。
+    const data = await new Promise(function (resolve, reject) {
+      const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      if (mode === 'review') {
+        runner.apiRecordReviewLog({
+          examId: TRACKING_EXAM_ID,
+          results: buildReviewResults(),
+          attemptAt: new Date().toISOString(),
+        });
+        return;
+      }
+      runner.apiRecordQuizResult({
+        examId: TRACKING_EXAM_ID,
+        mode: TRACKING_MODE[mode] || mode,
+        chapters: byChapter,
+        wrongAnswers: buildWrongAnswers(),
+        attemptAt: new Date().toISOString(),
+      });
+    });
+    if (data.ok) {
+      status.textContent = '✅ 記録しました';
+      btn.textContent = '記録済み';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || '記録に失敗しました');
+      btn.disabled = false;
+      btn.textContent = labelWhenIdle;
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.disabled = false;
+    btn.textContent = labelWhenIdle;
+  }
+}
+
+</script>
+</body>
+</html>
