@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Claude Code 使いこなし問題集（非公式）</title>
+<meta name="robots" content="noindex,nofollow">
+<script>
+(function () {
+  function make(ok, fail) {
+    return new Proxy({}, { get: function (_, name) {
+      if (name === "withSuccessHandler") return function (f) { return make(f, fail); };
+      if (name === "withFailureHandler") return function (f) { return make(ok, f); };
+      return function () {
+        var reading = /^(apiLoad|apiGet)/.test(String(name));
+        setTimeout(function () {
+          if (reading) { if (ok) ok(null); }
+          else if (fail) fail(new Error("公開版では記録・AI助言は使えません"));
+        }, 0);
+      };
+    } });
+  }
+  window.google = { script: { run: make(null, null) } };
+})();
+</script>
+  <style>
+    :root {
+      --theme-color: #8a4b2a;
+      --theme-color-dark: #4f2a15;
+    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: var(--theme-color-dark);
+  padding: 0;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.container {
+  background: white;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--theme-color) 0%, var(--theme-color-dark) 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-icon { font-size: 32px; }
+
+.header-text { min-width: 0; flex: 1 1 140px; }   /* ボタンに押されてタイトルが1文字幅に潰れ、縦書きのように見えるのを防ぐ */
+.header-text h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; writing-mode: horizontal-tb; }
+.header-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-btn:hover { background: rgba(255,255,255,0.3); }
+
+.quiz-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { width: 100%; max-width: 520px; margin: 0 auto; }
+
+/* --- モード選択画面 --- */
+/* カード数が増えても幅が細くなりすぎないよう、flexではなくgridで自動折り返しする
+   （4つ目の「追加問題2」追加時にスマホで窮屈にならないための変更）。 */
+.mode-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.mode-card {
+  min-width: 0;
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.mode-card:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 復習モードのカードだけ、出題元の問題集カードと見分けられるよう薄く色を敷く。 */
+.review-card {
+  background: #fffaf2;
+  border-color: #f0d9b5;
+}
+.review-card:hover { border-color: #e0a75e; }
+.mode-card:disabled { opacity: 0.6; cursor: wait; }
+
+.mode-icon { font-size: 36px; margin-bottom: 8px; }
+.mode-title { font-size: 17px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.mode-desc { font-size: 13px; color: #888; }
+
+/* --- 範囲選択画面（全部 / 章ごとにチャレンジ） --- */
+.back-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.back-link:hover { color: var(--theme-color); }
+
+.scope-select {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-all-btn {
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  margin-bottom: 8px;
+}
+
+.scope-all-btn:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.scope-all-title { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.scope-all-desc { font-size: 13px; color: #888; }
+
+.scope-chapter-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  margin: 4px 0 2px;
+}
+
+.scope-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scope-chapter-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  background: #f8f9ff;
+  border: 1.5px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scope-chapter-btn:hover { border-color: var(--theme-color); }
+
+.scope-chapter-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.scope-chapter-btn:disabled:hover { border-color: #e6e8ee; }
+
+/* 範囲選択画面の下に出す補足（復習モードの「克服」ルールの説明など） */
+.scope-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.scope-chapter-btn .name { flex: 1; padding-right: 12px; }
+.scope-chapter-btn .count { flex-shrink: 0; color: var(--theme-color); font-weight: 700; font-size: 13px; }
+
+/* --- 出題画面 --- */
+.progress {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.chapter-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--theme-color);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.question-card {
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stem {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #222;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option-btn:hover { border-color: var(--theme-color); }
+
+.option-btn.selected {
+  border-color: var(--theme-color);
+  background: #f0f0ff;
+  font-weight: 600;
+}
+
+.option-btn.tf-btn {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 回答後の表示状態 */
+.option-btn.correct {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.option-btn.incorrect {
+  border-color: #c62828;
+  background: #fdecea;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-badge {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.option-explain {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.answer-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.answer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 回答（複数選択のときだけ表示）とスキップを縦に並べる操作行。
+   mc / tf は選択した時点で判定するため、この行にはスキップだけが残る。 */
+.question-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skip-btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: white;
+  color: #888;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.skip-btn:hover { border-color: var(--theme-color); color: var(--theme-color); }
+
+.reveal-area { margin-top: 20px; }
+
+.reveal-options { margin-bottom: 16px; }
+
+.reveal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.action-btn:hover { border-color: var(--theme-color); }
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+}
+
+/* --- 終了サマリー画面 --- */
+#screenSummary { text-align: center; }
+#screenSummary h2 { font-size: 22px; color: #333; margin-bottom: 16px; }
+
+.summary-score {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--theme-color);
+  margin-bottom: 20px;
+}
+
+.summary-chapters {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.summary-chapter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.summary-chapter-row .name { color: #333; }
+.summary-chapter-row .score { color: var(--theme-color); font-weight: 700; }
+
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 間違えた問題だけを解き直すボタン。記録ボタンの次に置いて目に入るようにする。 */
+.action-btn.retry-wrong {
+  border-color: #f0d9b5;
+  background: #fffaf2;
+  color: #a1670f;
+  font-weight: 700;
+}
+.action-btn.retry-wrong:hover { border-color: #e0a75e; }
+
+.summary-note {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.record-status,
+.advice-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #888;
+  min-height: 18px;
+}
+
+.advice-area {
+  margin-top: 12px;
+  text-align: left;
+  white-space: pre-wrap;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.quiz-body::-webkit-scrollbar { width: 5px; }
+.quiz-body::-webkit-scrollbar-track { background: transparent; }
+.quiz-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+/* --- PCブラウザ（幅900px以上）: 画面幅を広く使う ---
+   以前は .screen が max-width:520px の中央寄せで、PCでは画面の中央に細い1列が出るだけだった（2026-09-20 に変更）。
+   スマホ（600px以下）の指定とは範囲が重ならない。行が長くなりすぎないよう、上限は 1120px（1400px以上は 1240px）。
+   ボタン類は横いっぱいに伸ばさず、中央に寄せた幅に留める。 */
+@media (min-width: 900px) {
+  .header { padding: 18px 40px; }
+  .header-text h1 { font-size: 20px; }
+  .header-text p { font-size: 13px; }
+  .header-btn { font-size: 12px; padding: 7px 14px; }
+
+  .quiz-body { padding: 32px 48px; }
+  .screen { max-width: 1120px; }
+
+  /* モード選択: カードを横に並べて広く使う（4枚なら1行） */
+  .mode-select { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+  .mode-card { padding: 30px 20px; }
+  .mode-icon { font-size: 40px; }
+  .mode-title { font-size: 18px; }
+  .mode-desc { font-size: 14px; }
+
+  /* 範囲選択: 章のボタンを2列に（章が多くても縦に長くなりすぎない） */
+  .scope-chapter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+  .scope-chapter-btn { font-size: 15px; }
+
+  /* 出題: 問題文・選択肢を広く、文字も一段大きく */
+  .question-card { padding: 28px 36px; }
+  .stem { font-size: 18px; line-height: 1.8; }
+  .options { gap: 12px; }
+  .option-btn { font-size: 16px; padding: 14px 20px; }
+  .answer-btn, .action-btn, .skip-btn { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .question-actions { align-items: center; }
+  .question-actions .answer-btn, .question-actions .skip-btn { width: 100%; }
+  .summary-note, .scope-note { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .reveal-actions { align-items: stretch; }
+
+  /* 終了サマリー: 章別の結果を2列に */
+  .summary-chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+  .summary-chapter-row { font-size: 14.5px; padding: 12px 16px; }
+  .summary-actions { align-items: center; }
+  .summary-actions .action-btn { width: 100%; }
+}
+
+@media (min-width: 1400px) {
+  .screen { max-width: 1240px; }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0; }
+  .container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+  .header { padding: 12px 14px; gap: 8px 10px; flex-wrap: wrap; }   /* 狭い画面ではボタン類を2行目へ折り返す */
+  .header-icon { font-size: 28px; }
+  .header-text h1 { font-size: 16px; }
+  .header-text p { display: none; }
+  .header-actions { gap: 6px; flex-wrap: wrap; flex-basis: 100%; margin-left: 0; }
+  .header-btn { font-size: 11px; padding: 6px 10px; }
+  .quiz-body { padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); }
+  .stem { font-size: 16.5px; }
+  .option-btn { font-size: 16px; }
+  .mode-select { gap: 10px; }
+  .mode-card { padding: 16px 8px; }
+  .mode-icon { font-size: 26px; margin-bottom: 4px; }
+  .mode-title { font-size: 14px; margin-bottom: 2px; }
+  .mode-desc { font-size: 11px; }
+}
+
+@media (max-height: 480px) {
+  .quiz-body { padding-top: 14px; }
+  .mode-card { padding: 12px 8px; }
+  .mode-icon { font-size: 22px; margin-bottom: 2px; }
+}
+
+/* --- 中断した問題集の再開バナー（モード選択画面の先頭） --- */
+.resume-banner {
+  border: 2px solid var(--theme-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.resume-text { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 10px; }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.resume-actions .action-btn { flex: 1 1 140px; width: auto; }
+
+  </style>
+<style>#askBtn,#adviceBtn{display:none !important}</style>
+</head>
+<body>
+<div style="background:#fff4d6;color:#5b4300;padding:10px 14px;font-size:14px;line-height:1.6;border-bottom:1px solid #e6c96b">
+<strong>非公式・個人作成の仮問題です。</strong>Anthropic（Claude Code）の公式の試験・規格とは無関係で、公式の出題・難度とは一致しません。事実関係は公式ドキュメントで確認した内容に基づきますが、Claude Code は頻繁に更新されるため最新の公式ドキュメントで確認してください。この公開版では成績・途中経過は保存されません。
+</div>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">⌨️</div>
+    <div class="header-text">
+      <h1>Claude Code 使いこなし問題集（非公式）</h1>
+      <p id="headerSub">モードを選んでください</p>
+    </div>
+    <div class="header-actions">
+      
+      
+      
+      <button type="button" class="header-btn" id="soundBtn" onclick="toggleSound()">🔊 音</button>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quizBody">
+    <div class="screen" id="screenMode">
+      <div class="resume-banner" id="resumeBanner" style="display:none;">
+        <div class="resume-text" id="resumeText"></div>
+        <div class="resume-actions">
+          <button class="action-btn primary" id="resumeBtn" onclick="resumeProgress()">▶ 続きから再開</button>
+          <button class="action-btn" onclick="discardProgress()">破棄</button>
+        </div>
+      </div>
+      <div class="mode-select">
+        <button class="mode-card" onclick="chooseMode('mc')">
+          <div class="mode-icon">📝</div>
+          <div class="mode-title" id="mcTitle">模擬試験</div>
+          <div class="mode-desc"><span id="mcCount">0</span>問・<span id="mcKind">4択</span></div>
+        </button>
+        <button class="mode-card" id="tfCard" onclick="chooseMode('tf')">
+          <div class="mode-icon">⭕</div>
+          <div class="mode-title">一問一答</div>
+          <div class="mode-desc"><span id="tfCount">0</span>問・正誤判定</div>
+        </button>
+        <button class="mode-card" id="extraCard" onclick="chooseMode('extra')">
+          <div class="mode-icon">📘</div>
+          <div class="mode-title">追加問題</div>
+          <div class="mode-desc"><span id="extraCount">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra2Card" onclick="chooseMode('extra2')">
+          <div class="mode-icon">📗</div>
+          <div class="mode-title">追加問題2</div>
+          <div class="mode-desc"><span id="extra2Count">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra3Card" onclick="chooseMode('extra3')">
+          <div class="mode-icon">🆕</div>
+          <div class="mode-title">新シラバス仮問題</div>
+          <div class="mode-desc"><span id="extra3Count">0</span>問・4択（2027年2月〜の追加分）</div>
+        </button>
+        <button class="mode-card review-card" id="reviewCard" onclick="chooseMode('review')">
+          <div class="mode-icon">🔁</div>
+          <div class="mode-title">復習</div>
+          <div class="mode-desc" id="reviewCount">間違えた問題だけ</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen" id="screenScope" style="display:none;">
+      <button class="back-link" onclick="backToModeSelect()">← モード選択に戻る</button>
+      <div class="scope-select" id="scopeSelect"></div>
+    </div>
+
+    <div class="screen" id="screenQuestion" style="display:none;">
+      <div class="progress" id="progress"></div>
+      <div class="chapter-label" id="chapterLabel"></div>
+      <div class="question-card">
+        <p class="stem" id="stem"></p>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="question-actions" id="questionActions">
+        <button class="answer-btn" id="answerBtn" onclick="reveal()" disabled>回答</button>
+        <button class="skip-btn" id="skipBtn" onclick="skipQuestion()">回答せずに次へ →</button>
+      </div>
+      <div class="reveal-area" id="revealArea" style="display:none;">
+        <div class="reveal-options" id="revealOptions"></div>
+        <div class="reveal-actions">
+          <button class="action-btn" id="askBtn" style="display:none !important" onclick="askInChat()">🤖 チャットに詳しく聞く</button>
+          <button class="action-btn primary" id="nextBtn" onclick="nextQuestion()">次の問題へ →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenSummary" style="display:none;">
+      <h2>お疲れさまでした！</h2>
+      <div class="summary-score" id="summaryScore"></div>
+      <div class="summary-chapters" id="summaryChapters"></div>
+      <div class="summary-actions">
+        <button class="action-btn primary" id="recordBtn" onclick="recordResults()">この回の結果を記録</button>
+        <button class="action-btn retry-wrong" id="retryWrongBtn" onclick="retryWrongInSession()" style="display:none;">🔁 間違えた問題だけもう一度</button>
+        <button class="action-btn" id="adviceBtn" style="display:none !important" onclick="getAdvice()">🎯 学習アドバイスを見る</button>
+        <button class="action-btn" onclick="restartMode()">もう一度</button>
+        <button class="action-btn" onclick="backToScopeSelect()">別の範囲へ</button>
+        <button class="action-btn" onclick="backToModeSelect()">別のモードへ</button>
+      </div>
+      <div class="summary-note" id="summaryNote" style="display:none;"></div>
+      <div class="record-status" id="recordStatus"></div>
+      <div class="advice-status" id="adviceStatus"></div>
+      <div class="advice-area" id="adviceArea" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_WEBAPP_URL = '';
+  const EXAM_ID = 'claudecode';
+  const EXAM_SHORT_TITLE = 'Claude Code';
+  const TRACKING_EXAM_ID = 'claudecode';
+  const MC_TITLE = '問題集';
+  const QUESTIONS = [{"id":"claudecode-1","type":"mc","chapterIndex":0,"stem":"テストを実行し、その出力を会話に取り込んだうえで Claude に失敗の原因を分析してもらいたい。入力欄でコマンドの先頭に付ける文字として正しいものはどれか。","options":["`$` を先頭に付けると、入力したコマンドが Claude を経由せずシェルで直接動くようになる","`!` を先頭に付けてシェルモードにする","`@` を先頭に付けると、続くコマンドが実行されて出力が会話に入る","専用の `/run` コマンドを使う以外に、シェルの実行はできない仕組みである"],"correctIndex":1,"explanations":["× `$` にそのような働きはない。シェルモードに入る文字は `!` である。","○ 入力が `!` で始まるとシェルモードになり、コマンドの出力がセッションに追加されて、Claude がそれに応答できる。","× `@` はファイルパスの補完を開くための記号で、コマンドを実行するものではない。","× `/run` という専用の入口が必須なわけではなく、`!` で始めれば直接実行できる。"]},{"id":"claudecode-2","type":"mc","chapterIndex":0,"stem":"`@` でファイルを参照するとき、会話に取り込まれないものとして正しいのはどれか。","options":["拡張子が `.md` のファイルは、内容にかかわらず取り込まれない","隠しファイル（先頭がドットのファイル）は、サイズに関係なく必ず除外される","256KB を超えるテキストファイルは含まれない","1 回の入力で 2 つ目以降に指定したファイルは、内容が取り込まれない"],"correctIndex":2,"explanations":["× 拡張子による除外はなく、Markdown も通常どおり取り込める。","× 隠しファイルだからという理由で一律に除外される仕様ではない。正しくは「256KB を超えるテキストファイルは含まれない」である。","○ `@` で読み込まれる量には Read ツールの既定上限があり、256KB を超えるテキストファイルは含まれない。","× 複数のファイルを 1 回の入力で参照すること自体は可能である。正しくは「256KB を超えるテキストファイルは含まれない」である。"]},{"id":"claudecode-3","type":"mc","chapterIndex":0,"stem":"プロジェクトの `src/` ディレクトリを `@src/` のように `@` で指定した。このとき会話に入るものとして正しいのはどれか。","options":["配下のすべてのファイルの内容が、再帰的にまとめて入る","ディレクトリは指定できないため、エラーになって何も入らない","直下のファイルのうち、先頭の 10 件の内容だけが入る","ファイルの一覧が入る。内容は入らない"],"correctIndex":3,"explanations":["× 内容は入らないため、大きなディレクトリを指定しても一気にコンテキストが埋まることはない。","× ディレクトリは指定でき、エラーにはならずに一覧が入る。正しくは「ファイルの一覧が入る」である。","× 件数を区切って内容を取り込むような動作ではなく、入るのは一覧のみである。","○ ディレクトリを指定するとファイル一覧が入る。中身が必要なら個々のファイルを `@` で指定する。"]},{"id":"claudecode-4","type":"mc","chapterIndex":0,"stem":"接続済みの MCP サーバーが公開しているリソースを会話で参照するときの書式として正しいのはどれか。","options":["`@server:resource` の形式で書く","`#server/resource` という形式で書く。ハッシュ記号で始める","`mcp://server/resource` を `!` に続けて書く。URL として指定する","`/server resource` とスラッシュコマンドの形で書く"],"correctIndex":0,"explanations":["○ `@server:resource` のように、サーバー名とリソース名をコロンでつないで参照する。","× `#` で始める書式は用意されていない。正しくは「`@server:resource` の形式で書く」である。","× `!` はシェルモードを開始する記号であり、リソースの参照とは関係がない。","× スラッシュコマンドではなく、`@` を使った参照で行う。正しくは「`@server:resource` の形式で書く」である。"]},{"id":"claudecode-5","type":"mc","chapterIndex":0,"stem":"Claude が長い応答の途中で、望まない方向へ進み始めた。それまでの作業内容は残したまま止めたい。最も適切な操作はどれか。","options":["`Ctrl+C` を 2 回押して、セッションを終了してから再開する","`Esc` を押して応答やツール呼び出しを途中で止める","`/clear` を実行して、会話全体を空にしてから指示し直す","`Ctrl+S` を押して、作業内容をすべて取り消す"],"correctIndex":1,"explanations":["× `Ctrl+C` はこの場面でも中断の操作だが、2 回押すのは何も実行していないときの終了手順であり、ここでは過剰である。","○ `Esc` は応答やツール呼び出しを止めるだけで、それまでの作業は保持される。軌道修正は早めに行うのが良い。","× `/clear` は会話のコンテキストを完全に捨てるので、残したい作業まで失われる。","× `Ctrl+S` は入力中のプロンプトを一時退避する操作で、作業の取り消しではない。"]},{"id":"claudecode-6","type":"mc","chapterIndex":0,"stem":"入力欄が空の状態で `Esc` を 2 回押すと、何が起こるか。","options":["直前の応答がもう一度生成される。内容は再度作り直される","画面の表示がクリアされ、新しい会話が始まる","巻き戻しメニュー（rewind menu）が開く","現在の権限モードが `default` に戻る"],"correctIndex":2,"explanations":["× 再生成の操作ではない。巻き戻しは、選んだ時点の状態へ戻すためのものである。","× 新しい会話を始めるのは `/clear` であり、`Esc` の 2 回押しではない。","○ 入力が空のときの `Esc` 2 回は、以前の状態に戻すための巻き戻しメニューを開く。`/rewind` でも同様に開ける。","× 権限モードの切り替えは `Shift+Tab` で行うもので、`Esc` とは関係がない。"]},{"id":"claudecode-7","type":"mc","chapterIndex":0,"stem":"Claude が Bash で `rm` を実行して、必要なファイルまで削除してしまった。巻き戻し（チェックポイント）機能についての説明として正しいのはどれか。","options":["Bash の `rm` による削除も追跡されるため、巻き戻しで元のファイルが復元される","削除を復元できるのは、直前の 1 操作に限られる","追跡の対象はコード全体で、削除は復元できる","追跡されるのは Claude のファイル編集ツールによる変更だけ"],"correctIndex":3,"explanations":["× Bash による変更は追跡されないため、復元はされない。正しくは「追跡されるのは Claude のファイル編集ツールによる変更だけ」である。","× 復元できる範囲の限定は「直前の 1 操作」ではなく、そもそも追跡対象かどうかで決まる。","× 巻き戻しメニューには会話とコードの両方を戻す選択肢もある。論点は、Bash の変更が対象外である点である。","○ Bash 経由の `rm`・`mv`・`cp` などによる変更はチェックポイントの追跡対象外である。重要なファイルは git などでも守っておくべきである。"]},{"id":"claudecode-8","type":"mc","chapterIndex":0,"stem":"`/rewind` コマンドの別名として正しい組み合わせはどれか。","options":["`/checkpoint` と `/undo`","`/restore` と `/revert`","`/reset` と `/undo`","`/back` と `/checkpoint` の 2 つ"],"correctIndex":0,"explanations":["○ `/rewind` は `/checkpoint` と `/undo` という別名を持つ。","× `/restore` も `/revert` も別名ではない。正しくは「`/checkpoint` と `/undo`」である。","× `/undo` は別名だが、`/reset` は別名ではないので組み合わせとしては誤りである。","× `/checkpoint` は別名だが、`/back` は別名ではないので組み合わせとしては誤りである。"]},{"id":"claudecode-9","type":"mc","chapterIndex":0,"stem":"何も実行していない待機中の状態で `Ctrl+C` を押したとき、どのように動くか。","options":["1 回押すだけで、すぐに Claude Code が終了することになる","1 回目で入力がクリアされ、2 回目で終了する","1 回目で巻き戻しメニューが開き、2 回目で閉じる","押しても何も起こらず、終了には `/exit` が必須である"],"correctIndex":1,"explanations":["× 1 回目では入力のクリアだけで、終了には 2 回目が必要である。","○ `Ctrl+C` は実行中の操作を中断し、何もしていなければ 1 回目で入力をクリア、2 回目で終了する。","× 巻き戻しメニューを開くのは `Esc` の 2 回押しであり、`Ctrl+C` ではない。","× `Ctrl+C` にも終了の働きがあるので、終了に `/exit` が必須というわけではない。"]},{"id":"claudecode-10","type":"mc","chapterIndex":0,"stem":"数分かかるビルドコマンドを Claude が実行している。待たずに、その間も別の指示を出して作業を進めたい。使える操作はどれか。","options":["`Ctrl+R` を押して、実行中のコマンドを一時停止する。別の指示は出せない","`Ctrl+G` を押して、コマンドを別のエディタで開く。編集した内容で再実行する","`Ctrl+B` で実行中の Bash コマンドをバックグラウンドに移す","`Shift+Tab` を押して、ビルドを自動的に高速化する"],"correctIndex":2,"explanations":["× `Ctrl+R` は過去のコマンド履歴を逆方向に検索する操作であり、実行中のコマンドを止めるものではない。","× `Ctrl+G` は入力中のプロンプトを既定のエディタで編集するための操作である。","○ `Ctrl+B` は実行中の Bash コマンドやエージェントをバックグラウンドに移す。tmux 利用時は 2 回押す。","× `Shift+Tab` は権限モードを循環させる操作で、ビルドの速度には関係しない。"]},{"id":"claudecode-11","type":"mc","chapterIndex":0,"stem":"数十行に及ぶ長い指示を書くので、普段使っているテキストエディタで編集してから送信したい。使えるキー操作はどれか。","options":["`Ctrl+V` でプロンプト全体を外部エディタに貼り付ける。画像の貼り付けにも使える","`Ctrl+S` でプロンプトを外部ファイルに自動保存して開く。保存先は設定で変えられる","`Alt+P` でエディタ用のモードに切り替える","`Ctrl+G` でプロンプトを既定のエディタで開く"],"correctIndex":3,"explanations":["× `Ctrl+V` は画像を貼り付けるための操作であり、エディタを開くものではない。","× `Ctrl+S` は入力中のプロンプトを一時退避する操作である。空の入力欄で再度押すと復元される。","× `Alt+P`（macOS では `Option+P`）はプロンプトを消さずにモデルを切り替える操作である。","○ `Ctrl+G` または `Ctrl+X Ctrl+E` で、プロンプトを既定のテキストエディタで編集できる。"]},{"id":"claudecode-12","type":"mc","chapterIndex":0,"stem":"昨日まで作業していた会話を、同じディレクトリで選択画面なしにそのまま再開したい。コマンドとして正しいのはどれか。","options":["`claude --continue`（`-c`）","`claude --resume`（`-r`）に何も付けずに実行する","`claude --last` を実行する","`claude --restore` を実行する"],"correctIndex":0,"explanations":["○ `--continue`（`-c`）は、現在のディレクトリで最も新しい会話を再開する。","× `--resume`（`-r`）は一覧から選ぶか、ID や名前を指定して再開する方式なので、選択画面なしにはならない。","× `--last` というオプションは用意されていない。正しくは「`claude --continue`（`-c`）」である。","× `--restore` というオプションは用意されていない。正しくは「`claude --continue`（`-c`）」である。"]},{"id":"claudecode-13","type":"mc","chapterIndex":0,"stem":"作業の流れを止めたくないが、ちょっとした疑問だけを聞き、会話履歴やコンテキストを増やしたくない。使えるものはどれか。","options":["`/compact` で会話を要約してから質問する","`/btw` で側質問をする","`!` に続けて質問文をそのまま書く","`@` に続けて質問文をそのまま書いて送る"],"correctIndex":1,"explanations":["× `/compact` は会話を要約してコンテキストを空ける操作で、側質問のための機能ではない。","○ `/btw` は会話履歴に追加されない側質問を行える。コンテキストを増やさずに詳細を確認できる。","× `!` はシェルモードの記号で、質問文はコマンドとして実行されてしまう。","× `@` はファイルなどの参照に使う記号で、質問を投げるものではない。"]},{"id":"claudecode-14","type":"mc","chapterIndex":0,"stem":"先週入力した長い `git` コマンドを再利用したい。履歴を対話的に逆方向へ検索できるキー操作はどれか。","options":["`Ctrl+B` を 2 回続けて押す","`Ctrl+G` を押してエディタを開く","`Ctrl+R` を押す","`Ctrl+S`"],"correctIndex":2,"explanations":["× `Ctrl+B` は実行中のコマンドをバックグラウンドに移す操作で、履歴検索ではない。","× `Ctrl+G` はプロンプトを外部のエディタで編集する操作で、履歴検索ではない。","○ `Ctrl+R` で過去のコマンド履歴を対話的に逆方向検索できる。","× `Ctrl+S` は入力中のプロンプトを一時退避する操作で、履歴検索ではない。"]},{"id":"claudecode-15","type":"mc","chapterIndex":0,"stem":"`Shift+Tab` を押すと何ができるか。","options":["使用するモデルを順番に切り替えられる（それは別のキーの役割）","直前に実行したコマンドをもう一度実行できる","画面の表示を開発者向けの詳細表示に切り替えられる","権限モードを循環させて切り替えられる"],"correctIndex":3,"explanations":["× モデルの切り替えは `Option+P`（macOS）または `Alt+P`（Windows/Linux）である。","× `Shift+Tab` にコマンドの再実行の機能はない。正しくは「権限モードを循環させて切り替えられる」である。","× `Shift+Tab` は表示の切り替えではなく、権限モードの切り替えのキーである。","○ `Shift+Tab` は権限モードを循環させる。プランモードに入るときにも使われる。"]},{"id":"claudecode-16","type":"mc","chapterIndex":1,"stem":"組織が全社員の Linux 環境へ配布する管理ポリシーの CLAUDE.md は、どのパスに置くことになっているか。","options":["`/etc/claude-code/CLAUDE.md`","`/etc/claude/CLAUDE.md` に置く","`/opt/claude-code/CLAUDE.md` に置く","`~/.config/claude-code/CLAUDE.md` に置く"],"correctIndex":0,"explanations":["○ Linux と WSL の管理ポリシーは `/etc/claude-code/CLAUDE.md` に置く。macOS は `/Library/Application Support/ClaudeCode/CLAUDE.md` である。","× ディレクトリ名が `claude` ではなく `claude-code` である。","× `/opt` 配下ではなく、`/etc/claude-code/` が管理ポリシーの置き場である。","× ユーザーの設定ディレクトリ配下ではなく、システム全体の `/etc` 配下に置く。"]},{"id":"claudecode-17","type":"mc","chapterIndex":1,"stem":"どのプロジェクトで作業するときでも、自分用の口調や好みを Claude に守らせたい。置き場所として最も適切なものはどれか。","options":["プロジェクト直下の `./CLAUDE.md` に書く。リポジトリを共有する全員に適用される","`~/.claude/CLAUDE.md` に書く。全プロジェクトに適用される","`./CLAUDE.local.md` に書く","`/etc/claude-code/CLAUDE.md` に書く"],"correctIndex":1,"explanations":["× `./CLAUDE.md` はそのプロジェクトの共有用で、他のプロジェクトには効かない。","○ ユーザー用の CLAUDE.md は `~/.claude/CLAUDE.md` に置き、全プロジェクトに適用される。","× `./CLAUDE.local.md` は個人専用だが対象は現在のプロジェクトだけで、全プロジェクトには効かない。","× `/etc/claude-code/CLAUDE.md` は管理ポリシー用で、個人の好みを書く場所ではない。"]},{"id":"claudecode-18","type":"mc","chapterIndex":1,"stem":"自分のローカル環境だけで使う検証用 URL を、チームのリポジトリにコミットせずに現在のプロジェクト用の指示として Claude に覚えさせたい。適切なのはどれか。","options":["`./CLAUDE.md` に書いて、チームにレビューしてもらう。共有の指示として扱われる","`~/.claude/CLAUDE.md` に書いて、全プロジェクトで有効にする","`./CLAUDE.local.md` に書き","`.claude/settings.json` に書いて、リポジトリにコミットする"],"correctIndex":2,"explanations":["× `./CLAUDE.md` は共有する前提のファイルで、個人用の URL を書く場所には向かない。","× `~/.claude/CLAUDE.md` は全プロジェクトに適用されるため、特定のプロジェクト用の内容には広すぎる。","○ 個人専用のプロジェクト指示は `./CLAUDE.local.md` に置き、`.gitignore` に入れるよう案内されている。","× `.claude/settings.json` はチームで共有する設定ファイルで、コミットすると他の人にも渡ってしまう。"]},{"id":"claudecode-19","type":"mc","chapterIndex":1,"stem":"作業ディレクトリとその上位ディレクトリにある CLAUDE.md の読み込みについて、正しい説明はどれか。","options":["起動時に読み込まれ、作業ディレクトリのものが最初に入る","上位ディレクトリのものは読まれず、作業ディレクトリのものだけが読まれる","起動時には読まれず、最初のプロンプトを送るたびに毎回読み直される","起動時に読み込まれ、上位のものが先に入る（読み込みは一度だけ）"],"correctIndex":3,"explanations":["× 入る順序は逆で、上位のものが先である。正しくは「起動時に読み込まれ、上位のものが先に入る」である。","× 上位ディレクトリの CLAUDE.md も読み込み対象に含まれる。","× 毎回の読み直しではなく、起動時に読み込まれる。正しくは「起動時に読み込まれ、上位のものが先に入る」である。","○ 作業ディレクトリとその上位の CLAUDE.md は起動時に読み込まれ、上位のものが先に入る。"]},{"id":"claudecode-20","type":"mc","chapterIndex":1,"stem":"モノレポで `packages/api/CLAUDE.md` に API 専用のルールを書いた。リポジトリのルートで Claude Code を起動した場合、この CLAUDE.md が読み込まれるのはいつか。","options":["Claude が `packages/api/` 配下のファイルを読む、または編集したとき","起動した時点で、ルートの CLAUDE.md と一緒に必ず読み込まれる","`/init` を実行したときだけ、まとめて読み込まれる","`packages/api/` に `cd` で作業ディレクトリを移さない限り、読み込まれることはない"],"correctIndex":0,"explanations":["○ サブディレクトリの CLAUDE.md は起動時には読まれず、そのディレクトリのファイルを読む・編集したときに読み込まれる。","× 起動時に読み込まれるのは作業ディレクトリと上位のものであり、サブディレクトリのものは含まれない。","× `/init` は CLAUDE.md の生成・改善のためのコマンドで、読み込みの契機ではない。","× 作業ディレクトリを移さなくても、配下のファイルを扱えば読み込まれる。"]},{"id":"claudecode-21","type":"mc","chapterIndex":1,"stem":"CLAUDE.md から別のファイル（たとえば README）の内容を取り込みたい。正しい書き方はどれか。","options":["`#include README.md` の形でインポート文を書く","本文中に `@README.md` のように `@` で始まるパスを書く","`[[README.md]]` の形でリンクを書く。ノート形式の記法である","`import: README.md` を先頭のフロントマターに書く"],"correctIndex":1,"explanations":["× `#include` という構文は用意されていない。正しくは「本文中に `@README.md` のように `@` で始まるパスを書く」である。","○ CLAUDE.md は `@path/to/import` の構文で別ファイルをインポートでき、起動時に展開される。","× `[[ ]]` によるリンクはインポートの構文ではない。正しくは「本文中に `@README.md` のように `@` で始まるパスを書く」である。","× フロントマターに `import` キーを書く方式ではなく、本文中の `@` 構文を使う。"]},{"id":"claudecode-22","type":"mc","chapterIndex":1,"stem":"CLAUDE.md に、文章の中で `` `@README` `` とバッククォートで囲んで書いた。この記述はどう扱われるか。","options":["`README` の内容が展開され、バッククォートだけ取り除かれる","構文エラーとなり、CLAUDE.md 全体が読み込まれなくなる","インポートされず、文字列のまま残る","起動時ではなく、Claude が README を読んだときに展開される"],"correctIndex":2,"explanations":["× 囲んだ場合は展開の対象外である。正しくは「インポートされず、文字列のまま残る」である。","× 書き方によって CLAUDE.md 全体が無効になることはない。","○ バッククォートで囲んだ `@README` はインポートされず、文字列のまま残る。","× 後から展開されることもなく、そのまま文字列として扱われる。正しくは「インポートされず、文字列のまま残る」である。"]},{"id":"claudecode-23","type":"mc","chapterIndex":1,"stem":"人間の読み手向けの補足メモを CLAUDE.md に残したいが、Claude のコンテキストにはトークンを使わせたくない。うまい方法はどれか。","options":["コードブロックの中に HTML コメントとして書く","行頭に `//` を付けてコメント行にする","メモを `CLAUDE.local.md` に移して、`.gitignore` に追加する","ブロックレベルの HTML コメントとして書く"],"correctIndex":3,"explanations":["× コードブロック内の HTML コメントは取り除かれず残る。正しくは「ブロックレベルの HTML コメントとして書く」である。","× `//` はコメントとして処理される記法ではなく、そのまま文章として入る。","× `CLAUDE.local.md` も読み込まれるので、トークンは消費される。メモを隠したいだけなら別の手段が必要である。","○ ブロックレベルの HTML コメントは、CLAUDE.md がコンテキストに入る前に取り除かれる。"]},{"id":"claudecode-24","type":"mc","chapterIndex":1,"stem":"テストファイル（`*.test.ts`）を扱うときだけ適用したいルールがある。ルール全体を毎回のコンテキストに載せたくない場合、適切な方法はどれか。","options":["`.claude/rules/` に Markdown を置き","`.claude/rules/` にそのまま置く","`CLAUDE.md` の先頭に「テストのときだけ従う」と書く。読み込みも条件付きになる","`~/.claude/rules/` に Markdown を置く。マシン上の全プロジェクトで条件付きに読み込まれる"],"correctIndex":0,"explanations":["○ `paths` フロントマターを付けたルールは、対象ファイルを扱うときだけ読み込まれる。","× `paths` を付けないルールは、ファイル名にかかわらず通常どおり読み込まれる。","× CLAUDE.md の文章で条件を書いても、読み込み自体は減らない。常に全文がコンテキストに入る。","× `~/.claude/rules/` のルールは全プロジェクトに適用されるものであり、`paths` なしでは条件付きにならない。"]},{"id":"claudecode-25","type":"mc","chapterIndex":1,"stem":"モノレポの上位ディレクトリに他チームの CLAUDE.md があり、自分の作業には不要でノイズになっている。読み込ませないための設定として適切なのはどれか。","options":["`claudeMd` を空文字にする","`claudeMdExcludes` に指定する、そのパスやグロブを書く","`ignoreClaudeMd` を `true` にして、上位のものを無視する","`.gitignore` にそのパスを追加する"],"correctIndex":1,"explanations":["× `claudeMd` は managed settings の中でのみ有効なキーで、無効化のためのものではない。","○ `claudeMdExcludes` で、パスやグロブに一致する CLAUDE.md を読み込まないようにできる。ただし管理ポリシーの CLAUDE.md は除外できない。","× `ignoreClaudeMd` というキーは用意されていない。","× `.gitignore` は git の管理対象を決めるもので、Claude Code の読み込み対象には影響しない。"]},{"id":"claudecode-26","type":"mc","chapterIndex":1,"stem":"すでに CLAUDE.md があるプロジェクトで `/init` を実行した。どうなるか。","options":["既存の内容が、新しく生成された内容で上書きされる。変更履歴は残らない","既存の内容が `CLAUDE.md.bak` に退避され、新規作成される","既存のファイルは上書きされず、改善案が提示される","既存のファイルがあるため、エラーになり何も実行されない。先に削除する必要がある"],"correctIndex":2,"explanations":["× 上書きはされない。内容の改善は提案として示される。正しくは「既存のファイルは上書きされず」である。","× バックアップを自動で作って置き換える動作ではない。正しくは「既存のファイルは上書きされず」である。","○ `/init` は既存の CLAUDE.md があれば上書きせず、改善案を提示する。","× エラーで止まるのではなく、改善案の提示という形で動く。正しくは「既存のファイルは上書きされず」である。"]},{"id":"claudecode-27","type":"mc","chapterIndex":1,"stem":"自動メモリの `MEMORY.md` について、起動時に読み込まれる範囲の説明として正しいのはどれか。","options":["全文が、サイズに関係なく読み込まれる","先頭の 50 行までと、末尾の 50 行が読み込まれる","最近更新された 1 件分のメモだけが読み込まれる。残りは必要時に参照する","先頭の 200 行または 25KB のうち、先に達した方まで"],"correctIndex":3,"explanations":["× 上限があるため、全文が読まれるとは限らない。インデックスは簡潔に保つのが良い。","× 先頭と末尾を組み合わせるような読み込み方ではない。正しくは「先頭の 200 行または 25KB のうち」である。","× 最近更新したものを選ぶのではなく、先頭から上限まで読み込まれる。","○ 起動時に読み込まれるのは `MEMORY.md` の先頭 200 行または 25KB のうち、先に達した方までである。"]},{"id":"claudecode-28","type":"mc","chapterIndex":1,"stem":"自動メモリ（auto memory）をセッション単位で無効にしたい。環境変数として正しいものはどれか。","options":["`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`","`CLAUDE_CODE_NO_MEMORY=1` を設定すると、自動メモリが無効になる","`DISABLE_CLAUDE_MEMORY=true` を設定する","`CLAUDE_AUTO_MEMORY=off` を設定すると、自動メモリが無効になる"],"correctIndex":0,"explanations":["○ `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` で自動メモリを無効にできる。`/memory` での切替は `autoMemoryEnabled` に保存される。","× `CLAUDE_CODE_NO_MEMORY` という変数は用意されていない。","× `DISABLE_CLAUDE_MEMORY` という変数は用意されていない。","× `CLAUDE_AUTO_MEMORY` という変数は用意されていない。"]},{"id":"claudecode-29","type":"mc","chapterIndex":1,"stem":"`--add-dir` で追加した別ディレクトリにある CLAUDE.md を、既定のままでは読ませたいのに読まれていない。読み込ませるために必要なのはどれか。","options":["追加したディレクトリに `.claude/settings.json` を置く","環境変数 `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` を設定する","`--add-dir` を 2 回続けて指定する","起動後に `/init` を実行して再生成する"],"correctIndex":1,"explanations":["× 設定ファイルを置くだけでは、CLAUDE.md の読み込みは有効にならない。","○ `--add-dir` で追加したディレクトリの CLAUDE.md は既定では読まれず、この環境変数に 1 を設定すると読まれる。","× オプションを繰り返し指定しても、読み込みの挙動は変わらない。","× `/init` は CLAUDE.md の生成・改善用であり、追加ディレクトリの読み込みを切り替えるものではない。"]},{"id":"claudecode-30","type":"mc","chapterIndex":1,"stem":"「`.env` を絶対に編集させない」ことを確実に守らせたい。CLAUDE.md に書くだけで十分か。適切な考え方はどれか。","options":["十分である。CLAUDE.md に書いた禁止事項は、必ず強制される","`/memory` に同じ内容を書けば、強制力が加わる","十分ではない。CLAUDE.md は強制ではなくコンテキストなので、確実に止めるなら PreToolUse フックを使う","文頭に「IMPORTANT」を付ければ、必ず守られるようになる"],"correctIndex":2,"explanations":["× CLAUDE.md の指示は助言であり、強制ではない。","× `/memory` は CLAUDE.md や自動メモリを開いて編集するための入口で、強制力を与えるものではない。","○ CLAUDE.md の内容は「強制ではなくコンテキスト」であり、確実に止めたい操作には PreToolUse フックを使うよう勧められている。","× 「IMPORTANT」は強調の手段だが、多くの行に付けると効果が薄れる。確実に止める手段にはならない。"]},{"id":"claudecode-31","type":"mc","chapterIndex":2,"stem":"`--permission-mode` や `defaultMode` で、`default` と同じ意味の別名として使えるものはどれか。","options":["`standard` という名前で指定できる","`safe`","`ask`","`manual`"],"correctIndex":3,"explanations":["× `standard` という別名は用意されていない。正しくは「`manual`」である。","× `safe` という別名は用意されていない。正しくは「`manual`」である。","× `ask` はルールの種類（allow・ask・deny）に出てくる語だが、モード名の別名ではない。","○ `default`（UI では Manual と表示）は、`manual` という別名でも指定できる。"]},{"id":"claudecode-32","type":"mc","chapterIndex":2,"stem":"ファイルの編集は都度の確認なしで任せたい。ただし、それ以外の操作は通常どおり確認してほしい。最も近い権限モードはどれか。","options":["`acceptEdits`","`plan`","`dontAsk`","`bypassPermissions` モードにして確認を省く"],"correctIndex":0,"explanations":["○ `acceptEdits` は読み取りとファイル編集に加え、mkdir・touch・mv・cp などの一般的なファイル操作を確認なしで実行する。","× `plan` は計画を承認するまで編集を行わないモードで、編集を任せる用途とは逆である。","× `dontAsk` は確認が必要な操作をすべて拒否するモードで、編集を許可するものではない。","× `bypassPermissions` は全操作を確認なしにするため、「それ以外は確認する」という要件を満たさない。"]},{"id":"claudecode-33","type":"mc","chapterIndex":2,"stem":"大規模なリファクタリングに着手する前に、まずコードを読ませて方針を立てさせ、自分が承認するまでは一切編集させたくない。どのモードを使うか。","options":["`acceptEdits` モードにして、変更を随時確認する","`plan` モード。計画を承認するまでは編集されない","`dontAsk` モードにして、確認を省く","`default` モードで、読み取り専用のコマンドだけ許可する"],"correctIndex":1,"explanations":["× `acceptEdits` は編集を確認なしで実行するモードで、承認前の編集を防げない。","○ `plan` モードはファイルを読んで計画を立てるが、計画を承認するまで編集を行わない。","× `dontAsk` は確認が必要な操作をすべて拒否するモードで、計画を立てさせて承認する流れにはならない。","× `default` では編集の都度確認が出るが、計画の段階を踏ませて承認する仕組みではない。"]},{"id":"claudecode-34","type":"mc","chapterIndex":2,"stem":"CI 上で無人実行している。事前に許可したツールだけを動かし、それ以外で確認が必要になった操作は、止まらずに拒否してほしい。適切なモードはどれか。","options":["`default` モードのまま、確認に人が答えるのを待つ","`acceptEdits` モードにして、編集だけを自動で許可する","`dontAsk`","`bypassPermissions` モードにして、すべてを自動で許可する"],"correctIndex":2,"explanations":["× `default` では確認が必要な操作で入力待ちになり、無人実行が止まってしまう。","× `acceptEdits` は編集などを許可するモードで、「それ以外は拒否」にはならない。","○ `dontAsk` は確認が必要な操作をすべて拒否し、事前許可したツールだけを実行する。無人実行に向く。","× `bypassPermissions` は全操作を許可するモードで、ここでの要件と逆である。"]},{"id":"claudecode-35","type":"mc","chapterIndex":2,"stem":"`--dangerously-skip-permissions` と同等のモードと、その想定される使い方の組み合わせとして正しいのはどれか。","options":["`dontAsk` で、ローカルの開発機での日常的な利用向け","`acceptEdits` で、共有サーバー上での利用向け","`auto`","`bypassPermissions`"],"correctIndex":3,"explanations":["× `dontAsk` は確認が必要な操作を拒否するモードで、このフラグとは別物である。","× `acceptEdits` は確認を省く範囲が限定されており、このフラグとは別物である。","× `auto` はこのフラグと同等のモードではない。正しくは「`bypassPermissions`」である。","○ `--dangerously-skip-permissions` は `--permission-mode bypassPermissions` と同等で、ドキュメントは隔離されたコンテナや VM 向けと明記している。"]},{"id":"claudecode-36","type":"mc","chapterIndex":2,"stem":"`bypassPermissions` モードで起動している。`deny` ルールに `Bash(rm *)` を入れていた場合、`rm` は実行されるか。","options":["実行されない。deny ルールは全モードで有効である","実行される。このモードは deny ルールも含めて無視する","実行されるが、事前に一度だけ確認が出る","確認ダイアログが出て、承認すれば実行される"],"correctIndex":0,"explanations":["○ deny ルールは `bypassPermissions` を含むすべての権限モードで有効である。","× このモードでも deny は無視されない。正しくは「実行されない」である。","× 確認が出るのではなく、deny によって拒否される。正しくは「実行されない」である。","× deny ルールに一致した操作は、確認ダイアログを出さずに拒否される。承認で実行できるわけではない。"]},{"id":"claudecode-37","type":"mc","chapterIndex":2,"stem":"権限ルールの評価順として正しいものはどれか。","options":["allow、ask、deny の順に評価され、最後に一致したものが採用される","deny、ask、allow の順に評価され、最初に一致したものが結果を決める","ルールを書いた順に評価され、allow が 1 つでも一致すれば許可される。deny は参考扱いになる","ask は常に最優先で、deny と allow は 2 番目以降を同順位で評価する"],"correctIndex":1,"explanations":["× 評価順は逆であり、後勝ちでもない。正しくは「deny、ask、allow の順に評価され、最初に一致したものが結果を決める」である。","○ 権限ルールは deny → ask → allow の順に評価され、最初に一致したものが結果を決める。","× 書いた順ではなく、種類の順で評価される。deny が一致すれば allow があっても拒否になる。","× 最優先は deny であり、ask ではない。正しくは「deny、ask、allow の順に評価され、最初に一致したものが結果を決める」である。"]},{"id":"claudecode-38","type":"mc","chapterIndex":2,"stem":"`deny` に `Bash(aws *)` を入れたうえで、`allow` に `Bash(aws s3 ls)` を追加した。`aws s3 ls` はどうなるか。","options":["許可されて、実行できる","許可されるが、毎回確認が必要になる","許可されず、実行できない","ルールが矛盾するので、設定の読み込み時にエラーになる"],"correctIndex":2,"explanations":["× 狭いルールが優先されるという仕組みではない。正しくは「許可されず、実行できない」である。","× deny に一致するため、確認が出ることもなく拒否される。正しくは「許可されず、実行できない」である。","○ 広い deny（例 `Bash(aws *)`）は、より狭い allow（例 `Bash(aws s3 ls)`）で例外にできない。deny が先に評価されて一致する。","× 矛盾としてエラーになるのではなく、評価順に従って deny が採用される。"]},{"id":"claudecode-39","type":"mc","chapterIndex":2,"stem":"`Bash(ls *)` という allow ルールについて、正しい説明はどれか。","options":["`ls` 単体にはマッチせず、`ls -la` のように引数が付いたものだけにマッチする","`ls` で始まるコマンドすべてにマッチし、`lsof` も含まれる","`ls` と完全に一致する場合にだけマッチする。引数付きは対象外である","`ls` 単体にもマッチするが、`lsof` にはマッチしない"],"correctIndex":3,"explanations":["× `ls` 単体も対象に含まれる。正しくは「`ls` 単体にもマッチするが、`lsof` にはマッチしない」である。","× 空白を挟むため、`lsof` のような別コマンドは対象外である。","× 引数付きも対象になるので、完全一致だけではない。正しくは「`ls` 単体にもマッチするが、`lsof` にはマッチしない」である。","○ 末尾に空白付きで `*` を書くと接頭辞マッチになり、`ls` 単体にもマッチするが `lsof` にはマッチしない。"]},{"id":"claudecode-40","type":"mc","chapterIndex":2,"stem":"`Read` ルールのパスで、絶対パスを表す書き方として正しいのはどれか。","options":["`//` で始める（二重のスラッシュ）","`/` で始める。ファイルシステムのルートからの絶対パスとして扱われる","`~/` で始める。絶対パスとして扱われる（ホームを基準にしたパス）","`./` で始める"],"correctIndex":0,"explanations":["○ `//` は絶対パスを表す。`~/` はホーム相対、`/` は設定ファイル基準、`./` はカレントディレクトリ基準である。","× `/` で始めると設定ファイルを基準にした相対パスの扱いになる。","× `~/` はホームディレクトリからの相対パスである。正しくは「`//` で始める」である。","× `./` はカレントディレクトリからの相対パスである。正しくは「`//` で始める」である。"]},{"id":"claudecode-41","type":"mc","chapterIndex":2,"stem":"特定のディレクトリへの書き込みを禁止したいので、`permissions` に `Write(./secrets/**)` を deny として書いた。この設定について正しいのはどれか。","options":["そのとおりに機能し、`./secrets/` 以下への書き込みが拒否される","`Write` にパスのルールを書いても無視される","`Write` のパスルールは機能するが、`Glob` では機能しない","警告が出たうえで、`Edit(path)` に自動的に読み替えられる"],"correctIndex":1,"explanations":["× `Write` へのパスルールは無視されるので、期待した拒否にはならない。","○ ファイル権限は `Edit(path)` と `Read(path)` のルールだけが参照され、`Write` や `Glob` にパスのルールを書いても無視される。","× `Write` も `Glob` も、パスのルールは無視される点で同じである。","× 自動的な読み替えは行われない。ルール自体が参照されない。正しくは「`Write` にパスのルールを書いても無視される」である。"]},{"id":"claudecode-42","type":"mc","chapterIndex":2,"stem":"`allow` に `Bash(git add *)` だけを入れている。Claude が `git add . && git commit -m \"fix\"` を実行しようとした。どうなるか。","options":["`git add *` にマッチしているので、全体が許可される","`&&` の後ろは別の実行として扱われ、常に自動で許可される","`git commit` の部分にマッチする allow がないため、確認が必要になる","先頭のコマンドだけで判定されるため、確認なしで実行される"],"correctIndex":2,"explanations":["× 先頭だけでは判定されず、`git commit` も許可の対象になっていなければならない。","× 後続のサブコマンドが自動で許可されることはない。正しくは「`git commit` の部分にマッチする allow がないため、確認が必要になる」である。","○ 複合コマンドでは、`&&`・`||`・`;`・`|` などで区切った各サブコマンドが、allow ルールに個別にマッチする必要がある。","× 先頭だけで全体を判定する仕組みではなく、各サブコマンドが個別に判定される。"]},{"id":"claudecode-43","type":"mc","chapterIndex":2,"stem":"Bash サンドボックスが動作する環境として正しいのはどれか。","options":["macOS と ネイティブ Windows のみ。Linux では動作しない","Linux と ネイティブ Windows のみ","macOS・Linux・ネイティブ Windows のすべてで、追加のソフトウェアなしで動作する","macOS（Seatbelt）と Linux・WSL2（bubblewrap と socat が必要）。ネイティブ Windows では動作しない"],"correctIndex":3,"explanations":["× Linux・WSL2 でも動作し、ネイティブ Windows が非対応である。","× ネイティブ Windows は非対応である。","× ネイティブ Windows は非対応で、Linux では bubblewrap と socat が必要である。","○ サンドボックスは macOS（Seatbelt）と Linux・WSL2（bubblewrap と socat が必要）で動作し、ネイティブ Windows では動作せずコマンドはサンドボックスなしで実行される。"]},{"id":"claudecode-44","type":"mc","chapterIndex":2,"stem":"サンドボックスを有効にしたプロジェクトで、MCP サーバーやフックも含めたすべての処理が隔離されると考えてよいか。","options":["よくない。対象は Bash のシェルコマンドだけである","よい。ファイル編集ツール、MCP サーバー、フックもすべてサンドボックス内で動く","よいが、MCP サーバーだけは設定で除外できる","よくない。対象はファイル編集ツールだけで、Bash は含まれない"],"correctIndex":0,"explanations":["○ サンドボックスは Bash のシェルコマンドだけを対象とし、ファイル編集ツール・MCP サーバー・フックはその外で動く。","× MCP サーバーやフックなどは、サンドボックスの外で動く。正しくは「よくない。対象は Bash のシェルコマンドだけである」である。","× 除外の設定を用意するまでもなく、そもそも対象外である。正しくは「よくない。対象は Bash のシェルコマンドだけである」である。","× 対象は逆で、Bash のシェルコマンドが対象である。正しくは「よくない。対象は Bash のシェルコマンドだけである」である。"]},{"id":"claudecode-45","type":"mc","chapterIndex":2,"stem":"設定ファイルの `permissions.defaultMode` を `plan` にしている。ところが一時的に `claude --permission-mode acceptEdits` で起動した。このセッションの開始モードはどうなるか。","options":["`plan`","`acceptEdits`","`plan` と `acceptEdits` の両方の制限が適用される","起動時にエラーとなり、どちらのモードでも開始されない"],"correctIndex":1,"explanations":["× フラグは無視されず、設定より優先される。正しくは「`acceptEdits`」である。","○ `permissions.defaultMode` は既定の開始モードを決め、`--permission-mode` フラグがこれを上書きする。","× 両者を合成するのではなく、フラグの指定が採用される。正しくは「`acceptEdits`」である。","× 競合としてエラーになることはない。正しくは「`acceptEdits`」である。"]},{"id":"claudecode-46","type":"mc","chapterIndex":3,"stem":"設定の優先順位が最も高いものはどれか。","options":["コマンドラインの `--settings` で渡した設定","`.claude/settings.local.json` に書かれた個人設定","managed settings","`~/.claude/settings.json` に書かれたユーザー設定"],"correctIndex":2,"explanations":["× `--settings` は managed settings の次であり、最上位ではない。","× `.claude/settings.local.json` は `--settings` より下位である。","○ 優先順位は高い順に、managed settings、`--settings`、`.claude/settings.local.json`、`.claude/settings.json`、`~/.claude/settings.json` である。","× `~/.claude/settings.json` は最も下位である。"]},{"id":"claudecode-47","type":"mc","chapterIndex":3,"stem":"チーム全員に同じ許可ルール（`permissions`）を使わせたい。リポジトリに含めて共有する前提で、書く場所として最も適切なのはどれか。","options":["`.claude/settings.local.json` に書き、各自の環境に配る","`~/.claude/settings.json`","`CLAUDE.local.md`","`.claude/settings.json` に書き、バージョン管理に入れる"],"correctIndex":3,"explanations":["× `.claude/settings.local.json` は自分だけのプロジェクト設定で、共有されない。","× `~/.claude/settings.json` は自分の全プロジェクト向けの設定で、リポジトリで共有する仕組みではない。","× `CLAUDE.local.md` は個人用の指示を書くファイルで、権限ルールを置く場所ではない。","○ `.claude/settings.json` はプロジェクトの共有設定で、バージョン管理に入れてチームで共有する。"]},{"id":"claudecode-48","type":"mc","chapterIndex":3,"stem":"自分だけが使うプロジェクトの設定（共有しない）を置くファイルはどれか。","options":["`.claude/settings.local.json`","`.claude/settings.json` に、個人用であることを明記して書く","`~/.claude/settings.json`","`.claude/settings.private.json` という名前で作成する"],"correctIndex":0,"explanations":["○ `.claude/settings.local.json` は自分だけのプロジェクト設定で、共有されない。","× `.claude/settings.json` は共有用の設定ファイルである。","× `~/.claude/settings.json` は全プロジェクト向けで、パスを指定してプロジェクトごとに分ける用途のものではない。","× `settings.private.json` というファイルは用意されていない。"]},{"id":"claudecode-49","type":"mc","chapterIndex":3,"stem":"`~/.claude/settings.json` で `model` を設定し、プロジェクトの `.claude/settings.json` でも同じキーに別の値を設定した。このプロジェクトでは、どちらの値が使われるか。","options":["`~/.claude/settings.json` の値。ユーザー設定が常に優先される","プロジェクトの `.claude/settings.json` の値","両方の値を合成した値。配列のように結合される","最後に編集された方のファイルの値"],"correctIndex":1,"explanations":["× ユーザー設定は最下位のレベルであり、プロジェクト設定に負ける。正しくは「プロジェクトの `.claude/settings.json` の値」である。","○ 上位のレベルで設定されたキーは、下位レベルの同じキーを上書きする。`.claude/settings.json` は `~/.claude/settings.json` より上位である。","× 同じキーは上位のレベルの値で上書きされ、合成の対象ではない。正しくは「プロジェクトの `.claude/settings.json` の値」である。","× 編集時刻ではなく、レベルの優先順位で決まる。正しくは「プロジェクトの `.claude/settings.json` の値」である。"]},{"id":"claudecode-50","type":"mc","chapterIndex":3,"stem":"設定ファイルの `permissions` キーで設定できる内容として正しいのはどれか。","options":["使用するモデルとその推論の強さ","セッション開始時に実行するフックのコマンド","allow・ask・deny のルールと、開始時の権限モード","ステータスラインに表示するコマンド"],"correctIndex":2,"explanations":["× モデルは `model` キーで設定する。正しくは「allow・ask・deny のルールと、開始時の権限モード」である。","× フックは `hooks` キーで設定する。正しくは「allow・ask・deny のルールと、開始時の権限モード」である。","○ `permissions` キーは allow・ask・deny のルールと開始権限モードを設定する。","× ステータスラインは `statusLine` キーで設定する。正しくは「allow・ask・deny のルールと、開始時の権限モード」である。"]},{"id":"claudecode-51","type":"mc","chapterIndex":3,"stem":"すべてのセッションと、そこから起動されるサブプロセスに、特定の環境変数を設定したい。設定ファイルのどのキーを使うか。","options":["`environment` キーに書く","`shell` キーに書く","`variables` キーに書く","`env`"],"correctIndex":3,"explanations":["× `environment` というキーは用意されていない。正しくは「`env`」である。","× `shell` は環境変数を設定するキーではない。正しくは「`env`」である。","× `variables` というキーは用意されていない。正しくは「`env`」である。","○ `env` キーは、すべてのセッションとそのサブプロセスに環境変数を設定する。"]},{"id":"claudecode-52","type":"mc","chapterIndex":3,"stem":"`statusLine` を設定するときの形式として正しいのはどれか。","options":["`{\"type\": \"command\", \"command\": \"...\"}` で、スクリプトは stdin からセッションの JSON を受け取る","`{\"type\": \"text\", \"value\": \"...\"}` で、固定の文字列だけを表示する","`{\"type\": \"command\", \"command\": \"...\"}` で、スクリプトは環境変数からだけ情報を受け取る","`{\"type\": \"http\", \"url\": \"...\"}` で、Web API の応答を表示する"],"correctIndex":0,"explanations":["○ `statusLine` は `{\"type\": \"command\", \"command\": \"...\"}` の形式で、スクリプトは stdin からセッションの JSON を受け取る。","× `text` 型のような固定文字列の形式は挙げられていない。","× スクリプトに情報が渡されるのは stdin 経由の JSON である。","× `statusLine` の type として `http` が使えるとは示されていない。"]},{"id":"claudecode-53","type":"mc","chapterIndex":3,"stem":"`statusLine` の `refreshInterval` について、正しい説明はどれか。","options":["再実行の間隔をミリ秒で指定する。最小値は 100 である","再実行の間隔を秒で指定する。最小値は 1 である","再実行の間隔を分で指定する","再実行する回数の上限を指定する。最小値は 1 である"],"correctIndex":1,"explanations":["× 単位はミリ秒ではなく秒である。正しくは「再実行の間隔を秒で指定する」である。","○ `refreshInterval` は再実行の間隔を秒で指定し、最小値は 1 である。","× 単位は分ではなく秒である。正しくは「再実行の間隔を秒で指定する」である。","× 回数の上限ではなく、実行の間隔を指定する設定である。正しくは「再実行の間隔を秒で指定する」である。"]},{"id":"claudecode-54","type":"mc","chapterIndex":3,"stem":"`autoCompactWindow` の説明として正しいのはどれか。","options":["特定のモデルにのみ適用され、範囲は 1K〜10K トークンである","自動コンパクトを無効にするためのスイッチで、真偽値を受け付ける","全モデルに適用される自動コンパクトのウィンドウ設定で、受け付ける範囲は 100K〜1M トークンである","会話の保持日数を設定するキーで、日数を受け付ける"],"correctIndex":2,"explanations":["× 全モデルが対象で、範囲も 100K〜1M である。","× オン・オフを切り替えるのは `autoCompactEnabled` である。","○ `autoCompactWindow` は全モデルに適用される自動コンパクトのウィンドウ設定で、100K〜1M トークンを受け付ける。","× 文字起こしの保持日数は `cleanupPeriodDays` で設定する。"]},{"id":"claudecode-55","type":"mc","chapterIndex":3,"stem":"過去の会話の文字起こしを何日間保持するかを設定するキーはどれか。","options":["`transcriptRetention` キー","`historyDays` キー","`sessionTtl` キー","`cleanupPeriodDays`"],"correctIndex":3,"explanations":["× `transcriptRetention` というキーは用意されていない。","× `historyDays` というキーは用意されていない。正しくは「`cleanupPeriodDays`」である。","× `sessionTtl` というキーは用意されていない。正しくは「`cleanupPeriodDays`」である。","○ `cleanupPeriodDays` は文字起こしを保持する日数を設定する。"]},{"id":"claudecode-56","type":"mc","chapterIndex":3,"stem":"フックの不具合を切り分けるため、フックをまとめて無効にしたい。設定名と、一緒に無効になるものの組み合わせとして正しいのはどれか。","options":["`disableAllHooks` を設定すると、ステータスラインも無効になる。@ ファイル補完コマンドも対象になる","`disableHooks` を設定すると、スキルも無効になる","`disableAllHooks` を設定すると、MCP サーバーも無効になる","`allowManagedHooksOnly` を設定すると、ステータスラインも無効になる"],"correctIndex":0,"explanations":["○ `disableAllHooks` を設定すると、フック・ステータスライン・@ ファイル補完コマンドがすべて無効になる。","× `disableHooks` というキーは示されていない。正しくは「`disableAllHooks` を設定すると、ステータスラインも無効になる」である。","× 無効になるのはフック・ステータスライン・@ ファイル補完コマンドで、MCP サーバーは含まれない。","× `allowManagedHooksOnly` は組織が配布したフックだけを実行する設定で、ステータスラインを無効にするものではない。"]},{"id":"claudecode-57","type":"mc","chapterIndex":3,"stem":"一度きりの検証のため、設定ファイルを書き換えずに、そのセッションだけ設定を上書きしたい。使えるオプションはどれか。","options":["`--override` に、キーと値のペアを渡す","`--settings`","`--config-file` に、ファイルのパスだけを渡す","`--temp-settings` に、JSON 文字列だけを渡す"],"correctIndex":1,"explanations":["× `--override` というオプションは示されていない。正しくは「`--settings`」である。","○ `--settings` は設定 JSON のファイルまたはインライン JSON 文字列を受け取り、そのセッションだけ既存の設定を上書きする。","× `--config-file` というオプションは示されていない。","× `--temp-settings` というオプションは示されていない。"]},{"id":"claudecode-58","type":"mc","chapterIndex":3,"stem":"`--setting-sources` で指定できる値の組み合わせとして正しいのはどれか。","options":["`global`・`project`・`session`","`user`・`managed`・`enterprise`","`user`・`project`・`local`","`system`・`user`・`workspace`"],"correctIndex":2,"explanations":["× `global` や `session` は指定値として挙げられていない。","× `managed` や `enterprise` は、このオプションの指定値ではない。","○ `--setting-sources` は読み込む設定ソースを `user`・`project`・`local` から選んで制限する。","× `system` や `workspace` は、このオプションの指定値ではない。"]},{"id":"claudecode-59","type":"mc","chapterIndex":3,"stem":"`effortLevel` 設定が受け付ける値として正しいのはどれか。","options":["`low`・`medium`・`high`・`xhigh`・`max` のすべて（5 種類を受け付ける）","`low`・`high` の 2 種類だけ","`low`・`medium`・`high` の 3 種類だけで、`xhigh` も受け付けない","`low`・`medium`・`high`・`xhigh` で、`max` は受け付けない"],"correctIndex":3,"explanations":["× `max` は受け付けない。正しくは「`low`・`medium`・`high`・`xhigh`」である。","× `medium` と `xhigh` も受け付ける。正しくは「`low`・`medium`・`high`・`xhigh`」である。","× `xhigh` も受け付ける。正しくは「`low`・`medium`・`high`・`xhigh`」である。","○ `effortLevel` 設定は `low`・`medium`・`high`・`xhigh` を受け付けるが、`max` は受け付けない。"]},{"id":"claudecode-60","type":"mc","chapterIndex":3,"stem":"MCP サーバーの起動タイムアウトを制御する環境変数 `MCP_TIMEOUT` について、正しい説明はどれか。","options":["既定は 30 秒で、単位はミリ秒である","既定は 30 秒で、単位は秒である","既定は 600 秒で、単位は秒である","既定は 5 分で、単位は分である"],"correctIndex":0,"explanations":["○ `MCP_TIMEOUT` は MCP サーバーの起動タイムアウトを既定 30 秒で制御し、単位はミリ秒である。","× 既定の 30 秒は正しいが、値を指定するときの単位はミリ秒である。","× 既定値は 600 秒ではない。なお 600 秒はフックの `command` の既定タイムアウトである。","× 単位は分ではなくミリ秒である。正しくは「既定は 30 秒で、単位はミリ秒である」である。"]},{"id":"claudecode-61","type":"mc","chapterIndex":4,"stem":"`/clear` に名前を渡して実行した（例: `/clear 認証の調査`）。このとき何が起こるか。","options":["今の会話がその名前で要約され、要約が新しい会話の冒頭に入る","空のコンテキストで新しい会話が始まり、前の会話に `/resume` 用の名前が付く","今の会話の履歴が残ったまま、先頭の見出しだけがその名前になる","名前は無視され、前の会話は保存されずに破棄される"],"correctIndex":1,"explanations":["× 要約して引き継ぐのは `/compact` の働きである。正しくは「空のコンテキストで新しい会話が始まり、前の会話に `/resume` 用の名前が付く」である。","○ `/clear` は空のコンテキストで新しい会話を始める。名前を渡すと、前の会話に `/resume` 用の名前を付けられる。","× `/clear` では履歴を引き継がず、新しい会話になる。正しくは「空のコンテキストで新しい会話が始まり、前の会話に `/resume` 用の名前が付く」である。","× 名前は無視されず、前の会話の呼び出し名として使われる。正しくは「空のコンテキストで新しい会話が始まり、前の会話に `/resume` 用の名前が付く」である。"]},{"id":"claudecode-62","type":"mc","chapterIndex":4,"stem":"`/compact` に引数を付けて実行する場合の説明として正しいのはどれか。","options":["会話を要約せず、引数で指定した行数だけ古い履歴を削除する","会話を完全に破棄して、引数の内容で新しく会話を始める","会話を要約してコンテキストを空け、要約の焦点を指示として渡せる","要約の保存先ファイルを指定できる"],"correctIndex":2,"explanations":["× `/compact` は削除ではなく要約を行う。正しくは「会話を要約してコンテキストを空け、要約の焦点を指示として渡せる」である。","× 会話を破棄して新しく始めるのは `/clear` である。正しくは「会話を要約してコンテキストを空け、要約の焦点を指示として渡せる」である。","○ `/compact [instructions]` は会話を要約してコンテキストを空け、要約の焦点を指示で渡せる。","× 引数は保存先ではなく、要約で何に焦点を当てるかの指示である。正しくは「会話を要約してコンテキストを空け、要約の焦点を指示として渡せる」である。"]},{"id":"claudecode-63","type":"mc","chapterIndex":4,"stem":"セッションのコストとプランの利用状況を表示する `/usage` の別名として、正しい組み合わせはどれか。","options":["`/cost` と `/tokens` の 2 つ","`/billing` と `/stats` の 2 つ","`/limits` と `/tokens`","`/cost` と `/stats`"],"correctIndex":3,"explanations":["× `/cost` は別名だが、`/tokens` は別名として挙げられていない。","× `/stats` は別名だが、`/billing` は別名として挙げられていない。","× `/limits` も `/tokens` も別名として挙げられていない。","○ `/usage` はセッションのコストとプランの利用状況を表示し、`/cost` と `/stats` はその別名である。"]},{"id":"claudecode-64","type":"mc","chapterIndex":4,"stem":"現在のコンテキストの使用状況を、色付きのグリッドで視覚的に確認したい。使うコマンドはどれか。","options":["`/context`","`/memory` を実行する","`/hooks`","`/permissions` を実行する"],"correctIndex":0,"explanations":["○ `/context` は現在のコンテキスト使用量を色付きのグリッドで表示する。","× `/memory` は CLAUDE.md の編集と自動メモリのオン・オフを行うコマンドである。","× `/hooks` はフックの設定を表示するコマンドである。正しくは「`/context`」である。","× `/permissions` は allow・ask・deny のルールを対話的に管理するコマンドである。"]},{"id":"claudecode-65","type":"mc","chapterIndex":4,"stem":"「ログイン処理のリファクタリング方針を立てて」と依頼文を付けたまま、一気にプランモードに入りたい。使えるコマンドはどれか。","options":["`/plan` だけを実行して、改めて依頼を書く","`/plan` に続けて説明文を書く","`/mode plan` と実行する。入力欄から切り替える","`/think` に続けて説明文を書く"],"correctIndex":1,"explanations":["× `/plan` は説明文も一緒に渡せるので、改めて依頼を書く手間を省ける。","○ `/plan [description]` は、プロンプトから直接プランモードに入る。","× `/mode` というコマンドは示されていない。正しくは「`/plan` に続けて説明文を書く」である。","× `/think` はプランモードに入るコマンドとして挙げられていない。"]},{"id":"claudecode-66","type":"mc","chapterIndex":4,"stem":"作業の途中で、現在のセッションに別のディレクトリ（隣のリポジトリ）も読み書きの対象として追加したい。使えるコマンドはどれか。","options":["`/include \u003cpath>` を実行する","`/cd \u003cpath>` を実行する","`/add-dir \u003cpath>`","`/mount \u003cpath>`"],"correctIndex":2,"explanations":["× `/include` というコマンドは示されていない。正しくは「`/add-dir \u003cpath>`」である。","× `/cd` は作業ディレクトリを追加するコマンドとして挙げられていない。","○ `/add-dir \u003cpath>` は、現在のセッションに作業ディレクトリを追加する。","× `/mount` というコマンドは示されていない。正しくは「`/add-dir \u003cpath>`」である。"]},{"id":"claudecode-67","type":"mc","chapterIndex":4,"stem":"全プロジェクトで使える個人用のスキルを作る。置き場所として正しいのはどれか。","options":["`~/.claude/skills/\u003cskill-name>.md` に、1 ファイルで置く","`~/.claude/commands/\u003cskill-name>/SKILL.md`","`~/.claude/agents/\u003cskill-name>/SKILL.md` に置く","`~/.claude/skills/\u003cskill-name>/SKILL.md`"],"correctIndex":3,"explanations":["× スキルはディレクトリを作り、その中の `SKILL.md` に書く。","× `commands` ディレクトリは従来のコマンドの置き場所で、スキルの置き場所ではない。","× `agents` ディレクトリはサブエージェントの定義を置く場所である。","○ スキルは `~/.claude/skills/\u003cskill-name>/SKILL.md`（全プロジェクト）または `.claude/skills/\u003cskill-name>/SKILL.md`（プロジェクト）に置く。"]},{"id":"claudecode-68","type":"mc","chapterIndex":4,"stem":"プラグインに含まれるスキル `review` を呼び出すとき、プラグイン名が `my-plugin` なら、どの形で呼び出すか。","options":["`/my-plugin:review`","`/my-plugin.review` と、ドットでつなぐ","`/my-plugin/review` と、スラッシュでつなぐ","`/review` だけで、プラグイン名は不要である"],"correctIndex":0,"explanations":["○ プラグインのスキルは `/プラグイン名:スキル名` の形で呼び出す。","× 区切りはドットではなくコロンである。正しくは「`/my-plugin:review`」である。","× 区切りはスラッシュではなくコロンである。正しくは「`/my-plugin:review`」である。","× プラグイン由来のスキルは、プラグイン名を付けた形で呼び出す。正しくは「`/my-plugin:review`」である。"]},{"id":"claudecode-69","type":"mc","chapterIndex":4,"stem":"本番デプロイの手順をスキルにした。Claude が勝手に判断して実行しないよう、人が `/deploy` と入力したときだけ動かしたい。フロントマターにどう書くか。","options":["`user-invocable: false` を書く","`disable-model-invocation: true`","`allowed-tools: none` を書く","`context: fork` を書く"],"correctIndex":1,"explanations":["× `user-invocable: false` は逆に、`/` メニューから隠して Claude だけが呼び出せるようにする。","○ `disable-model-invocation: true` を付けると Claude は自動で読み込まず、ユーザーが `/name` で手動実行する。","× `allowed-tools` はスキル実行中に確認なしで許可するツールを指定するもので、呼び出し主体を制限しない。","× `context: fork` はスキルをサブエージェントで実行する設定である。"]},{"id":"claudecode-70","type":"mc","chapterIndex":4,"stem":"背景知識を提供するだけのスキルで、ユーザーが `/` メニューから直接呼ぶ必要はなく、Claude だけが必要に応じて使えばよい。適切な設定はどれか。","options":["`disable-model-invocation: true`","`context: fork`","`user-invocable: false`","`allowed-tools: Read`"],"correctIndex":2,"explanations":["× `disable-model-invocation: true` は逆に、Claude の自動呼び出しを止めて手動実行専用にする。","× `context: fork` はスキルをサブエージェントで実行する設定で、呼び出し主体は変わらない。","○ `user-invocable: false` を付けると `/` メニューから隠れ、Claude だけが呼び出せる。","× `allowed-tools` は確認なしで許可するツールの指定であり、`/` メニューの表示とは関係がない。"]},{"id":"claudecode-71","type":"mc","chapterIndex":4,"stem":"スキルのフロントマターの `allowed-tools` について、正しい説明はどれか。","options":["そのセッションが終わるまで、指定したツールが確認なしで許可され続ける","指定したツール以外は、スキルの実行中に使えなくなる","指定したツールは、スキルの実行後にグローバルの allow ルールへ追加される","そのスキルを呼び出したターンの間だけ、指定したツールが確認なしで許可される"],"correctIndex":3,"explanations":["× 許可はターンの間に限られ、セッション全体には及ばない。正しくは「そのスキルを呼び出したターンの間だけ、指定したツールが確認なしで許可される」である。","× 他のツールを使えなくする制限ではなく、確認を省く許可である。正しくは「そのスキルを呼び出したターンの間だけ、指定したツールが確認なしで許可される」である。","× 設定ファイルの allow ルールを書き換えることはない。正しくは「そのスキルを呼び出したターンの間だけ、指定したツールが確認なしで許可される」である。","○ `allowed-tools` は、そのスキルを呼び出したターンの間だけ指定ツールを確認なしで許可する。"]},{"id":"claudecode-72","type":"mc","chapterIndex":4,"stem":"大量のファイルを調べるスキルで、調べた過程はメインの会話に残さず、結果だけを受け取りたい。フロントマターに何を付けるか。","options":["`context: fork` を付ける","`context: inherit` を付ける","`isolation: worktree`","`background: true` を付けて、バックグラウンドで動かす"],"correctIndex":0,"explanations":["○ `context: fork` を付けるとスキルはサブエージェントで実行される。","× `context: inherit` という指定は示されていない。","× `isolation: worktree` はサブエージェントの設定で、スキルのフロントマターに書くものではない。","× `background: true` はサブエージェントの設定であり、スキルを別コンテキストで動かすものではない。"]},{"id":"claudecode-73","type":"mc","chapterIndex":4,"stem":"スキルの本文中の `$ARGUMENTS` は、実行時にどう扱われるか。","options":["最初の引数 1 つだけに置き換えられる","渡された引数の全文に置き換えられる","スキルの説明文（`description`）に置き換えられる","実行中のセッション ID に置き換えられる"],"correctIndex":1,"explanations":["× 1 つ目だけではなく、全文に置き換わる。正しくは「渡された引数の全文に置き換えられる」である。","○ スキル内の `$ARGUMENTS` は渡された引数の全文に置き換えられ、`$ARGUMENTS[N]` や `$N` で位置指定もできる。","× `description` に置き換わることはない。正しくは「渡された引数の全文に置き換えられる」である。","× セッション ID には置き換わらない。正しくは「渡された引数の全文に置き換えられる」である。"]},{"id":"claudecode-74","type":"mc","chapterIndex":4,"stem":"`.claude/commands/deploy.md` と `.claude/skills/deploy/SKILL.md` の両方が存在する。`/deploy` を実行したときはどうなるか。","options":["コマンドが優先され、スキルは無視される","競合のためエラーになり、どちらも実行されない","同名の場合はスキルが優先される","両方が順番に実行され、先にスキルが走る。コマンドはその後で動く"],"correctIndex":2,"explanations":["× 優先されるのはスキルのほうである。正しくは「同名の場合はスキルが優先される」である。","× エラーにはならず、スキルが採用される。正しくは「同名の場合はスキルが優先される」である。","○ `.claude/commands/deploy.md` と `.claude/skills/deploy/SKILL.md` はどちらも `/deploy` を作り、同名の場合はスキルが優先される。","× 両方が実行されるのではなく、優先される一方だけが使われる。正しくは「同名の場合はスキルが優先される」である。"]},{"id":"claudecode-75","type":"mc","chapterIndex":4,"stem":"`.claude/skills/code-review/SKILL.md` のフロントマターに `name` を書かなかった。`/` メニューに表示される名前はどうなるか。","options":["`SKILL.md` というファイル名がそのまま使われる","フロントマターがないため、スキルとして認識されず表示されない","本文の最初の見出しが名前として使われる","ディレクトリ名の `code-review` になる"],"correctIndex":3,"explanations":["× ファイル名ではなく、ディレクトリ名が使われる。正しくは「ディレクトリ名の `code-review` になる」である。","× `name` を省略してもスキルは認識され、ディレクトリ名で表示される。","× 本文の見出しではなく、ディレクトリ名が使われる。正しくは「ディレクトリ名の `code-review` になる」である。","○ SKILL.md のフロントマターの `name` は `/` メニューの名前になり、省略時はディレクトリ名になる。"]},{"id":"claudecode-76","type":"mc","chapterIndex":5,"stem":"`rm -rf` を含む Bash コマンドを、実行される前に確実に止めたい。どのフックイベントで、どう終了すればよいか。","options":["`PreToolUse` で、終了コード 2 を返す。実行前にブロックされる","`PostToolUse` で、終了コード 2 を返す","`PreToolUse` で、終了コード 1 を返す","`Stop` で、終了コード 0 を返す"],"correctIndex":0,"explanations":["○ `PreToolUse` はツール実行前に発火し、終了コード 2 でそのツール呼び出しをブロックする。","× `PostToolUse` はツールの成功後に発火するので、既に実行済みで止められない。","× 終了コード 2 以外の非ゼロ終了は非ブロッキングのエラーとなり、実行は続く。","× `Stop` は Claude が応答を終えたときに発火するもので、実行前の阻止には使えない。"]},{"id":"claudecode-77","type":"mc","chapterIndex":5,"stem":"`PostToolUse` フックが終了コード 2 で終了した。何が起こるか。","options":["ツールの実行が取り消され、変更が元に戻る","stderr が Claude に表示されるが、ツールは既に実行済みである","stderr は無視され、Claude には何も表示されない","セッション全体が強制終了される"],"correctIndex":1,"explanations":["× 実行済みのツールの結果が自動で取り消されることはない。正しくは「stderr が Claude に表示されるが、ツールは既に実行済みである」である。","○ `PostToolUse` はツールの成功後に発火する。終了コード 2 の stderr は Claude に表示されるが、ツールは既に実行済みである。","× stderr は Claude に表示される。正しくは「stderr が Claude に表示されるが、ツールは既に実行済みである」である。","× セッションが終了することはない。正しくは「stderr が Claude に表示されるが、ツールは既に実行済みである」である。"]},{"id":"claudecode-78","type":"mc","chapterIndex":5,"stem":"ユーザーのプロンプトを、Claude が処理を始める前に検査し、機密情報を含むものは弾きたい。どのイベントを使うか。","options":["`SessionStart`","`PreToolUse`","`UserPromptSubmit`","`PermissionRequest`"],"correctIndex":2,"explanations":["× `SessionStart` はセッション開始時に発火するもので、各プロンプトの検査用ではない。","× `PreToolUse` はツール呼び出しの前に発火するもので、プロンプト自体を検査するものではない。","○ `UserPromptSubmit` はプロンプトの送信直後、処理前に発火し、終了コード 2 でプロンプトをブロックする。","× `PermissionRequest` は権限確認が発生したときのイベントで、プロンプトの検査用ではない。"]},{"id":"claudecode-79","type":"mc","chapterIndex":5,"stem":"Claude が「完了しました」と応答を終えようとしたときに、テストが失敗していれば終わらせず、作業を続けさせたい。適切なのはどれか。","options":["`SubagentStop` フックで、終了コード 0 を返す","`SessionEnd` フックで、終了コード 2 を返す","`PostToolUse` フックで、終了コード 1 を返す","`Stop` フックで、終了コード 2 を返す"],"correctIndex":3,"explanations":["× `SubagentStop` はサブエージェントの停止時のイベントで、メインの応答の終了を止める用途ではない。","× `SessionEnd` はセッション終了時のイベントであり、会話を続けさせるものではない。","× 終了コード 1 は非ブロッキングのエラーとなり、実行は続くだけである。","○ `Stop` は Claude が応答を終えたときに発火し、終了コード 2 で停止を防いで会話を続けさせる。"]},{"id":"claudecode-80","type":"mc","chapterIndex":5,"stem":"`PermissionRequest` フックについて、正しい説明はどれか。","options":["終了コード 2 は無視され、許可・拒否は `decision` オブジェクトで返す","終了コード 2 で拒否、終了コード 0 で許可を表す","終了コード 2 で、確認ダイアログが人に再度表示される","終了コードは使わず、環境変数 `PERMISSION` に値を設定して返す"],"correctIndex":0,"explanations":["○ `PermissionRequest` では終了コード 2 は無視され、許可・拒否は `decision` オブジェクトで返す。","× 他のイベントのように、終了コードで許可・拒否を表すことはできない。","× 終了コード 2 に再表示の働きはなく、無視される。正しくは「終了コード 2 は無視され、許可・拒否は `decision` オブジェクトで返す」である。","× 環境変数で返すのではなく、`decision` オブジェクトを使う。"]},{"id":"claudecode-81","type":"mc","chapterIndex":5,"stem":"`SessionStart` フックのマッチャーで指定できる値の組み合わせとして正しいのはどれか。","options":["`start`・`stop`・`pause`・`resume`・`fork`（作業の一時停止を含む組）","`startup`・`resume`・`clear`・`compact`・`fork` の 5 種類","`startup`・`manual`・`auto`・`clear`・`end`","`new`・`continue`・`resume`・`compact`（時間経過を表す値が並ぶ）"],"correctIndex":1,"explanations":["× `stop`・`pause` などはマッチャーの値ではない。正しくは「`startup`・`resume`・`clear`・`compact`・`fork`」である。","○ `SessionStart` のマッチャーは `startup`・`resume`・`clear`・`compact`・`fork` である。","× `manual` と `auto` は `PreCompact` と `PostCompact` のマッチャーである。","× `new`・`continue`・`reset` などはマッチャーの値ではない。"]},{"id":"claudecode-82","type":"mc","chapterIndex":5,"stem":"コンパクトの直前に発火する `PreCompact` フックを、手動で `/compact` したときだけ動かしたい。マッチャーにはどれを指定するか。","options":["`user`","`command`","`manual`","`slash`"],"correctIndex":2,"explanations":["× `user` はマッチャーの値として挙げられていない。正しくは「`manual`」である。","× `command` はマッチャーの値として挙げられていない。正しくは「`manual`」である。","○ `PreCompact` と `PostCompact` のマッチャーは `manual` と `auto` である。手動実行は `manual`、自動コンパクトは `auto` である。","× `slash` はマッチャーの値として挙げられていない。正しくは「`manual`」である。"]},{"id":"claudecode-83","type":"mc","chapterIndex":5,"stem":"フックの `matcher` に `Edit|Write` と書いた。このマッチャーはどう解釈されるか。","options":["`|` を含むため、必ず JavaScript の正規表現として扱われる","文字列全体と完全一致した場合にだけ、マッチする","`*` を含まないため、どのツールにも一致しない","英数字と `|` だけなので、`Edit` または `Write` を表す名前のリストとして扱われる"],"correctIndex":3,"explanations":["× `|` だけなら正規表現ではなくリストとして扱われる。","× 全体の完全一致ではなく、`|` で区切った名前のいずれかに一致する。","× `*` は必須ではない。リストとして `Edit` または `Write` に一致する。","○ 英数字・`_`・`-`・空白・`,`・`|` だけなら、完全一致か名前のリストになる。それ以外の文字を含むと JavaScript の正規表現として扱われる。"]},{"id":"claudecode-84","type":"mc","chapterIndex":5,"stem":"フックの種類として正しい組み合わせはどれか。","options":["`command`・`http`・`mcp_tool`・`prompt`・`agent` の 5 種類","`command`・`script`・`webhook`・`prompt` の 4 種類","`command`・`http`・`prompt` の 3 種類","`shell`・`http`・`mcp_tool`・`agent`・`skill` の 5 種類"],"correctIndex":0,"explanations":["○ フックの種類は `command`・`http`・`mcp_tool`・`prompt`・`agent` の 5 種類である。","× `script` と `webhook` は種類として挙げられていない。","× 種類は 3 つではなく、`mcp_tool` と `agent` を加えた 5 種類である。","× `shell` と `skill` は種類として挙げられていない。"]},{"id":"claudecode-85","type":"mc","chapterIndex":5,"stem":"フックの既定のタイムアウトとして、正しい組み合わせはどれか。","options":["`command` は 30 秒、`prompt` は 60 秒、`agent` は 600 秒（`agent` が最長）","`command` は 600 秒、`prompt` は 30 秒、`agent` は 60 秒","`command` は 60 秒、`prompt` は 600 秒、`agent` は 30 秒（`prompt` が最長）","どれも 30 秒で共通。種類による違いはない"],"correctIndex":1,"explanations":["× 数字の対応が入れ替わっている。正しくは「`command` は 600 秒、`prompt` は 30 秒、`agent` は 60 秒」である。","○ `command` フックの既定タイムアウトは 600 秒、`prompt` は 30 秒、`agent` は 60 秒である。","× 数字の対応が入れ替わっている。正しくは「`command` は 600 秒、`prompt` は 30 秒、`agent` は 60 秒」である。","× 種類ごとに既定値が異なる。正しくは「`command` は 600 秒、`prompt` は 30 秒、`agent` は 60 秒」である。"]},{"id":"claudecode-86","type":"mc","chapterIndex":5,"stem":"`PreToolUse` フックのスクリプトが、標準入力から受け取る JSON に含まれる項目として正しいものはどれか。","options":["`command_name`・`command_args`・`command_id`","`tool`・`params`・`call_id`","`tool_name`・`tool_input`・`tool_use_id`","`function`・`arguments`・`request_id`"],"correctIndex":2,"explanations":["× `command_name` などの名前は使われていない。正しくは「`tool_name`・`tool_input`・`tool_use_id`」である。","× `tool`・`params`・`call_id` は項目名として挙げられていない。","○ `PreToolUse` の stdin には `tool_name`・`tool_input`・`tool_use_id` が含まれる。共通フィールドには `session_id`・`transcript_path`・`cwd` などがある。","× `function`・`arguments`・`request_id` は項目名として挙げられていない。"]},{"id":"claudecode-87","type":"mc","chapterIndex":5,"stem":"フックが終了コード 0 で終了し、標準出力に単一の JSON オブジェクトを出した。どう扱われるか。","options":["常にプレーンテキストとして扱われる","JSON は無視され、終了コードだけが使われる","JSON であっても、`stderr` に出した場合のみ解析される","JSON として解析される"],"correctIndex":3,"explanations":["× 単一の JSON オブジェクトであれば、プレーンテキストではなく JSON として解析される。","× 終了コードだけでなく、JSON の内容も解析されて利用される。正しくは「JSON として解析される」である。","× 解析の対象は stdout であり、stderr ではない。正しくは「JSON として解析される」である。","○ 終了コード 0 のとき、stdout が単一の JSON オブジェクトならそれが解析され、そうでなければプレーンテキストとして扱われる。"]},{"id":"claudecode-88","type":"mc","chapterIndex":5,"stem":"フックのスクリプトが終了コード 1 で終了した。実行はどうなるか。","options":["非ブロッキングのエラーになる。実行は続く","ブロッキングエラーとなり、ツール呼び出しが拒否される","終了コード 2 と同じ扱いになり、プロンプトが拒否される","セッションが強制終了され、再開できなくなる"],"correctIndex":0,"explanations":["○ 終了コード 2 以外の非ゼロ終了は非ブロッキングのエラーとなり、実行は続く。","× ブロックされるのは終了コード 2 のときである。正しくは「非ブロッキングのエラーになる」である。","× 終了コード 1 は 2 と同じ扱いにはならない。正しくは「非ブロッキングのエラーになる」である。","× セッションが終了することはない。正しくは「非ブロッキングのエラーになる」である。"]},{"id":"claudecode-89","type":"mc","chapterIndex":5,"stem":"「編集のたびに毎回、例外なくフォーマッタを実行したい」。この要件に最も適した方法はどれか。","options":["`CLAUDE.md` に「必ず実行する」と書く","フックで実行する。決定論的に毎回動かせる","`/memory` に実行手順を書き留める","プロンプトの先頭に毎回「フォーマッタを実行して」と付ける"],"correctIndex":1,"explanations":["× CLAUDE.md は助言であり、必ず実行される保証はない。正しくは「フックで実行する」である。","○ ベストプラクティスは「毎回例外なく必ず起きるべき動作」にはフックを使うよう勧め、CLAUDE.md は助言であると位置づけている。","× `/memory` に書いても強制力は生まれず、助言にとどまる。","× 毎回付ける運用は漏れやすく、決定論的な仕組みではない。正しくは「フックで実行する」である。"]},{"id":"claudecode-90","type":"mc","chapterIndex":5,"stem":"フック定義の `if` フィールドについて、正しい説明はどれか。","options":["正規表現の構文で条件を書け、すべてのイベントで使える","JavaScript の式で条件を書け、`SessionStart` でのみ使える","パーミッションルールの構文で条件を書け、ツール系のイベントでのみ使える","環境変数の値で条件を書け、`command` 型のフックでのみ使える"],"correctIndex":2,"explanations":["× 正規表現を書くのはマッチャーの話であり、`if` はパーミッションルールの構文である。また使えるのはツール系イベントに限られる。","× `if` は JavaScript の式ではなく、パーミッションルールの構文を使う。","○ `if` フィールドにはパーミッションルールの構文を書け、ツール系イベントでのみ使える。","× 環境変数の値で判定するものではなく、`command` 型に限られるわけでもない。"]},{"id":"claudecode-91","type":"mc","chapterIndex":6,"stem":"全プロジェクトで使える、自分専用のサブエージェントの定義を置く場所はどれか。","options":["`~/.claude/subagents/` ディレクトリ","`~/.claude/skills/agents/` ディレクトリ","`~/agents/` ディレクトリ","`~/.claude/agents/`"],"correctIndex":3,"explanations":["× `subagents` というディレクトリ名ではない。正しくは「`~/.claude/agents/`」である。","× `skills` 配下はスキルの置き場所で、サブエージェント用ではない。","× ホーム直下の `agents` ではなく、`~/.claude/` の下に置く。","○ サブエージェントの定義は `.claude/agents/`（プロジェクト）または `~/.claude/agents/`（全プロジェクト）に置く。"]},{"id":"claudecode-92","type":"mc","chapterIndex":6,"stem":"同じ名前のサブエージェントが、プロジェクトの `.claude/agents/` と `~/.claude/agents/` の両方に定義されている。どちらが使われるか。","options":["プロジェクトの `.claude/agents/` のもの","`~/.claude/agents/` のもの。ユーザー定義が常に優先される","先に作られたほうのもの","両方が合成され、フィールドごとに新しいほうが採用される"],"correctIndex":0,"explanations":["○ 優先順位は managed settings、`--agents` フラグ、`.claude/agents/`、`~/.claude/agents/`、プラグインの `agents/` の順である。","× ユーザー定義はプロジェクト定義よりも下位である。正しくは「プロジェクトの `.claude/agents/` のもの」である。","× 作成の先後ではなく、置き場所の優先順位で決まる。正しくは「プロジェクトの `.claude/agents/` のもの」である。","× 合成はされず、優先順位の高いものが使われる。正しくは「プロジェクトの `.claude/agents/` のもの」である。"]},{"id":"claudecode-93","type":"mc","chapterIndex":6,"stem":"サブエージェント定義のフロントマターで、必須の項目はどれか。","options":["`name` と `tools` の 2 つ","`name` と `description` の 2 つ","`name`・`description`・`model` の 3 つ","`description` のみで、`name` はファイル名から決まる"],"correctIndex":1,"explanations":["× `tools` は省略でき、省略すると継承する。正しくは「`name` と `description` の 2 つ」である。","○ 必須のフロントマターは `name` と `description` の 2 つである。","× `model` は必須ではない。正しくは「`name` と `description` の 2 つ」である。","× `name` も必須である。正しくは「`name` と `description` の 2 つ」である。"]},{"id":"claudecode-94","type":"mc","chapterIndex":6,"stem":"サブエージェントの `name` に使えない形式はどれか。","options":["英小文字とハイフンだけで 20 文字の名前","数字を含む名前","`-` で始まる名前","英小文字と `_` だけでできた名前"],"correctIndex":2,"explanations":["× 20 文字は 256 文字以内であり、ハイフンを含んでも先頭でなければ問題ない。","× 数字を含むこと自体は制約に含まれない。正しくは「`-` で始まる名前」である。","○ `name` は 256 文字以内で、`:` を含まず、`-` で始めてはならない。","× `_` の使用は制約に含まれない。正しくは「`-` で始まる名前」である。"]},{"id":"claudecode-95","type":"mc","chapterIndex":6,"stem":"調査用のサブエージェントに、ファイルを書き換える権限だけを持たせたくない。ほかのツールは継承のままにしたい。最も適した設定はどれか。","options":["`tools` に読み取り系のツールをすべて書く","`permissionMode` を `plan` にして、親の設定と無関係に固定する","`maxTurns` を 1 にして、1 回しか動かせないようにする","`disallowedTools` で書き込み系のツールを取り除く"],"correctIndex":3,"explanations":["× `tools` は許可するツールを列挙する allowlist で、省略すると継承する。一部だけ除きたいなら denylist の `disallowedTools` のほうが簡潔である。","× `permissionMode` は親が `bypassPermissions` などのときは親の設定が優先されるため、確実な制限にならない。","× `maxTurns` は最大ターン数の上限であり、ツールの制限とは関係がない。","○ `disallowedTools` は継承または指定されたツール一覧から取り除く denylist で、他は継承のままにできる。"]},{"id":"claudecode-96","type":"mc","chapterIndex":6,"stem":"サブエージェントの `model` に指定できる値として、正しい組み合わせはどれか。","options":["`sonnet`・`opus`・`haiku`・`fable`・完全なモデル ID・`inherit`","`small`・`medium`・`large`・`inherit` のみ","`fast`・`smart`・`default` のみ","完全なモデル ID のみで、エイリアスは使えない"],"correctIndex":0,"explanations":["○ `model` には `sonnet`・`opus`・`haiku`・`fable`・完全なモデル ID・`inherit` を指定できる。","× `small` などのサイズ名は指定値ではない。","× `fast`・`smart` などは指定値ではない。","× エイリアスも指定でき、完全な ID だけに限られない。"]},{"id":"claudecode-97","type":"mc","chapterIndex":6,"stem":"サブエージェントの `permissionMode` を `default` にしたが、親セッションは `bypassPermissions` で動いている。サブエージェントの権限はどうなるか。","options":["サブエージェントの `default` が優先され、確認が必要になる","親の `bypassPermissions` が優先される","両者のうち厳しいほうが自動的に選ばれる","エラーになり、サブエージェントは起動できない"],"correctIndex":1,"explanations":["× 親が `bypassPermissions` のときは親の設定が優先される。","○ `permissionMode` はサブエージェントの権限モードを設定するが、親が `bypassPermissions`・`acceptEdits`・auto のときは親の設定が優先される。","× 厳しいほうを選ぶ仕組みではなく、親の設定が優先される。正しくは「親の `bypassPermissions` が優先される」である。","× エラーにはならず、親の設定が使われる。正しくは「親の `bypassPermissions` が優先される」である。"]},{"id":"claudecode-98","type":"mc","chapterIndex":6,"stem":"サブエージェントが `maxTurns` の上限に達した。その出力はどう扱われるか。","options":["失敗として破棄され、再開もできない","自動的に上限が倍に引き上げられ、そのまま完了する","partial として扱われ、再開できる","最後のターンの出力だけが返され、再開はできない"],"correctIndex":2,"explanations":["× 破棄されず、partial の出力として残る。正しくは「partial として扱われ、再開できる」である。","× 上限が自動で引き上げられることはない。正しくは「partial として扱われ、再開できる」である。","○ `maxTurns` は最大のエージェントターン数で、上限に達した出力は partial として扱われ、再開できる。","× 再開できる点が重要である。正しくは「partial として扱われ、再開できる」である。"]},{"id":"claudecode-99","type":"mc","chapterIndex":6,"stem":"サブエージェントのフロントマターの `skills` について、正しい説明はどれか。","options":["起動時にスキル名の一覧だけを読み込む","必要になった時点でスキルを遅延読み込みする。件数に上限はない","スキルの全文を読み込むが、指定できるのは 1 件だけである","起動時に指定したスキルの全文を読み込む"],"correctIndex":3,"explanations":["× 一覧だけではなく全文を読み込む。正しくは「起動時に指定したスキルの全文を読み込む」である。","× 遅延読み込みではなく、起動時に全文を読み込み、上限もある。正しくは「起動時に指定したスキルの全文を読み込む」である。","× 1 件だけに限られず、最大 32 件である。正しくは「起動時に指定したスキルの全文を読み込む」である。","○ `skills` は起動時に指定したスキルの全文を読み込み、最大 32 件まで指定できる。"]},{"id":"claudecode-100","type":"mc","chapterIndex":6,"stem":"サブエージェントが、会話をまたいで学びを蓄積できるようにしたい。フロントマターのどれを使うか。","options":["`memory`","`persist: true` を指定する","`remember` に保存先のパスを指定する","`history` に保持するターン数を指定する"],"correctIndex":0,"explanations":["○ `memory` は `user`・`project`・`local` の永続メモリスコープを指定し、Read・Write・Edit ツールを有効にする。","× `persist` というフィールドは示されていない。正しくは「`memory`」である。","× `remember` というフィールドは示されていない。正しくは「`memory`」である。","× `history` というフィールドは示されていない。正しくは「`memory`」である。"]},{"id":"claudecode-101","type":"mc","chapterIndex":6,"stem":"複数のサブエージェントが同時に同じファイル群を編集して衝突することを避けたい。サブエージェントのフロントマターに何を書くか。","options":["`isolation: sandbox`","`isolation: worktree`","`isolation: copy`","`background: true`"],"correctIndex":1,"explanations":["× `sandbox` という値は示されていない。正しくは「`isolation: worktree`」である。","○ `isolation: worktree` を付けると、サブエージェントは一時的な git worktree の中で実行される。","× `copy` という値は示されていない。正しくは「`isolation: worktree`」である。","× `background: true` はバックグラウンドで動かす設定で、作業ツリーを分離するものではない。"]},{"id":"claudecode-102","type":"mc","chapterIndex":6,"stem":"サブエージェントのフロントマターに `background: true` を書いた。この設定の効果として正しいのはどれか。","options":["Claude が前景での実行を求めたときは、前景に切り替わる","メインの会話から完全に切り離され、結果が戻らなくなる","Claude が前景での実行を求めても、バックグラウンドのまま動く","親セッションが終了するまで、必ず停止しない"],"correctIndex":2,"explanations":["× 前景での実行を求められても、前景には切り替わらない。正しくは「Claude が前景での実行を求めても、バックグラウンドのまま動く」である。","× 結果を返さなくなる設定ではない。正しくは「Claude が前景での実行を求めても、バックグラウンドのまま動く」である。","○ `background: true` を付けると、Claude が前景実行を求めてもサブエージェントはバックグラウンドのままになる。","× 寿命を延ばす設定ではなく、実行の前景・背景を固定する設定である。"]},{"id":"claudecode-103","type":"mc","chapterIndex":6,"stem":"特定のセッションだけで一時的にサブエージェントを定義したい。ディスクにファイルは残したくない。使える方法はどれか。","options":["`.claude/agents/` に作成して、使い終わったら削除する","`--temp-agent` フラグに Markdown を渡す","`--subagents` フラグに Markdown ファイルのパスを渡す","`--agents` フラグに JSON で定義を渡す"],"correctIndex":3,"explanations":["× ファイルを作ってから削除する方法も可能だが、ディスクに残さない目的には `--agents` が適している。","× `--temp-agent` というフラグは示されていない。正しくは「`--agents` フラグに JSON で定義を渡す」である。","× `--subagents` というフラグは示されていない。ディスクに残さずに定義できるのは、JSON を渡す `--agents` フラグである。","○ `--agents` フラグは JSON で定義するサブエージェントで、そのセッションだけ有効でディスクには保存されない。"]},{"id":"claudecode-104","type":"mc","chapterIndex":6,"stem":"組み込みのサブエージェント Explore の特徴として正しいのはどれか。","options":["読み取り専用で、Write と Edit が拒否される","調査と変更の両方ができ、すべてのツールを持つ","計画を立てるためだけに存在し、ファイルの読み取りもできない","常に最も小さいモデルで動作し、設定を変更できない"],"correctIndex":0,"explanations":["○ Explore は読み取り専用で、Write と Edit が拒否される。","× 調査と変更の両方に使えるのは general-purpose である。","× Plan はプランモードで使われる読み取り専用のエージェントだが、ファイルの読み取りはできる。","× 使うモデルを固定するという記述はない。正しくは「読み取り専用で、Write と Edit が拒否される」である。"]},{"id":"claudecode-105","type":"mc","chapterIndex":6,"stem":"多数のファイルを横断して読む必要のある調査を、メインの会話のコンテキストを圧迫せずに行いたい。ベストプラクティスに沿った進め方はどれか。","options":["メインの会話で、関係するファイルをすべて `@` で読み込ませる","サブエージェントに調べさせ、要約だけを返させる","`/compact` を 10 回続けて実行しながら、メインで調べる","`bypassPermissions` モードに切り替えて、速度を上げる"],"correctIndex":1,"explanations":["× すべてを `@` で読み込むとコンテキストが一気に埋まってしまう。","○ 大量のファイルを読む調査をサブエージェントに任せ、要約だけを返させると、メインのコンテキストを守れる。","× 圧縮を繰り返しても、調査の読み込み自体がメインのコンテキストを使う点は変わらない。","× 権限モードは調査の量やコンテキストの消費とは無関係である。正しくは「サブエージェントに調べさせ、要約だけを返させる」である。"]},{"id":"claudecode-106","type":"mc","chapterIndex":7,"stem":"リモートの HTTP 型 MCP サーバーを追加するコマンドとして正しいのはどれか。","options":["`claude mcp add --type remote \u003cname> \u003curl>` のように書く","`claude mcp install http \u003cname> \u003curl>` のように書く（インストール型）","`claude mcp add --transport http \u003cname> \u003curl>`","`claude mcp connect \u003curl> --as \u003cname>`"],"correctIndex":2,"explanations":["× `--type remote` というオプションは示されていない。","× `mcp install` というサブコマンドは示されていない。","○ HTTP 型のリモートサーバーは `claude mcp add --transport http \u003cname> \u003curl>` で追加する。","× `mcp connect` というサブコマンドは示されていない。"]},{"id":"claudecode-107","type":"mc","chapterIndex":7,"stem":"ローカルで動く stdio 型の MCP サーバーを環境変数付きで追加するときの書式として正しいのはどれか。","options":["`claude mcp add --transport http \u003cname> --env KEY=value -- \u003ccommand>` のように、`stdio` ではなく `http` を指定する","`claude mcp add --transport local \u003cname> -- \u003ccommand> [args...]` のように、`stdio` ではなく `local` を指定する","`claude mcp add --transport stdio \u003cname> --url \u003ccommand>` のように、コマンドを URL として渡す","`claude mcp add --transport stdio \u003cname> --env KEY=value -- \u003ccommand> [args...]`"],"correctIndex":3,"explanations":["× `http` はリモートサーバーを URL で追加するトランスポートで、コマンドを起動するローカルサーバーには `stdio` を指定する。","× stdio のトランスポート名は `local` ではなく `stdio` である。","× stdio 型は URL ではなく、起動するコマンドを `--` の後ろに書く。","○ stdio 型は `--env KEY=value` を指定し、`--` の後ろにサーバーを起動するコマンドと引数を書く。"]},{"id":"claudecode-108","type":"mc","chapterIndex":7,"stem":"`--transport` の値について、正しい説明はどれか。","options":["`http`（リモートで推奨）・`sse`（非推奨）・`stdio` があり、`ws` は `.mcp.json` か `claude mcp add-json` でのみ設定できる","`http`・`sse`・`stdio`・`ws` のすべてが `claude mcp add` で指定でき、`sse` が推奨である","`stdio` と `http` の 2 つだけで、`sse` や `ws` はサポートされない","`http` は非推奨で、リモートには `sse` を使うべきである"],"correctIndex":0,"explanations":["○ `http` はリモートで推奨、`sse` は非推奨、`stdio` はローカル用で、`ws` は `.mcp.json` か `add-json` でのみ設定できる。","× `sse` は非推奨であり、`ws` は `add` では指定できない。","× `sse` と `ws` も扱えるが、`ws` は設定方法が限られる。","× 推奨と非推奨が逆である。"]},{"id":"claudecode-109","type":"mc","chapterIndex":7,"stem":"複雑な設定（ヘッダーやタイムアウトなど）を持つ MCP サーバーを、JSON でまとめて追加したい。使えるコマンドはどれか。","options":["`claude mcp import \u003cfile>.json`","`claude mcp add-json \u003cname> '\u003cjson>'` を実行する","`claude mcp add --json \u003cname> \u003cfile>`","`claude mcp load \u003cname> '\u003cjson>'` を実行する"],"correctIndex":1,"explanations":["× `mcp import` というサブコマンドは示されていない。正しくは「`claude mcp add-json \u003cname> '\u003cjson>'`」である。","○ `claude mcp add-json \u003cname> '\u003cjson>'` は JSON を指定してサーバーを追加する。","× `--json` というオプションは示されていない。正しくは「`claude mcp add-json \u003cname> '\u003cjson>'`」である。","× `mcp load` というサブコマンドは示されていない。正しくは「`claude mcp add-json \u003cname> '\u003cjson>'`」である。"]},{"id":"claudecode-110","type":"mc","chapterIndex":7,"stem":"MCP のスコープについて、正しい説明はどれか。","options":["`global`（既定）・`project`・`session` の 3 種類がある","`project`（既定）・`user` の 2 種類だけである","`local`（既定）・`project`・`user` の 3 種類がある","`local`・`project`・`user`・`managed` の 4 種類があり、既定は `user` である"],"correctIndex":2,"explanations":["× `global` と `session` はスコープの名前ではない。","× `local` を加えた 3 種類で、既定も `local` である。","○ MCP のスコープは `local`（既定）・`project`・`user` の 3 種類である。","× `managed` はスコープとして挙げられておらず、既定も `user` ではない。"]},{"id":"claudecode-111","type":"mc","chapterIndex":7,"stem":"個人的に試している MCP サーバーを、今のプロジェクトでだけ自分用に使いたい。チームには共有しない。既定のスコープでは、設定はどこに保存されるか。","options":["プロジェクトルートの `.mcp.json`","`.claude/settings.json`","`~/.claude/mcp/` ディレクトリ配下","`~/.claude.json` の、プロジェクトのパスの下"],"correctIndex":3,"explanations":["× `.mcp.json` は `project` スコープの保存先で、チームと共有される。","× MCP の `local` スコープの保存先は `.claude/settings.json` ではない。","× `~/.claude/mcp/` ディレクトリは保存先として挙げられていない。","○ `local` スコープは現在のプロジェクトだけで使われ、自分専用で、`~/.claude.json` にプロジェクトのパスの下に保存される。"]},{"id":"claudecode-112","type":"mc","chapterIndex":7,"stem":"チーム全員が同じ MCP サーバーを使えるように、バージョン管理で共有したい。どのスコープを選ぶか。","options":["`project` スコープ","`local` スコープ","`user` スコープ。全プロジェクトで読み込まれる","`team` スコープ"],"correctIndex":0,"explanations":["○ `project` スコープはプロジェクトルートの `.mcp.json` に保存され、バージョン管理でチームと共有される。","× `local` は自分専用で、チームには共有されない。正しくは「`project` スコープ」である。","× `user` は自分の全プロジェクトで読み込まれるスコープで、チーム共有の仕組みではない。","× `team` というスコープは示されていない。正しくは「`project` スコープ」である。"]},{"id":"claudecode-113","type":"mc","chapterIndex":7,"stem":"同じ名前の MCP サーバーが `local`・`project`・`user` の各スコープに別々の内容で定義されている。どうなるか。","options":["`user` のものが優先され、`project` と `local` は無視される","`local` のものが優先され、フィールドは統合されず 1 つの定義全体が採用される","3 つの定義がフィールドごとに統合される","エラーになり、サーバーが起動しない"],"correctIndex":1,"explanations":["× 優先されるのは `local` である。正しくは「`local` のものが優先され、フィールドは統合されず 1 つの定義全体が採用される」である。","○ 優先順位は local、project、user、プラグイン提供、claude.ai コネクタの順で、フィールドは統合されず 1 つの定義全体が採用される。","× フィールドごとの統合は行われない。正しくは「`local` のものが優先され、フィールドは統合されず 1 つの定義全体が採用される」である。","× エラーにはならず、優先順位の高い定義が採用される。正しくは「`local` のものが優先され、フィールドは統合されず 1 つの定義全体が採用される」である。"]},{"id":"claudecode-114","type":"mc","chapterIndex":7,"stem":"`.mcp.json` に MCP サーバーを書くとき、トップレベルのキーは何か。","options":["`servers`","`mcp`","`mcpServers`","`tools`"],"correctIndex":2,"explanations":["× `servers` ではなく `mcpServers` である。","× `mcp` ではなく `mcpServers` である。","○ `.mcp.json` のトップレベルキーは `mcpServers` である。","× `tools` はトップレベルキーではない。正しくは「`mcpServers`」である。"]},{"id":"claudecode-115","type":"mc","chapterIndex":7,"stem":"リポジトリの `.mcp.json` にあるサーバーを、初めて使おうとした。何が起こるか。また、過去の承認の選択をやり直すにはどうするか。","options":["承認なしで自動的に接続され、設定ファイルを編集しないとやり直せない","承認が必要だが、一度許可すると取り消せない","承認は不要だが、`/mcp` から接続を切るたびにリセットされる","使用前に対話的な承認が必要で、`claude mcp reset-project-choices` でリセットできる"],"correctIndex":3,"explanations":["× 自動では接続されず、承認が必要である。","× 承認はリセットできる。","× 承認は必要で、リセットも専用コマンドでできる。","○ `.mcp.json` のプロジェクトサーバーは使用前に対話的な承認が必要で、`claude mcp reset-project-choices` で承認をリセットできる。"]},{"id":"claudecode-116","type":"mc","chapterIndex":7,"stem":"`.mcp.json` で環境変数を展開する書き方と、使える場所の説明として正しいのはどれか。","options":["`${VAR}` と `${VAR:-default}` が、`command`・`args`・`env`・`url`・`headers` で使える","`$VAR` と `%VAR%` が、`command` でのみ使える","`%{VAR}%` が、`env` と `headers` でのみ使える","環境変数の展開には対応しておらず、値は直接書く必要がある"],"correctIndex":0,"explanations":["○ `.mcp.json` では `${VAR}` と `${VAR:-default}` による環境変数の展開が、`command`・`args`・`env`・`url`・`headers` で使える。","× `$VAR` や `%VAR%` の形式、`command` のみという限定は示されていない。","× `%{VAR}%` の形式は示されていない。","× 展開に対応しており、既定値の指定もできる。"]},{"id":"claudecode-117","type":"mc","chapterIndex":7,"stem":"MCP ツールの実行結果が 50,000 文字を超えた。どう扱われるか。","options":["先頭の 50,000 文字だけが切り詰められて返され、残りは捨てられる","結果はファイルに保存される","エラーになり、ツールの実行が失敗扱いになる","結果は自動的に要約されてから返される"],"correctIndex":1,"explanations":["× 切り捨てるのではなく、ファイルに保存される。正しくは「結果はファイルに保存される」である。","○ ツールの結果が 50,000 文字を超えると、結果はファイルに保存される。","× エラーにはならない。正しくは「結果はファイルに保存される」である。","× 要約されるとは示されていない。保存されたファイルが使われる。正しくは「結果はファイルに保存される」である。"]},{"id":"claudecode-118","type":"mc","chapterIndex":7,"stem":"MCP サーバーを多数登録しているが、ツール定義がコンテキストを圧迫しないか心配だ。既定の動作として正しいのはどれか。","options":["起動時にすべてのツール定義の全文がコンテキストに入る","ツール名も含めて、使うまで一切コンテキストに入らない（定義は呼び出し時に初めて渡される）","ツール定義は遅延読み込みされ、必要になるまでツール名だけがコンテキストに入る","ツール定義は 10 個まで読み込まれ、それ以降は無視される"],"correctIndex":2,"explanations":["× 全文が起動時に入るわけではない。正しくは「ツール定義は遅延読み込みされ、必要になるまでツール名だけがコンテキストに入る」である。","× ツール名は入る。正しくは「ツール定義は遅延読み込みされ、必要になるまでツール名だけがコンテキストに入る」である。","○ MCP のツール定義は既定で遅延読み込みされ、Claude が必要とするまでツール名だけがコンテキストに入る。","× 個数で打ち切る仕組みではない。正しくは「ツール定義は遅延読み込みされ、必要になるまでツール名だけがコンテキストに入る」である。"]},{"id":"claudecode-119","type":"mc","chapterIndex":7,"stem":"`/mcp` コマンドの説明として正しいのはどれか。","options":["MCP サーバーの追加と削除だけを行い、接続状態は表示しない","MCP サーバーのログを `.mcp.json` に書き出す。接続状態は表示しない","サーバーのツール一覧を JSON ファイルとして保存する","接続状態を表示し、リモートサーバーの OAuth 認証を開始する"],"correctIndex":3,"explanations":["× 追加・削除は `claude mcp add`・`remove` で行う。`/mcp` は接続状態の確認が主である。","× ログを `.mcp.json` に書き出す機能は示されていない。","× ツール一覧を JSON に保存する機能は示されていない。正しくは「接続状態を表示し、リモートサーバーの OAuth 認証を開始する」である。","○ `/mcp` は接続状態を表示し、リモートサーバーの OAuth 認証を開始する。"]},{"id":"claudecode-120","type":"mc","chapterIndex":7,"stem":"今回の実行では、`--mcp-config` で指定した MCP 設定だけを使い、ほかの場所で定義されたサーバーは使いたくない。どう指定するか。","options":["`--mcp-config` と `--strict-mcp-config` を組み合わせる","`--mcp-config` だけを指定する。他の設定は自動で無視される","`--only-mcp` を指定する","`ENABLE_CLAUDEAI_MCP_SERVERS=false` だけを設定する"],"correctIndex":0,"explanations":["○ `--mcp-config` と `--strict-mcp-config` を組み合わせると、指定した MCP 設定だけを使える。","× `--mcp-config` だけでは、他の設定も有効のままである。","× `--only-mcp` というオプションは示されていない。正しくは「`--mcp-config` と `--strict-mcp-config` を組み合わせる」である。","× `ENABLE_CLAUDEAI_MCP_SERVERS=false` は claude.ai コネクタを無効にするもので、他の設定の無視ではない。"]},{"id":"claudecode-121","type":"mc","chapterIndex":8,"stem":"認証機能の実装が終わった。次は、まったく関係のない帳票の不具合修正に取りかかる。同じセッションで続けたとき起こる問題と、対処として適切なのはどれか。","options":["問題はないので、そのまま続ける。古い履歴が多いほど精度が上がる","古いコンテキストがトークンを浪費するので、`/clear` で新しく始める","`/compact` を 1 回実行すれば、古い履歴は完全に消える","`/usage` を実行すると、古い履歴がリセットされる"],"correctIndex":1,"explanations":["× コンテキストが埋まるほど性能が落ちるため、履歴が多いほど良いとは言えない。","○ 無関係なタスクの切り替えでは `/clear` を使い、古いコンテキストがトークンを浪費しないようにする。","× `/compact` は要約であって完全な消去ではなく、要約は残る。無関係な作業には `/clear` が向く。","× `/usage` はコストや利用状況を表示するコマンドで、履歴をリセットしない。"]},{"id":"claudecode-122","type":"mc","chapterIndex":8,"stem":"長時間の作業でコンテキストが埋まってきた。ただし、直前に決めた設計方針だけは要約に確実に残したい。どう実行するか。","options":["`/clear` で一度空にしてから、設計方針を最初に書き直す","`/context` を実行して、不要な部分を自動削除する","`/compact` に、設計方針を重視する指示を付けて実行する","`/memory` で自動メモリを無効にしてから実行する"],"correctIndex":2,"explanations":["× `/clear` は会話を完全に捨てるため、方針は自分で書き直す必要があり、要約の焦点を指定する手段ではない。","× `/context` は使用量を表示するコマンドで、自動削除はしない。","○ `/compact [instructions]` は会話を要約してコンテキストを空け、要約の焦点を指示で渡せる。","× `/memory` は CLAUDE.md や自動メモリを編集・切替するもので、要約の内容には関与しない。"]},{"id":"claudecode-123","type":"mc","chapterIndex":8,"stem":"自動コンパクトの動作として正しいのはどれか。","options":["会話が 1 時間続くたびに、一定間隔で必ず実行される","コンテキストが空になったときだけ実行される","ユーザーが `/compact` を実行したときだけ働く","コンテキストがウィンドウの上限に近づくと、会話履歴を要約して空きを作る"],"correctIndex":3,"explanations":["× 時間間隔ではなく、コンテキストの量に応じて働く。正しくは「コンテキストがウィンドウの上限に近づくと、会話履歴を要約して空きを作る」である。","× 空になったときではなく、上限に近づいたときに働く。正しくは「コンテキストがウィンドウの上限に近づくと、会話履歴を要約して空きを作る」である。","× 手動の `/compact` とは別に、自動でも実行される。正しくは「コンテキストがウィンドウの上限に近づくと、会話履歴を要約して空きを作る」である。","○ 自動コンパクトは、コンテキストがウィンドウの上限に近づくと会話履歴を要約して空きを作る。"]},{"id":"claudecode-124","type":"mc","chapterIndex":8,"stem":"自動コンパクトのウィンドウが、コマンド・フラグ・設定ファイル・環境変数のすべてで別々の値に指定されている。最終的に優先されるのはどれか。","options":["環境変数 `CLAUDE_CODE_AUTO_COMPACT_WINDOW`","コマンド（`/autocompact`）での指定","`--settings` で渡したフラグの指定","設定ファイルの `autoCompactWindow` の指定"],"correctIndex":0,"explanations":["○ 環境変数 `CLAUDE_CODE_AUTO_COMPACT_WINDOW` は、コマンド・フラグ・設定より優先される。","× コマンドでの指定は、環境変数に負ける。正しくは「環境変数 `CLAUDE_CODE_AUTO_COMPACT_WINDOW`」である。","× フラグでの指定は、環境変数に負ける。正しくは「環境変数 `CLAUDE_CODE_AUTO_COMPACT_WINDOW`」である。","× 設定ファイルの値は、環境変数に負ける。正しくは「環境変数 `CLAUDE_CODE_AUTO_COMPACT_WINDOW`」である。"]},{"id":"claudecode-125","type":"mc","chapterIndex":8,"stem":"`/usage` の Session ブロックについて、定額プランを使っている場合の注意として正しいのはどれか。","options":["表示される費用は、毎月の請求額と必ず一致する。定額プランでも同じである","API トークンの使用量と概算の費用が出る","定額プランでは、`/usage` は使用できない（API キー利用時のみ使える）","表示されるのは費用だけで、トークン数は出ない"],"correctIndex":1,"explanations":["× 金額は推定であり、請求額と一致するとは限らない。正しくは「API トークンの使用量と概算の費用が出る」である。","○ `/usage` の Session ブロックは API トークンの使用量と概算の費用を表示し、定額プランでは課金上の意味がないと注記されている。","× 定額プランでも使用でき、課金上の意味がないという注記がつくだけである。","× トークンの使用量も表示される。正しくは「API トークンの使用量と概算の費用が出る」である。"]},{"id":"claudecode-126","type":"mc","chapterIndex":8,"stem":"`/usage` に表示される金額は、既定ではどのように計算されているか。","options":["サーバー側の実際の請求データを取得した確定値である","契約単価が自動的に検出され、常に反映される","リスト価格によるローカルでの推定値で、`modelPricing` が設定された場合のみ契約単価で計算される","トークン数のみで、金額は計算されない"],"correctIndex":2,"explanations":["× 確定値ではなく、ローカルでの推定値である。","× 契約単価は、`modelPricing` を設定しない限り反映されない。","○ 金額は既定ではリスト価格で計算されたローカル推定値で、管理者が `modelPricing` を設定した場合のみ契約単価で計算される。","× 金額も推定として計算されて表示される。"]},{"id":"claudecode-127","type":"mc","chapterIndex":8,"stem":"セッション中に `/clear` を実行した。`/usage` に表示されるセッションの合計費用はどうなるか。","options":["そのまま累積され、リセットされない","前の会話分だけが引かれる","月初からの累計に置き換わる","0 にリセットされる"],"correctIndex":3,"explanations":["× `/clear` で新しい会話になるため、累積されない。正しくは「0 にリセットされる」である。","× 差し引きではなく、0 にリセットされる。","× 累計表示に切り替わるのではなく、0 になる。正しくは「0 にリセットされる」である。","○ `/clear` を実行すると、`/usage` のセッション合計費用は 0 にリセットされる。"]},{"id":"claudecode-128","type":"mc","chapterIndex":8,"stem":"プロンプトキャッシュの既定の寿命として、正しい組み合わせはどれか。","options":["API キーやクラウドプロバイダーでは 5 分、サブスクリプションでは 1 時間","API キーでは 1 時間、サブスクリプションでは 5 分","どちらも 24 時間","どちらも 1 分"],"correctIndex":0,"explanations":["○ プロンプトキャッシュの寿命は、API キーやクラウドプロバイダーでは既定 5 分、サブスクリプションでは 1 時間である。","× 5 分と 1 時間の対応が逆である。正しくは「API キーやクラウドプロバイダーでは 5 分、サブスクリプションでは 1 時間」である。","× 24 時間ではない。正しくは「API キーやクラウドプロバイダーでは 5 分、サブスクリプションでは 1 時間」である。","× 1 分ではない。正しくは「API キーやクラウドプロバイダーでは 5 分、サブスクリプションでは 1 時間」である。"]},{"id":"claudecode-129","type":"mc","chapterIndex":8,"stem":"昼休みで 1 時間以上席を外した後、同じ長いセッションに戻って最初のメッセージを送ったら、いつもより費用が高かった。説明として正しいのはどれか。","options":["長く放置したセッションには、追加の待機料金が課金されるため","キャッシュが切れた後の最初のメッセージは、全コンテキストを再処理するため高くなる","メッセージが長かったため、必ず高くなる","席を外している間、コンテキストが 2 倍に増えるため"],"correctIndex":1,"explanations":["× 待機料金のような仕組みは示されていない。正しくは「キャッシュが切れた後の最初のメッセージは、全コンテキストを再処理するため高くなる」である。","○ 長時間のセッションでキャッシュが切れた後の最初のメッセージは、全コンテキストを再処理するためコストが高くなる。","× メッセージの長さではなく、キャッシュが切れたことが原因である。正しくは「キャッシュが切れた後の最初のメッセージは、全コンテキストを再処理するため高くなる」である。","× 席を外している間にコンテキストが増えることはない。正しくは「キャッシュが切れた後の最初のメッセージは、全コンテキストを再処理するため高くなる」である。"]},{"id":"claudecode-130","type":"mc","chapterIndex":8,"stem":"`claude -p` の実行内で `/model` を使ってモデルを切り替えた。この切り替えの扱いとして正しいのはどれか。","options":["既定のモデルとして保存され、次回以降も使われる","エラーになり、`-p` では `/model` を使えない","そのセッションだけに効き、既定としては保存されない","同じディレクトリのすべてのセッションに即座に反映される"],"correctIndex":2,"explanations":["× 保存されるのは対話モードでの `/model \u003cname>` であり、`-p` 内ではない。","× `/model` を使うことは可能で、そのセッションにだけ効く。","○ `/model \u003cname>` は既定として保存されるが、`-p` 実行内の `/model` はそのセッションだけに効く。","× 他のセッションには反映されない。正しくは「そのセッションだけに効き、既定としては保存されない」である。"]},{"id":"claudecode-131","type":"mc","chapterIndex":8,"stem":"モデルエイリアス `opusplan` の動作として正しいのはどれか。","options":["plan モードでは sonnet に、実行時には opus に切り替える。実行の段階に強いモデルを使う","常に opus を使い、plan モードのときだけ速度を落とす","plan モードでは haiku を使い、実行時には opus に切り替える","plan モードでは opus に、実行時には sonnet に切り替える"],"correctIndex":3,"explanations":["× モデルの割り当てが逆である。正しくは「plan モードでは opus を使い」である。","× 常に opus というわけではなく、実行時は sonnet である。","× plan モードで使うのは haiku ではなく opus である。","○ `opusplan` は plan モードでは opus を使い、実行時には sonnet に切り替える。"]},{"id":"claudecode-132","type":"mc","chapterIndex":8,"stem":"`/effort auto` を実行した。どうなるか。","options":["保存済みの effort の指定が解除される","effort が最大の `max` に固定される","effort が最小の `low` に固定される。以後は変更できない","effort の指定にかかわらず、拡張思考が無効になる"],"correctIndex":0,"explanations":["○ `/effort` の値は `low`・`medium`・`high`・`xhigh`・`max`・`auto` で、`auto` は保存済みの指定を解除する。","× `max` に固定するのは `max` を指定したときである。正しくは「保存済みの effort の指定が解除される」である。","× `low` に固定するのは `low` を指定したときである。正しくは「保存済みの effort の指定が解除される」である。","× 拡張思考の無効化とは関係がない。正しくは「保存済みの effort の指定が解除される」である。"]},{"id":"claudecode-133","type":"mc","chapterIndex":8,"stem":"サブエージェントやチームメイトが使う既定のモデルを、環境変数で指定したい。どの変数を使うか。","options":["`CLAUDE_CODE_AGENT_MODEL`","`CLAUDE_CODE_SUBAGENT_MODEL`","`SUBAGENT_DEFAULT_MODEL`","`CLAUDE_SUBAGENT_MODEL_ID`"],"correctIndex":1,"explanations":["× `CLAUDE_CODE_AGENT_MODEL` は示されていない。","○ 環境変数 `CLAUDE_CODE_SUBAGENT_MODEL` は、サブエージェントやチームメイトの既定モデルを指定する。","× `SUBAGENT_DEFAULT_MODEL` は示されていない。","× `CLAUDE_SUBAGENT_MODEL_ID` は示されていない。"]},{"id":"claudecode-134","type":"mc","chapterIndex":8,"stem":"ファイル検索や単純な整形だけを行うサブエージェントのコストを抑えたい。適切な方法はどれか。","options":["すべてのサブエージェントを `model: opus` にする","`maxTurns` を大きくして、一度で終わらせる","そのサブエージェントに `model: haiku` を指定する","`isolation: worktree` を指定して、処理を軽くする"],"correctIndex":2,"explanations":["× `opus` は複雑な設計判断向けで、単純な作業にはコストが過剰である。","× `maxTurns` は上限であり、大きくするほどコストが減るものではない。","○ サブエージェントの単純な作業では `model: haiku` を指定してコストを抑えられる。","× `isolation: worktree` は作業ツリーの分離であり、コスト削減とは関係がない。"]},{"id":"claudecode-135","type":"mc","chapterIndex":8,"stem":"環境変数 `MAX_THINKING_TOKENS` について、正しい説明はどれか。","options":["すべてのモデルで、出力の最大トークン数を設定する","会話全体のコンテキストウィンドウの大きさを設定する","サブエージェントのターン数の上限を設定する","固定の思考予算を持つモデルで上限を設定し、適応型推論のモデルでは無視される"],"correctIndex":3,"explanations":["× 出力全体ではなく、思考に使うトークンの上限である。正しくは「固定の思考予算を持つモデルで上限を設定し、適応型推論のモデルでは無視される」である。","× コンテキストウィンドウの大きさではなく、思考の予算である。正しくは「固定の思考予算を持つモデルで上限を設定し、適応型推論のモデルでは無視される」である。","× ターン数の上限は `maxTurns` で設定する。正しくは「固定の思考予算を持つモデルで上限を設定し、適応型推論のモデルでは無視される」である。","○ `MAX_THINKING_TOKENS` は固定の思考予算を持つモデルで上限を設定し、適応型推論のモデルでは無視される。"]},{"id":"claudecode-136","type":"mc","chapterIndex":9,"stem":"`claude --worktree feature-x`（または `-w`）を実行した。隔離された作業ツリーは、どこに作られるか。","options":["`\u003crepo>/.claude/worktrees/feature-x/`","`\u003crepo>/../feature-x/` という親ディレクトリ","`~/.claude/worktrees/feature-x/` というホーム配下","`\u003crepo>/.git/worktrees/feature-x/` という git の管理領域"],"correctIndex":0,"explanations":["○ `claude --worktree \u003cname>` は `\u003crepo>/.claude/worktrees/\u003cname>/` に隔離された worktree を作って Claude を起動する。","× 親ディレクトリではなく、リポジトリ内の `.claude/worktrees/` に作られる。","× ホーム配下ではなく、リポジトリ内に作られる。正しくは「`\u003crepo>/.claude/worktrees/feature-x/`」である。","× `.git/` の管理領域ではなく、`.claude/worktrees/` に作られる。"]},{"id":"claudecode-137","type":"mc","chapterIndex":9,"stem":"`claude --worktree feature-x` で作られる worktree のブランチ名はどれか。","options":["`feature-x` そのもの","`worktree-feature-x`","`claude/feature-x`","`wt/feature-x`"],"correctIndex":1,"explanations":["× 指定した名前そのものではなく、`worktree-` が付く。正しくは「`worktree-feature-x`」である。","○ 作られる worktree のブランチ名は `worktree-\u003cname>` になる。","× `claude/` で始まる形式ではない。正しくは「`worktree-feature-x`」である。","× `wt/` で始まる形式ではない。正しくは「`worktree-feature-x`」である。"]},{"id":"claudecode-138","type":"mc","chapterIndex":9,"stem":"GitHub の PR #1234 の内容を、手元で隔離して確認しながら作業したい。使えるコマンドはどれか。","options":["`claude --pr 1234 --checkout` で隔離する","`claude --worktree \"pr:1234\"` と書く","`claude --worktree \"#1234\"`","`claude --review 1234`"],"correctIndex":2,"explanations":["× `--pr` と `--checkout` の組み合わせは示されていない。","× `pr:1234` という書式は示されていない。正しくは「`claude --worktree \"#1234\"`」である。","○ `claude --worktree \"#1234\"` は PR #1234 を `origin` から取得し、`.claude/worktrees/pr-1234` に worktree を作る。","× `--review` というオプションは示されていない。正しくは「`claude --worktree \"#1234\"`」である。"]},{"id":"claudecode-139","type":"mc","chapterIndex":9,"stem":"worktree で作業を始めたら、`.env` が存在せず、アプリが起動しなかった。`.env` は `.gitignore` に入っている。新しい worktree にも自動でコピーされるようにするには、どうするか。","options":["`.gitignore` から `.env` を外してコミットする","`CLAUDE.md` に「`.env` をコピーする」と書く。次回から自動で複製される","`worktree.baseRef` を `head` にすることで、ローカルのファイルを引き継ぐ","`.worktreeinclude` に `.env` を書く"],"correctIndex":3,"explanations":["× `.env` をコミットするのは、機密情報の取り扱いとして適切でない。","× CLAUDE.md の記述は助言で、コピーを実行する仕組みではない。","× `baseRef` は worktree の作成元を決める設定で、ファイルのコピーとは関係がない。","○ `.worktreeinclude` は gitignore の構文で書き、一致し、かつ gitignore されたファイルを新しい worktree にコピーする。"]},{"id":"claudecode-140","type":"mc","chapterIndex":9,"stem":"`worktree.baseRef` の説明として正しいのはどれか。","options":["`\"fresh\"`（既定）はリモートのデフォルトブランチから、`\"head\"` は現在のローカル HEAD から作る","`\"fresh\"` は現在のローカル HEAD から、`\"head\"` はリモートのデフォルトブランチから作る","`\"fresh\"` は空のリポジトリから、`\"head\"` は直前のコミットから作る","`\"fresh\"` は既定で、`\"head\"` は `main` ブランチから作る"],"correctIndex":0,"explanations":["○ `\"fresh\"`（既定）ならリモートのデフォルトブランチから、`\"head\"` なら現在のローカル HEAD から worktree を作る。","× 対応が逆である。","× `fresh` は空のリポジトリを作る意味ではない。","× `head` は `main` ブランチを指す値ではない。"]},{"id":"claudecode-141","type":"mc","chapterIndex":9,"stem":"worktree で作業してセッションを終了した。変更を一切加えていなかった場合、worktree はどうなるか。","options":["保持され、手動で削除するまで残る","自動で削除される","保持するか削除するかを、必ず尋ねられる","`.claude/worktrees/` の外に退避される"],"correctIndex":1,"explanations":["× 変更がなければ手動での削除は不要である。正しくは「自動で削除される」である。","○ 終了時、変更がない worktree は自動で削除され、変更がある場合は保持するか削除するかを尋ねられる。","× 尋ねられるのは、変更がある場合である。正しくは「自動で削除される」である。","× 退避される仕組みは示されていない。正しくは「自動で削除される」である。"]},{"id":"claudecode-142","type":"mc","chapterIndex":9,"stem":"`.claude/worktrees/` について、ドキュメントが推奨していることはどれか。","options":["`.gitattributes` で LFS の対象にする","`CLAUDE.md` から参照する","`.gitignore` に入れる","`settings.json` の `permissions` で読み取りを拒否する"],"correctIndex":2,"explanations":["× LFS の対象にする推奨は示されていない。正しくは「`.gitignore` に入れる」である。","× CLAUDE.md から参照する推奨は示されていない。正しくは「`.gitignore` に入れる」である。","○ `.claude/worktrees/` を `.gitignore` に入れることが推奨されている。","× 読み取りを拒否する推奨は示されていない。正しくは「`.gitignore` に入れる」である。"]},{"id":"claudecode-143","type":"mc","chapterIndex":9,"stem":"`/install-github-app` の説明として正しいのはどれか。","options":["GitHub Enterprise Server でもそのまま動作する","ローカルで動作し、GitHub とは通信せずに設定を作る","実行に GitHub CLI は不要で、ブラウザだけで完結する","GitHub App・シークレット・ワークフロー用の PR を設定するコマンドで、github.com のリポジトリだけで動作する"],"correctIndex":3,"explanations":["× github.com のリポジトリだけで動作する。","× GitHub と連携して設定を行う。","× GitHub CLI（`gh`）が必要である。","○ `/install-github-app` は GitHub App・シークレット・ワークフロー用の PR を設定し、github.com のリポジトリだけで動作する。実行には `gh` が必要で、`gh auth login` で認証しておく。"]},{"id":"claudecode-144","type":"mc","chapterIndex":9,"stem":"GitHub Actions で Claude Code を動かす、公式のアクションの名前はどれか。","options":["`anthropics/claude-code-action`","`anthropic/claude-action`","`claude-code/github-action`","`anthropics/claude-actions-runner`"],"correctIndex":0,"explanations":["○ 公式アクションは `anthropics/claude-code-action` である。","× `anthropic/claude-action` ではない。正しくは「`anthropics/claude-code-action`」である。","× `claude-code/github-action` ではない。","× `claude-actions-runner` ではない。正しくは「`anthropics/claude-code-action`」である。"]},{"id":"claudecode-145","type":"mc","chapterIndex":9,"stem":"対話モードで GitHub Actions を使うとき、issue や PR のコメントに何を書くと Claude が反応するか。","options":["`/claude` から始まるコメント","`@claude`（既定のトリガーフレーズ）","`#claude` を含むコメント","`@anthropic` を含むコメント"],"correctIndex":1,"explanations":["× `/claude` ではない。正しくは「`@claude`（既定のトリガーフレーズ）」である。","○ 対話モードでは、issue や PR のコメントに含まれる `@claude`（既定のトリガーフレーズ）に反応する。","× `#claude` ではない。正しくは「`@claude`（既定のトリガーフレーズ）」である。","× `@anthropic` ではない。正しくは「`@claude`（既定のトリガーフレーズ）」である。"]},{"id":"claudecode-146","type":"mc","chapterIndex":9,"stem":"GitHub Actions で、サブスクリプションの認証を使いたい。ローカルで長期のトークンを作るコマンドと、Actions に登録するシークレット名の組み合わせとして正しいのはどれか。","options":["`claude login --ci` で作り、`ANTHROPIC_API_KEY` に登録する","`claude auth token` で作り、`GITHUB_TOKEN` に登録する","`claude setup-token` で作り、`CLAUDE_CODE_OAUTH_TOKEN` に登録する","`claude setup-token` で作り、`ANTHROPIC_API_KEY` に登録する"],"correctIndex":2,"explanations":["× `claude login --ci` というコマンドは示されていない。API キーなら `ANTHROPIC_API_KEY` を使う。","× `claude auth token` や `GITHUB_TOKEN` の組み合わせは示されていない。","○ `claude setup-token` は CI 用の長期 OAuth トークンを生成し、保存せずに端末へ表示する。サブスクリプションのトークンは `CLAUDE_CODE_OAUTH_TOKEN` を使う。","× トークンの作成は合っているが、`ANTHROPIC_API_KEY` は API キー用であり、OAuth トークンの登録先ではない。"]},{"id":"claudecode-147","type":"mc","chapterIndex":9,"stem":"GitHub Actions のワークフローで、既定の GitHub App 認証を使うために必要と記載されている権限はどれか。","options":["`contents: admin` の権限を付与する（リポジトリ管理者権限）","`secrets: write`","`actions: manage` の権限を付与する（ワークフロー管理用）","`id-token: write` の権限を付与する"],"correctIndex":3,"explanations":["× `contents: admin` は示されていない。正しくは「`id-token: write`」である。","× `secrets: write` は示されていない。正しくは「`id-token: write`」である。","× `actions: manage` は示されていない。正しくは「`id-token: write`」である。","○ ワークフローには `id-token: write` の権限が必要と記載されている（既定の GitHub App 認証に必要）。"]},{"id":"claudecode-148","type":"mc","chapterIndex":9,"stem":"GitHub Actions で `prompt` 入力を指定したワークフローは、どのように動くか。","options":["`@claude` を待たずに、指定内容で実行される自動化モードになる","`@claude` のコメントがあったときだけ、実行される","指定しても無視され、常に対話モードになる","手動でワークフローを承認するまで、実行されない"],"correctIndex":0,"explanations":["○ `prompt` 入力を省略すると対話モードになり、指定すると `@claude` を待たずに実行される自動化モードになる。","× コメントを待つのは省略時の対話モードである。正しくは「`@claude` を待たずに、指定内容で実行される自動化モードになる」である。","× 指定は無視されず、自動化モードになる。正しくは「`@claude` を待たずに、指定内容で実行される自動化モードになる」である。","× 承認が必要になるとは示されていない。正しくは「`@claude` を待たずに、指定内容で実行される自動化モードになる」である。"]},{"id":"claudecode-149","type":"mc","chapterIndex":9,"stem":"同じリポジトリで 2 つの Claude Code セッションを並行して動かすとき、同じファイルへの編集の衝突を防ぐ方法はどれか。","options":["両方のセッションで同じ作業ディレクトリを使い、`Esc` を押して順番を調整する","各セッションを別々の worktree で動かす","一方のセッションを `bypassPermissions` にする","どちらかのセッションで `/compact` を実行する"],"correctIndex":1,"explanations":["× 同じ作業ディレクトリでは、編集の衝突は避けられない。正しくは「各セッションを別々の worktree で動かす」である。","○ 並行セッションでは、各セッションを別々の worktree で動かすことで、同じファイルへの編集の衝突を防げる。","× 権限モードは編集の衝突の回避と関係がない。正しくは「各セッションを別々の worktree で動かす」である。","× `/compact` は会話の要約で、ファイルの衝突とは関係がない。"]},{"id":"claudecode-150","type":"mc","chapterIndex":9,"stem":"PR #123 に関連するセッションだけを選び直して再開したい。`claude --from-pr 123` を実行すると何が起こるか。","options":["PR #123 の差分が自動的に取り込まれ、新しいセッションが始まる","PR #123 が自動的にマージされる","PR に紐づくセッションだけが選択画面で絞り込まれて開く","PR #123 に紐づく worktree が作られ、そのまま削除される"],"correctIndex":2,"explanations":["× 新しいセッションの開始ではなく、既存のセッションの絞り込みである。","× マージする機能ではない。正しくは「PR に紐づくセッションだけが選択画面で絞り込まれて開く」である。","○ `claude --from-pr 123` は、PR に紐づくセッションだけを選択画面で絞り込んで開く。`gh pr create` で作られた PR はセッションに自動的に紐づく。","× worktree を作成・削除するオプションではない。正しくは「PR に紐づくセッションだけが選択画面で絞り込まれて開く」である。"]},{"id":"claudecode-151","type":"mc","chapterIndex":10,"stem":"シェルスクリプトから Claude Code を一度だけ呼び出し、回答を得たらそのまま終了させたい。使うコマンドはどれか。","options":["`claude \"query\"` だけを実行する","`claude --once \"query\"` を実行する","`claude --exit \"query\"`","`claude -p \"query\"`（`--print`）"],"correctIndex":3,"explanations":["× `claude \"query\"` は初期プロンプト付きで対話セッションを起動するもので、終了しない。","× `--once` というオプションは示されていない。正しくは「`claude -p \"query\"`（`--print`）」である。","× `--exit` というオプションは示されていない。正しくは「`claude -p \"query\"`（`--print`）」である。","○ `claude -p \"query\"`（`--print`）は非対話で 1 回実行して終了する。"]},{"id":"claudecode-152","type":"mc","chapterIndex":10,"stem":"`claude -p` の実行中に、SIGTERM で停止した。終了コードはどうなるか。","options":["143 になる","0 になる。正常終了として扱われる","1 になる。一般的なエラーとして扱われる","2 になる"],"correctIndex":0,"explanations":["○ SIGTERM で `claude -p` を停止すると、終了コードは 143 になる。","× 0 は成功時の終了コードで、SIGTERM による停止は該当しない。","× 1 ではなく 143 である。正しくは「143 になる」である。","× 2 はフックでブロックするときの終了コードの話であり、ここでは無関係である。"]},{"id":"claudecode-153","type":"mc","chapterIndex":10,"stem":"`claude -p` の `--output-format` に指定できる値と、既定値の組み合わせとして正しいのはどれか。","options":["`text`・`json`（既定）・`yaml`","`text`（既定）・`json`・`stream-json`","`plain`（既定）・`json`・`xml`・`csv`","`text`・`markdown`（既定）・`json` の 3 種類で、そのうち 1 つを選ぶ"],"correctIndex":1,"explanations":["× 既定は `json` ではなく `text` で、`yaml` も示されていない。","○ `--output-format` は `text`（既定）・`json`・`stream-json` のいずれかを受け付ける。","× `plain` や `xml` は示されていない。正しくは「`text`（既定）・`json`・`stream-json`」である。","× `markdown` は示されていない。正しくは「`text`（既定）・`json`・`stream-json`」である。"]},{"id":"claudecode-154","type":"mc","chapterIndex":10,"stem":"`--output-format json` で実行した結果をスクリプトで処理したい。本文とセッション ID は、それぞれどのフィールドに入るか。","options":["本文は `output`、セッション ID は `id`","本文は `text`、セッション ID は `session`","本文は `result`、セッション ID は `session_id`","本文は `message`、セッション ID は `conversation_id`"],"correctIndex":2,"explanations":["× `output` や `id` というフィールド名ではない。正しくは「本文は `result`、セッション ID は `session_id`」である。","× `text` や `session` というフィールド名ではない。","○ `--output-format json` の出力の `result` フィールドに本文、`session_id` にセッション ID が入る。","× `message` や `conversation_id` というフィールド名ではない。"]},{"id":"claudecode-155","type":"mc","chapterIndex":10,"stem":"出力を決まった形式の JSON として受け取りたい。`--json-schema` と `--output-format json` を併用したとき、結果はどのフィールドに出力されるか。","options":["`result` フィールド","`schema_output` フィールド","`data` フィールド","`structured_output`"],"correctIndex":3,"explanations":["× `result` は通常の本文が入るフィールドである。正しくは「`structured_output`」である。","× `schema_output` というフィールド名ではない。正しくは「`structured_output`」である。","× `data` というフィールド名ではない。正しくは「`structured_output`」である。","○ `--json-schema` と `--output-format json` を併用すると、結果は `structured_output` フィールドに出力される。"]},{"id":"claudecode-156","type":"mc","chapterIndex":10,"stem":"`--output-format stream-json` を使うときの条件として、正しいのはどれか。","options":["`--verbose` と併用する必要があり、`--include-partial-messages` で部分メッセージも流せる","`--bare` と併用する必要があり、`--stream` で部分メッセージも流せる","単独で使え、`--include-partial-messages` を付けると警告が出る","`--output-format json` と同時に指定する必要がある"],"correctIndex":0,"explanations":["○ `--output-format stream-json` は `--verbose` と併用が必要で、`--include-partial-messages` を付けると部分的なメッセージも流れる。","× 併用が必要なのは `--bare` ではなく `--verbose` である。","× 単独では使えず、`--verbose` との併用が必要である。","× `json` と同時には指定しない。`stream-json` が単独の出力形式である。"]},{"id":"claudecode-157","type":"mc","chapterIndex":10,"stem":"無人の自動実行で、暴走して費用がかさむのを防ぎたい。`-p` 実行で、推定費用が上限に達したら実行を止めるオプションはどれか。","options":["`--max-cost` を指定して、費用の上限を決める","`--max-budget-usd` を指定する","`--budget-limit`","`--cap-usd`"],"correctIndex":1,"explanations":["× `--max-cost` は示されていない。正しくは「`--max-budget-usd`」である。","○ `--max-budget-usd` は推定費用が上限に達すると実行を止める（`-p` 実行のみ）。ターン数の制限は `--max-turns` で、上限に達するとエラーで終了する。","× `--budget-limit` は示されていない。正しくは「`--max-budget-usd`」である。","× `--cap-usd` は示されていない。正しくは「`--max-budget-usd`」である。"]},{"id":"claudecode-158","type":"mc","chapterIndex":10,"stem":"`-p` 実行で、`git diff` 系のコマンドだけを確認なしで許可したい。`--allowedTools` の書き方として正しいのはどれか。","options":["`--allowedTools \"git diff\"` とコマンド名だけを書く","`--allowedTools \"Bash:git-diff\"`","`--allowedTools \"Bash(git diff *)\"`","`--allowedTools \"allow:git diff\"`"],"correctIndex":2,"explanations":["× 権限ルールの書式では、ツール名に括弧でパターンを付ける。正しくは「`--allowedTools \"Bash(git diff *)\"`」である。","× コロンでつなぐ書式は示されていない。正しくは「`--allowedTools \"Bash(git diff *)\"`」である。","○ `--allowedTools` は確認なしで実行を許可するツールを指定し、権限ルールの書式を使える。`Bash(git diff *)` のように範囲を絞れる。","× `allow:` を付ける書式は示されていない。正しくは「`--allowedTools \"Bash(git diff *)\"`」である。"]},{"id":"claudecode-159","type":"mc","chapterIndex":10,"stem":"`--disallowedTools` に `WebFetch` のように単独のツール名を書くと、どうなるか。","options":["そのツールの利用時にだけ、毎回確認が出る。以後は許可すれば使える","そのツールは使えるが、実行ログが出力されなくなる。ログだけが非表示になる","そのツールの設定がエラーとなり、起動しなくなる","そのツールが Claude のコンテキストから取り除かれる"],"correctIndex":3,"explanations":["× 確認が出るのは ask ルールの話であり、拒否ルールではない。正しくは「そのツールが Claude のコンテキストから取り除かれる」である。","× ログの出力とは関係がなく、ツールが使えなくなる。正しくは「そのツールが Claude のコンテキストから取り除かれる」である。","× 起動に失敗することはない。正しくは「そのツールが Claude のコンテキストから取り除かれる」である。","○ `--disallowedTools` は拒否ルールで、単独のツール名を書くとそのツールを Claude のコンテキストから取り除く。"]},{"id":"claudecode-160","type":"mc","chapterIndex":10,"stem":"CI で `claude -p` を無人実行している。事前に許可していない操作で確認が必要になった場合に、止まらず拒否させたい。どう指定するか。","options":["`--permission-mode dontAsk` を付ける","`--permission-mode plan` を付ける","`--permission-mode default` のまま、標準入力に `y` を流し込む","`--dangerously-skip-permissions` を付ける"],"correctIndex":0,"explanations":["○ `--permission-mode dontAsk` を付けると、事前許可されていない操作は確認せず拒否される。","× `plan` は計画を承認するまで編集しないモードで、無人実行の拒否の仕組みではない。","× 確認のたびに `y` を流し込む運用は、意図しない許可を招く。正しくは「`--permission-mode dontAsk` を付ける」である。","× `--dangerously-skip-permissions` は全操作を許可してしまい、拒否の要件と逆である。"]},{"id":"claudecode-161","type":"mc","chapterIndex":10,"stem":"`--bare` を付けて `claude -p` を実行した。起動時に省かれるものと、API を使うための条件の組み合わせとして正しいのはどれか。","options":["hooks だけが省かれ、OAuth 認証もそのまま使える。API キーは不要である","hooks・skills・MCP・CLAUDE.md・自動メモリの自動検出が省かれ、`ANTHROPIC_API_KEY` が必要になる","CLAUDE.md だけが省かれ、キーチェーンの認証情報も使える。API キーは任意である","すべてが読み込まれたまま、起動のログだけが省かれる。API キーは不要である"],"correctIndex":1,"explanations":["× 省かれるのは hooks だけではなく、OAuth も読まない。","○ `--bare` は hooks・skills・MCP・CLAUDE.md・自動メモリの自動検出を省いて起動を速くする。OAuth 認証情報とキーチェーンを読まないので `ANTHROPIC_API_KEY` が必要である。","× CLAUDE.md だけではなく、キーチェーンも読まない。","× ログではなく、自動検出が省かれる。"]},{"id":"claudecode-162","type":"mc","chapterIndex":10,"stem":"信頼できない第三者のリポジトリを CI で解析する際、`claude -p` を実行する。リポジトリの `.claude/settings.json` にあるフックや `.mcp.json` のサーバーが勝手に動くのが心配だ。どうすべきか。","options":["`-p` なら信頼ダイアログが必ず出るので、そのままで問題ない","`CLAUDE.md` に「フックを実行しない」と書く","`--bare` を付けて、自動検出を省く","`--output-format json` を付ければ、フックは動かなくなる"],"correctIndex":2,"explanations":["× `-p` では信頼ダイアログは出ず、そのまま実行・接続される。正しくは「`--bare` を付けて、自動検出を省く」である。","× CLAUDE.md は助言であり、フックの実行を止める強制力がない。","○ `--bare` を付けない `-p` 実行は、信頼ダイアログなしにプロジェクトのフックと `.mcp.json` のサーバーを実行・接続する。無人実行では `--bare` が推奨される。","× 出力形式はフックの実行とは無関係である。正しくは「`--bare` を付けて、自動検出を省く」である。"]},{"id":"claudecode-163","type":"mc","chapterIndex":10,"stem":"`claude -p` で実行した会話の続きを、別の実行で引き継ぎたい。使えるものとして正しいのはどれか。","options":["`claude -p --append \u003csession_id>`","`claude -p --attach`","`claude -p --same-session` で前回の続きから始める","`claude -p --continue`"],"correctIndex":3,"explanations":["× `--append` は示されていない（`--append-system-prompt` は別物）。","× `--attach` は示されていない。正しくは「`claude -p --continue`」である。","× `--same-session` は示されていない。正しくは「`claude -p --continue`」である。","○ `claude -p --continue` と `--resume \u003csession_id>` で、同じ会話を続けて実行できる。"]},{"id":"claudecode-164","type":"mc","chapterIndex":10,"stem":"既定のシステムプロンプトは残したまま、独自の指示を足したい。使うオプションはどれか。","options":["`--append-system-prompt` を付ける","`--system-prompt` を付ける","`--extend-system-prompt` を付けて指示を足す","`--add-prompt`"],"correctIndex":0,"explanations":["○ `--append-system-prompt` は既定のシステムプロンプトに文言を追加し、`--system-prompt` は既定のプロンプトを全体置き換える。","× `--system-prompt` は既定のプロンプトを置き換えてしまう。","× `--extend-system-prompt` は示されていない。","× `--add-prompt` は示されていない。正しくは「`--append-system-prompt`」である。"]},{"id":"claudecode-165","type":"mc","chapterIndex":10,"stem":"`claude -p` に標準入力でデータをパイプで渡している。入力サイズについて、正しいのはどれか。","options":["上限はなく、どんな大きさでも渡せる","上限は 10MB で、超えるとエラーで終了する","上限は 1MB で、超えた分は切り捨てられる","上限は 100MB で、超えると警告が出るだけである"],"correctIndex":1,"explanations":["× 上限は存在する。正しくは「上限は 10MB で、超えるとエラーで終了する」である。","○ 標準入力のパイプ入力は 10MB が上限で、超えるとエラーで終了する。","× 上限は 1MB ではなく、超えても切り捨てではなくエラーで終了する。","× 上限は 100MB ではなく 10MB で、超えるとエラーで終了する。"]},{"id":"claudecode-166","type":"mc","chapterIndex":11,"stem":"ベストプラクティスが「最も重要な資源」として挙げているものはどれか。","options":["利用できるモデルの種類。上位モデルほど性能が高い","使えるツールの数。多いほど性能が上がる","コンテキストウィンドウ。埋まるほど性能が落ちる","CLAUDE.md の行数"],"correctIndex":2,"explanations":["× モデルの種類が最重要の資源とは述べられていない。正しくは「コンテキストウィンドウ」である。","× ツールの数が多いほど性能が上がるとは述べられていない。正しくは「コンテキストウィンドウ」である。","○ ベストプラクティスは、コンテキストウィンドウが最も重要な資源であり、埋まるほど性能が落ちると述べている。","× CLAUDE.md は短く保つのが良く、行数が多いほど守られやすいわけではない。"]},{"id":"claudecode-167","type":"mc","chapterIndex":11,"stem":"Claude に実装を任せるとき、出来栄えを高めるために最も効果的とされる工夫はどれか。","options":["完成までの手順を、すべて自然言語の長文で先に書いて渡す","権限モードを `bypassPermissions` にして、確認で止まらないようにする","できるだけ短い指示にして、解釈の余地を残す","テスト・ビルド・スクリーンショットなど、自分で結果を確かめられる検証手段を与える"],"correctIndex":3,"explanations":["× 長文の手順は、検証の代わりにはならない。正しくは「テスト・ビルド・スクリーンショットなど、自分で結果を確かめられる検証手段を与える」である。","× 権限モードは、品質を高める手段ではない。正しくは「テスト・ビルド・スクリーンショットなど、自分で結果を確かめられる検証手段を与える」である。","× 指示が短すぎると手戻りが増える。具体的な指示のほうが修正の回数を減らせる。","○ Claude に実行できる検証手段（テスト、ビルド、スクリーンショットなど）を与えると、自分で結果を確かめながら反復できる。"]},{"id":"claudecode-168","type":"mc","chapterIndex":11,"stem":"ベストプラクティスで推奨されているワークフローの段階として、正しい順序はどれか。","options":["探索（Explore）→ 計画（Plan）→ 実装（Implement）→ コミット（Commit）","計画（Plan）→ 実装（Implement）→ 探索（Explore）→ コミット（Commit）の順","実装（Implement）→ 探索（Explore）→ 計画（Plan）→ コミット（Commit）の順（まず作って確かめる）","探索 → 実装 → 計画 → コミット"],"correctIndex":0,"explanations":["○ 推奨ワークフローは「探索 → 計画 → 実装 → コミット」の 4 段階である。","× 探索が最初の段階で、計画が先頭ではない。","× 実装の前に探索と計画を行う。","× 計画は実装の前に行う。"]},{"id":"claudecode-169","type":"mc","chapterIndex":11,"stem":"探索の段階で、うっかり Claude にファイルを編集させたくない。ベストプラクティスに沿った方法はどれか。","options":["`claude --permission-mode dontAsk` で起動する","`Shift+Tab` でプランモードに入る","`claude --read-only` で起動する。編集だけが禁止される","`Ctrl+G` を押して、エディタを閉じたままにする。送信前に確認する"],"correctIndex":1,"explanations":["× `dontAsk` は確認が必要な操作を拒否するモードで、探索のための推奨手段としては挙げられていない。","○ 探索段階では、Shift+Tab でプランモードに入るか `claude --permission-mode plan` で起動して、編集を防ぐ。","× `--read-only` というオプションは示されていない。正しくは「`Shift+Tab` でプランモードに入る」である。","× `Ctrl+G` はプロンプトをエディタで編集するキーで、編集の防止とは関係がない。"]},{"id":"claudecode-170","type":"mc","chapterIndex":11,"stem":"「このテストが通るまで」といった条件を設定し、条件を満たすまで Claude がターンをまたいで作業を続けるようにしたい。使えるコマンドはどれか。","options":["`/until` を使う","`/loop`","`/goal` を使う","`/target`"],"correctIndex":2,"explanations":["× `/until` は示されていない。正しくは「`/goal`」である。","× `/loop` は示されていない。正しくは「`/goal`」である。","○ `/goal` で条件を設定すると、条件を満たすまで Claude がターンをまたいで作業を続ける。","× `/target` は示されていない。正しくは「`/goal`」である。"]},{"id":"claudecode-171","type":"mc","chapterIndex":11,"stem":"変更内容を 1 文で説明できるほど小さな作業(例: タイプミスの修正)について、ベストプラクティスの考え方として正しいのはどれか。","options":["小さな作業でも、必ず計画を立てて承認してから実装するのが基本である","小さな作業ほど、プランモードで時間をかけるべきである（見落としが出やすい）","小さな作業も、サブエージェントに必ず任せるべきである","計画の段階を省いてよい"],"correctIndex":3,"explanations":["× 計画は、規模の大きな作業で価値が大きい。正しくは「計画の段階を省いてよい」である。","× 小さな作業で時間をかけるのは、費用対効果が低い。正しくは「計画の段階を省いてよい」である。","× サブエージェントへの委任が必須とは述べられていない。正しくは「計画の段階を省いてよい」である。","○ 変更内容を 1 文で説明できるほど小さい作業では、計画を省いてよいとされている。"]},{"id":"claudecode-172","type":"mc","chapterIndex":11,"stem":"バグ修正を依頼するとき、手戻りや修正の回数を減らすために最も効果的な書き方はどれか。","options":["ファイル名・制約・既存パターンへの参照を含めて、具体的に指示する","「いい感じに直しておいて」と短く伝える。書く手間を最も省ける方法だ","背景を伏せて結論だけを伝え、Claude に推測させる","指示は最小限にして、直るまで何度でもやり直させる"],"correctIndex":0,"explanations":["○ ファイル名・制約・既存パターンへの参照を含めた具体的な指示は、手戻りと修正の回数を減らす。","× 曖昧な指示は、修正の回数を増やしやすい。正しくは「ファイル名・制約・既存パターンへの参照を含めて、具体的に指示する」である。","× 推測に頼ると、意図とずれた結果になりやすい。正しくは「ファイル名・制約・既存パターンへの参照を含めて、具体的に指示する」である。","× やり直しを前提にすると、コンテキストを浪費する。正しくは「ファイル名・制約・既存パターンへの参照を含めて、具体的に指示する」である。"]},{"id":"claudecode-173","type":"mc","chapterIndex":11,"stem":"CLAUDE.md に何を書くべきかの判断基準として、ベストプラクティスが勧めているのはどれか。","options":["プロジェクトの README の内容を、漏れなくすべて書き写す。重複を恐れず全文を載せる","「それを消すと Claude が間違えるか」を基準に、Claude が推測できない内容だけを書く","コードを読めば分かる内容も含めて、できるだけ詳しく書く。長いほど守られやすい","一般的なプログラミングの作法を網羅して書く。どの言語にも通じる内容にする"],"correctIndex":1,"explanations":["× README の丸写しは、推測できる内容を含んでしまう。正しくは「「それを消すと Claude が間違えるか」を基準に、Claude が推測できない内容だけを書く」である。","○ CLAUDE.md には「それを消すと Claude が間違えるか」を基準に、Claude が推測できない内容だけを書くよう勧めている。","× 詳しすぎると重要な指示が埋もれる。正しくは「「それを消すと Claude が間違えるか」を基準に、Claude が推測できない内容だけを書く」である。","× 一般的な作法は、Claude が既に知っている内容である。正しくは「「それを消すと Claude が間違えるか」を基準に、Claude が推測できない内容だけを書く」である。"]},{"id":"claudecode-174","type":"mc","chapterIndex":11,"stem":"CLAUDE.md の重要な行に「IMPORTANT」を付けて強調しようと思う。ベストプラクティスの考え方として正しいのはどれか。","options":["すべての行に付けるほど、効果が強まる。多いほど守られやすくなる","付けると、その行が強制的に守られるようになる","特定の行の強調には使えるが、多くの行に付けると効果が薄れる","付けても、常に無視される。強調は意味を持たない"],"correctIndex":2,"explanations":["× 多用するほど強まるのではなく、効果が薄れる。正しくは「特定の行の強調には使えるが、多くの行に付けると効果が薄れる」である。","× 強制力は生まれず、あくまで強調である。正しくは「特定の行の強調には使えるが、多くの行に付けると効果が薄れる」である。","○ CLAUDE.md の特定の行を強調したいときは「IMPORTANT」などを付けるが、多くの行に付けると効果が薄れると述べている。","× 無視されるわけではなく、強調として働く。正しくは「特定の行の強調には使えるが、多くの行に付けると効果が薄れる」である。"]},{"id":"claudecode-175","type":"mc","chapterIndex":11,"stem":"同じ問題の修正を 2 回以上試みたが、どれも失敗している。会話には失敗した試行が積み重なっている。ベストプラクティスの推奨はどれか。","options":["同じ会話のまま、同じ指示をもう一度繰り返す","`/compact` を実行し、同じ会話の中で試行を続ける","権限モードを切り替えて、同じ指示をやり直す（モードの違いが原因とみなす）","`/clear` して、学んだことを反映した新しいプロンプトで始める"],"correctIndex":3,"explanations":["× 失敗が積み重なった会話では、同じ指示を繰り返しても改善しにくい。","× 要約しても失敗した試行の影響が残り得るため、新しく始めるほうが良い。","× 権限モードの切り替えは、失敗の原因とは無関係である。正しくは「`/clear` して、学んだことを反映した新しいプロンプトで始める」である。","○ 同じ問題で 2 回以上修正が失敗したら、`/clear` して学んだことを反映した新しいプロンプトで始めるよう勧めている。"]},{"id":"claudecode-176","type":"mc","chapterIndex":11,"stem":"Claude が間違った方向へ進み始めたと気づいた。ベストプラクティスの勧める対処はどれか。","options":["早めに `Esc` で止め、巻き戻して軌道修正する","最後まで実行させてから、全部を作り直させる","`Ctrl+C` を 2 回押してセッションを終了する。作業は残しておく","`/clear` で会話を消して、最初の指示を忘れさせる。やり直しが簡単になる"],"correctIndex":0,"explanations":["○ 軌道修正は早く行い、`Esc` で止めて、`Esc` 2 回または `/rewind` で以前の状態に戻すよう勧めている。","× 最後まで進めると、手戻りの量が増える。正しくは「早めに `Esc` で止め」である。","× セッションを終了する必要はなく、巻き戻しで戻せる。正しくは「早めに `Esc` で止め」である。","× `/clear` は会話全体を捨てるため、必要な文脈も失われる。"]},{"id":"claudecode-177","type":"mc","chapterIndex":11,"stem":"1 つのセッションで、機能追加、ログ調査、ドキュメント修正と、無関係な作業を次々に詰め込んでしまった。ベストプラクティスでは何と呼ばれる失敗パターンで、どう解消するか。","options":["infinite exploration と呼ばれ、`/compact` で解消する","kitchen sink session と呼ばれ、`/clear` で解消する","over-prompting と呼ばれ、`/rewind` で解消する","context overflow と呼ばれ、`/usage` で解消する"],"correctIndex":1,"explanations":["× infinite exploration は範囲を決めない調査の失敗パターンで、範囲を絞るかサブエージェントに任せる。","○ 無関係な作業を 1 つのセッションに詰め込む「kitchen sink session」は失敗パターンとされ、`/clear` で解消する。","× over-prompting という失敗パターンは示されていない。","× context overflow という失敗パターンは示されていない。"]},{"id":"claudecode-178","type":"mc","chapterIndex":11,"stem":"大きな機能を作る前に、仕様を固めてから別のセッションで実装したい。ベストプラクティスの進め方はどれか。","options":["最初の 1 行だけ指示して、後は自由に実装させる","仕様は書かず、同じセッションで実装を続ける","Claude に AskUserQuestion で質問させ","仕様書は人間が最後に書き、実装後に Claude に確認させる。質問はさせない"],"correctIndex":2,"explanations":["× 仕様の詰めを省くと、手戻りが増える。正しくは「Claude に AskUserQuestion で質問させ」である。","× 仕様を書かずに続けると、探索で使ったコンテキストが実装に持ち越される。","○ 大きな機能では、Claude に AskUserQuestion で質問させてから仕様を SPEC.md に書かせ、新しいセッションで実装させる。","× 仕様は先に固めるほうが良い。正しくは「Claude に AskUserQuestion で質問させ」である。"]},{"id":"claudecode-179","type":"mc","chapterIndex":11,"stem":"作成者のバイアスを減らしたコードレビューをしたい。ベストプラクティスの進め方はどれか。","options":["実装したセッションのまま、同じ会話でレビューまで行わせる","レビューは必ずサブエージェントではなく人間だけで行う","レビューのために、実装セッションで `/compact` を実行する","ライター（実装）とレビュアーを別々のセッションに分ける"],"correctIndex":3,"explanations":["× 同じ会話では、作成時の判断に引きずられやすい。正しくは「ライター（実装）とレビュアーを別々のセッションに分ける」である。","× 人間だけに限る必要は述べられていない。正しくは「ライター（実装）とレビュアーを別々のセッションに分ける」である。","× `/compact` はバイアスを減らす手段ではない。正しくは「ライター（実装）とレビュアーを別々のセッションに分ける」である。","○ ライター（実装）とレビュアー（別セッション）に分けると、作成したモデルのバイアスを減らせるとされている。"]},{"id":"claudecode-180","type":"mc","chapterIndex":11,"stem":"大規模な変更を、多数のサブエージェントに分担させ、それぞれを独立した worktree で実行させたい。使えるコマンドはどれか。","options":["`/batch \u003cinstruction>`","`/parallel \u003cinstruction>`。2 個のサブエージェントに分担される","`/fanout \u003cinstruction>`","`/split \u003cinstruction>`。同一の作業ツリーで並列に実行される"],"correctIndex":0,"explanations":["○ `/batch \u003cinstruction>` は大規模変更を 5〜30 個のサブエージェントに分担させ、それぞれ独立した worktree で実行する。","× `/parallel` は示されていない。正しくは「`/batch \u003cinstruction>`」である。","× `/fanout` は示されていない。正しくは「`/batch \u003cinstruction>`」である。","× `/split` は示されておらず、独立した worktree で実行されるのが `/batch` の特徴である。"]}];
+  const CHAPTERS = ["基本操作","CLAUDE.md とメモリ","権限と安全","設定ファイル","スラッシュコマンドとスキル","フック","サブエージェント","MCP","コンテキストとコスト","Git・GitHub","ヘッドレス・自動化","実践のベストプラクティス"];
+  const BASE_CHAPTER_COUNT = 12;   // これ以降の章は新シラバス仮問題集（deck:'extra3'）用
+// GAS_WEBAPP_URL / EXAM_ID / EXAM_SHORT_TITLE / TRACKING_EXAM_ID / QUESTIONS / CHAPTERS は build_html.js が
+// ビルド時にこのファイルの直前へ注入する。QUESTIONS は {id, type:'mc'|'tf'|'mc-multi', chapterIndex, stem, ...}
+// の配列。TRACKING_EXAM_ID は成績記録シート名（<TRACKING_EXAM_ID>_<mode>）専用のIDで、
+// 同じexam.id配下に複数の問題集（quiz/quiz2）がある場合に成績を分離するため EXAM_ID とは別に持つ
+// （EXAM_ID はチャットへ戻る遷移先ページなので exam.id のまま変えない）。
+// 'mc-multi' は「すべて選びなさい」形式（正解が複数）。見た目は 'mc' と同じ選択肢ボタンだが、
+// クリックのたびにトグル選択（複数選択可）になり、正解は correctIndexes（配列）で持つ。
+
+const MODE_LABEL = { mc: '模擬試験', tf: '一問一答', extra: '追加問題', extra2: '追加問題2', extra3: '新シラバス仮問題', review: '復習' };
+// 成績記録（QuizTracking.js）のシートを分けるための mode 変換。
+// 'extra'（追加問題、別ソースの問題集）は既存の 模擬試験(seiseiai_mc) と混在しないよう
+// 'mc2' という別モード名で記録する。'extra2'（3つ目の問題集）は同様に'mc3'。
+// 'review'（復習モード）は章別推移表には記録せず、専用の復習ログへ書く（recordResults参照）。
+const TRACKING_MODE = { mc: 'mc', tf: 'tf', extra: 'mc2', extra2: 'mc3', extra3: 'mc4', review: 'review' };
+
+// 復習モードの「卒業」条件。復習でこの回数だけ連続正解したら、既定の出題対象から外す
+// （「記録にある全部」を選べば卒業ぶんも出題できる）。バックエンド QuizReview.js は
+// 生の連続正解数(streak)だけを返し、閾値の判断はこの画面側で持つ。
+const GRADUATE_STREAK = 2;
+// 復習の範囲「最近間違えた問題」が遡る日数。
+const RECENT_MISS_DAYS = 14;
+
+let mode = null;             // 'mc' | 'tf' | 'extra' | 'extra2' | 'extra3' | 'review'
+let modePool = [];           // モードごとの出題プール（下記参照）
+let scopeChapterIndex = null; // null = 全部、それ以外は対象chapterIndex
+let scopeGroup = null;        // null = 章全体、それ以外は章の中のテーマ別グループ名
+let questions = [];          // 範囲確定時に modePool を全部 or 該当章でfilterしたもの
+let idx = 0;
+let selectedOption = null;   // mc: 0-3 の数値、tf: true/false、mc-multi: 選択中indexの配列、未選択は null（mc-multiは[]）
+let revealed = false;
+let sessionResults = [];     // [{id, chapterIndex, correct, selectedOption}]
+let skippedCount = 0;        // 回答せずに飛ばした問題数（正答率の母数には入れない）
+
+// 復習モード用の状態。reviewEntries はバックエンド apiGetReviewPool の戻り
+// [{id, mode, missCount, lastMissAt, reviewCount, streak, lastReviewAt}]。
+let reviewEntries = [];
+let reviewEntryById = {};
+let reviewScopeKey = null;   // 'active' | 'repeat' | 'recent' | 'all' | chapterIndex(数値)
+let reviewMissingCount = 0;  // 記録にあるが今の問題集に見つからない問題数（ID未記録の旧データなど）
+
+(function initCounts() {
+  document.getElementById('mcCount').textContent = QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).length;
+  document.getElementById('tfCount').textContent = QUESTIONS.filter((q) => q.type === 'tf' && !q.deck).length;
+  document.getElementById('extraCount').textContent = QUESTIONS.filter((q) => q.deck === 'extra').length;
+  document.getElementById('extra2Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra2').length;
+  document.getElementById('extra3Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra3').length;
+  // 問題が1問も無いモードのカードは出さない（FP3のように問題集が1本だけの資格向け）。
+  [['tfCard', 'tfCount'], ['extraCard', 'extraCount'], ['extra2Card', 'extra2Count'], ['extra3Card', 'extra3Count']].forEach(([card, count]) => {
+    if (!Number(document.getElementById(count).textContent)) document.getElementById(card).style.display = 'none';
+  });
+  // 模擬試験カードの選択肢数表記（FP3は3択）。選択肢数が混在するときは「3〜4択」のように範囲で出す。
+  const sizes = Array.from(new Set(QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).map((q) => q.options.length)));
+  if (sizes.length) {
+    const lo = Math.min.apply(null, sizes), hi = Math.max.apply(null, sizes);
+    document.getElementById('mcKind').textContent = (lo === hi ? lo : lo + '〜' + hi) + '択';
+  }
+  // 問題集1本だけの資格は「模擬試験」ではなく exams.js の quiz.mcTitle で呼び替える。
+  if (typeof MC_TITLE === 'string' && MC_TITLE) {
+    MODE_LABEL.mc = MC_TITLE;
+    document.getElementById('mcTitle').textContent = MC_TITLE;
+  }
+})();
+
+function showScreen(id) {
+  ['screenMode', 'screenScope', 'screenQuestion', 'screenSummary'].forEach((s) => {
+    document.getElementById(s).style.display = s === id ? '' : 'none';
+  });
+}
+
+function chooseMode(m) {
+  if (m === 'review') { startReview(); return; }
+  const pool = m === 'extra' || m === 'extra2' || m === 'extra3'
+    ? QUESTIONS.filter((q) => q.deck === m)
+    : QUESTIONS.filter((q) => q.type === m && !q.deck);
+  if (!pool.length) { alert('このモードの問題がまだ登録されていません。'); return; }
+  mode = m;
+  modePool = pool;
+  renderScopeScreen();
+}
+
+// ── 復習モード（間違えた問題だけの再学習） ────────────────────────────────
+// 出題プールはスプレッドシートの記録（<examId>_<mode>_ミス、全モードぶん）から作る。
+// 端末のlocalStorageは使わない: このページはGASのサンドボックスiframe（*.googleusercontent.com）
+// で配信されるため保存先が端末・ブラウザごとにバラバラになり、スマホとPCで復習状況が
+// 食い違ってしまう。記録は既にスプレッドシートにあるのでそれを唯一の正とする。
+async function startReview() {
+  const card = document.getElementById('reviewCard');
+  const desc = document.getElementById('reviewCount');
+  const prevDesc = desc.textContent;
+  card.disabled = true;
+  desc.textContent = '記録を読み込み中...';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+    });
+    if (!data.ok) {
+      alert('復習リストを取得できませんでした: ' + (data.error || ''));
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    reviewEntries = data.entries || [];
+    reviewEntryById = {};
+    reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+
+    const pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+    reviewMissingCount = reviewEntries.length - pool.length;
+    if (!pool.length) {
+      alert(reviewEntries.length
+        ? '記録にある問題が今の問題集に見つかりませんでした（問題IDの無い古い記録のみです）。'
+        : 'まだ間違えた問題の記録がありません。\n各モードを解いたあとサマリー画面で「この回の結果を記録」を押すと、ここに溜まっていきます。');
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    mode = 'review';
+    modePool = pool;
+    desc.textContent = pool.filter((q) => !isGraduated(q)).length + '問が未克服';
+    renderScopeScreen();
+  } catch (err) {
+    alert('通信エラー: ' + (err && err.message ? err.message : err));
+    desc.textContent = prevDesc;
+  } finally {
+    card.disabled = false;
+  }
+}
+
+// 復習プールの1問あたりの状態を引く小物。記録に無い問題（通常は起きない）は0扱い。
+function isGraduated(q) {
+  const e = reviewEntryById[q.id];
+  return !!e && e.streak >= GRADUATE_STREAK;
+}
+function missCountOf(q) {
+  const e = reviewEntryById[q.id];
+  return e ? e.missCount : 0;
+}
+function lastMissTimeOf(q) {
+  const e = reviewEntryById[q.id];
+  return e && e.lastMissAt ? new Date(e.lastMissAt).getTime() : 0;
+}
+
+// 復習の範囲キー → 出題対象の絞り込み条件。
+function reviewFilter(key) {
+  if (key === 'all') return function () { return true; };
+  if (key === 'repeat') return function (q) { return !isGraduated(q) && missCountOf(q) >= 2; };
+  if (key === 'recent') {
+    const since = Date.now() - RECENT_MISS_DAYS * 24 * 60 * 60 * 1000;
+    return function (q) { return !isGraduated(q) && lastMissTimeOf(q) >= since; };
+  }
+  if (typeof key === 'number') return function (q) { return !isGraduated(q) && q.chapterIndex === key; };
+  return function (q) { return !isGraduated(q); }; // 'active'（既定）
+}
+
+function reviewScopeLabel(key) {
+  if (key === 'all') return '記録にある全部';
+  if (key === 'repeat') return '2回以上間違えた問題';
+  if (key === 'recent') return '最近' + RECENT_MISS_DAYS + '日で間違えた問題';
+  if (typeof key === 'number') return chapterLabelText(key);
+  return '未克服の問題';
+}
+
+// 復習モードでは色々なデッキの問題が混ざるので、その問題がどの問題集のものかを示す。
+function deckLabelOf(q) {
+  if (q.deck === 'extra') return '追加問題';
+  if (q.deck === 'extra2') return '追加問題2';
+  if (q.deck === 'extra3') return '新シラバス仮問題';
+  return q.type === 'tf' ? '一問一答' : '模擬試験';
+}
+
+// モード確定後、「全部」か「章ごとにチャレンジ」かを選ぶ画面を組み立てる。
+function renderScopeScreen() {
+  if (mode === 'review') { renderReviewScopeScreen(); return; }
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">📚 全部</div><div class="scope-all-desc">' + modePool.length + '問すべて出題</div>';
+  allBtn.onclick = () => chooseScope(null);
+  el.appendChild(allBtn);
+
+  const chapterIndexes = Array.from(new Set(modePool.map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとにチャレンジ';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const count = modePool.filter((q) => q.chapterIndex === ci).length;
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + count + '問</span>';
+      btn.onclick = () => chooseScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+
+    // 章の下のテーマ別グループ（問題に group が付いているときだけ）。
+    if (modePool.some((q) => q.group)) {
+      const gHeading = document.createElement('div');
+      gHeading.className = 'scope-chapter-heading';
+      gHeading.textContent = 'テーマ別にチャレンジ';
+      el.appendChild(gHeading);
+      chapterIndexes.forEach((ci) => {
+        const inChapter = modePool.filter((q) => q.chapterIndex === ci && q.group);
+        const names = [];
+        inChapter.slice().sort((a, b) => (a.groupIndex || 0) - (b.groupIndex || 0)).forEach((q) => { if (names.indexOf(q.group) < 0) names.push(q.group); });
+        if (!names.length) return;
+        const sub = document.createElement('div');
+        sub.className = 'scope-note';
+        sub.textContent = chapterLabelText(ci);
+        el.appendChild(sub);
+        const gList = document.createElement('div');
+        gList.className = 'scope-chapter-list';
+        names.forEach((name) => {
+          const n = inChapter.filter((q) => q.group === name).length;
+          const btn = document.createElement('button');
+          btn.className = 'scope-chapter-btn';
+          btn.innerHTML = '<span class="name">' + escapeHtml(name) + '</span><span class="count">' + n + '問</span>';
+          btn.onclick = () => chooseScope(ci, name);
+          gList.appendChild(btn);
+        });
+        el.appendChild(gList);
+      });
+    }
+  }
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲選択画面。章ではなく「未克服／繰り返しミス／最近／全部」で切る。
+function renderReviewScopeScreen() {
+  document.getElementById('headerSub').textContent = '復習　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const countOf = (key) => modePool.filter(reviewFilter(key)).length;
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">🔁 未克服の問題</div><div class="scope-all-desc">'
+    + countOf('active') + '問・間違えたまま克服できていない問題</div>';
+  allBtn.onclick = () => chooseReviewScope('active');
+  el.appendChild(allBtn);
+
+  const presets = [
+    { key: 'repeat', name: '🔥 2回以上間違えた問題' },
+    { key: 'recent', name: '📅 最近' + RECENT_MISS_DAYS + '日で間違えた問題' },
+    { key: 'all', name: '📚 記録にある全部（克服済みも含む）' },
+  ];
+  const presetList = document.createElement('div');
+  presetList.className = 'scope-chapter-list';
+  presets.forEach((p) => {
+    const n = countOf(p.key);
+    const btn = document.createElement('button');
+    btn.className = 'scope-chapter-btn';
+    btn.disabled = n === 0;
+    btn.innerHTML = '<span class="name">' + escapeHtml(p.name) + '</span><span class="count">' + n + '問</span>';
+    btn.onclick = () => chooseReviewScope(p.key);
+    presetList.appendChild(btn);
+  });
+  el.appendChild(presetList);
+
+  // 章ごと（未克服のぶんだけ）。0問の章はボタン自体を出さない。
+  const chapterIndexes = Array.from(new Set(modePool.filter(reviewFilter('active')).map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとに復習（未克服ぶん）';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const n = countOf(ci);
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + n + '問</span>';
+      btn.onclick = () => chooseReviewScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+  }
+
+  const note = document.createElement('div');
+  note.className = 'scope-note';
+  note.textContent = '復習で' + GRADUATE_STREAK + '回連続で正解した問題は「克服」として既定の出題から外れます。'
+    + (reviewMissingCount > 0 ? '（記録のうち' + reviewMissingCount + '問は今の問題集に無いため対象外）' : '');
+  el.appendChild(note);
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲確定。ミスが多い問題・最近間違えた問題から先に出す。
+function chooseReviewScope(key) {
+  const pool = modePool.filter(reviewFilter(key));
+  if (!pool.length) { alert('この条件に当てはまる問題がありません。'); return; }
+  reviewScopeKey = key;
+  scopeChapterIndex = typeof key === 'number' ? key : null;
+  scopeGroup = null;
+  questions = pool.slice().sort((a, b) => (missCountOf(b) - missCountOf(a)) || (lastMissTimeOf(b) - lastMissTimeOf(a)));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = '復習　' + reviewScopeLabel(key) + '（' + questions.length + '問）';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function chooseScope(chapterIndex, group) {
+  scopeChapterIndex = chapterIndex;
+  scopeGroup = group || null;
+  questions = chapterIndex == null ? modePool : modePool.filter((q) => q.chapterIndex === chapterIndex && (!scopeGroup || q.group === scopeGroup));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　' + (chapterIndex == null ? '全部' : chapterLabelText(chapterIndex) + (scopeGroup ? '／' + scopeGroup : ''));
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function restartMode() {
+  if (mode === 'review') { chooseReviewScope(reviewScopeKey); return; }
+  chooseScope(scopeChapterIndex, scopeGroup);
+}
+
+// 今のセッションで間違えた問題だけを、その場でもう一度出題する（記録を待たない簡易復習）。
+// 記録ベースの本格的な復習はモード選択の「🔁 復習」。
+function retryWrongInSession() {
+  const wrong = sessionResults.filter((r) => !r.correct)
+    .map((r) => questions.find((q) => q.id === r.id))
+    .filter(Boolean);
+  if (!wrong.length) return;
+  questions = wrong;
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent =
+    (mode === 'review' ? '復習' : MODE_LABEL[mode]) + '　間違えた' + wrong.length + '問をもう一度';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function backToScopeSelect() {
+  renderScopeScreen();
+}
+
+function backToModeSelect() {
+  mode = null;
+  modePool = [];
+  scopeChapterIndex = null;
+  scopeGroup = null;
+  document.getElementById('headerSub').textContent = 'モードを選んでください';
+  showScreen('screenMode');
+}
+
+function chapterLabelText(chapterIndex) {
+  if (chapterIndex == null || !CHAPTERS[chapterIndex]) return '';
+  // BASE_CHAPTER_COUNT 以降は新シラバス仮問題集の章（旧シラバスの章と名前が重なるので「新」を付ける）
+  if (chapterIndex >= BASE_CHAPTER_COUNT) return '新シラバス第' + (chapterIndex - BASE_CHAPTER_COUNT + 1) + '章：' + CHAPTERS[chapterIndex];
+  return '第' + (chapterIndex + 1) + '章：' + CHAPTERS[chapterIndex];
+}
+
+function renderQuestion() {
+  const q = questions[idx];
+  selectedOption = q.type === 'mc-multi' ? [] : null;
+  revealed = false;
+
+  // 復習モードは色々なデッキが混ざるので、どの問題集の何問目かと通算ミス回数も出す。
+  const progressLabel = mode === 'review'
+    ? '復習（' + deckLabelOf(q) + '）　' + (idx + 1) + ' / ' + questions.length + '　通算' + missCountOf(q) + '回ミス'
+    : MODE_LABEL[mode] + '　' + (idx + 1) + ' / ' + questions.length;
+  document.getElementById('progress').textContent = progressLabel;
+  document.getElementById('chapterLabel').textContent = chapterLabelText(q.chapterIndex) + (q.group ? '／' + q.group : '');
+  document.getElementById('stem').textContent = q.stem + (q.type === 'mc-multi' ? '（複数選択可）' : '');
+
+  const optionsEl = document.getElementById('options');
+  optionsEl.innerHTML = '';
+
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    q.options.forEach((text, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = '(' + (i + 1) + ') ' + text;
+      btn.onclick = () => selectOption(i);
+      optionsEl.appendChild(btn);
+    });
+  } else {
+    const trueBtn = document.createElement('button');
+    trueBtn.className = 'option-btn tf-btn';
+    trueBtn.textContent = '○ 正しい';
+    trueBtn.onclick = () => selectOption(true);
+    const falseBtn = document.createElement('button');
+    falseBtn.className = 'option-btn tf-btn';
+    falseBtn.textContent = '× 誤り';
+    falseBtn.onclick = () => selectOption(false);
+    optionsEl.appendChild(trueBtn);
+    optionsEl.appendChild(falseBtn);
+  }
+
+  // 「回答」ボタンは複数選択（mc-multi）専用。mc / tf は選択した時点で即判定するため出さない。
+  const answerBtn = document.getElementById('answerBtn');
+  answerBtn.disabled = true;
+  answerBtn.style.display = q.type === 'mc-multi' ? '' : 'none';
+  document.getElementById('questionActions').style.display = '';
+  document.getElementById('revealArea').style.display = 'none';
+}
+
+// 回答せずに次の問題へ飛ばす。スキップした問題は sessionResults に入れないので
+// 正答率の母数にも、間違えた問題の記録にも入らない（＝ミス扱いにはしない）。
+function skipQuestion() {
+  if (revealed) return;
+  skippedCount++;
+  saveProgress(idx + 1);
+  nextQuestion();
+}
+
+// mc / tf は「選択＝回答」で、選択肢を押した時点でそのまま正誤を表示する（回答ボタンは出さない）。
+// mc-multi（すべて選びなさい）は複数選んでから確定する必要があるため、従来どおり
+// トグル選択 →「回答」ボタンで reveal() する。
+function selectOption(v) {
+  if (revealed) return;
+  const q = questions[idx];
+
+  if (q.type !== 'mc-multi') {
+    selectedOption = v;
+    reveal();
+    return;
+  }
+
+  const i = selectedOption.indexOf(v);
+  if (i === -1) selectedOption.push(v);
+  else selectedOption.splice(i, 1);
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, j) => {
+    btn.classList.toggle('selected', selectedOption.includes(j));
+  });
+  document.getElementById('answerBtn').disabled = selectedOption.length === 0;
+}
+
+function sameIndexSet(a, b) {
+  if (a.length !== b.length) return false;
+  const sortedA = a.slice().sort();
+  const sortedB = b.slice().sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+// ── 効果音（正解＝ピンポン／不正解＝ブブー） ─────────────────────────────────────
+// 音声ファイルは使わず Web Audio で合成する。鳴らすのは回答の瞬間（利用者のクリック直後）なので
+// ブラウザの自動再生制限にかからない。失敗しても回答の処理は止めない。ON/OFFは端末ごとの好みなので
+// localStorage に覚える（読めない環境ではONのまま）。
+let soundOn = true;
+let audioCtx = null;
+try { soundOn = localStorage.getItem('quizSound') !== 'off'; } catch (e) { /* 読めなければON */ }
+
+function getAudioCtx() {
+  if (audioCtx) return audioCtx;
+  const AC = typeof AudioContext !== 'undefined' ? AudioContext
+    : (typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null);
+  if (!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+
+// 1音: 立ち上がりを素早く、あとは指数的に減衰させる（ぷつっというノイズを避ける）。
+function playTone(ctx, start, freq, dur, type, peak) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
+function playResultSound(correct) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const t = ctx.currentTime;
+    // 音量: 同時に鳴る音の合計が 1.0 を超えない範囲（超えると割れる）。
+    if (correct) {
+      // ピン（高）→ポーン（低）。倍音を足してベルらしくする。
+      playTone(ctx, t, 1175, 0.3, 'sine', 0.65);
+      playTone(ctx, t, 2350, 0.2, 'sine', 0.18);
+      playTone(ctx, t + 0.18, 880, 0.6, 'sine', 0.65);
+      playTone(ctx, t + 0.18, 1760, 0.35, 'sine', 0.18);
+    } else {
+      // ブッ、ブー。少しずらした低いのこぎり波2本でブザーらしいざらつきを出す。
+      [150, 157].forEach((f) => {
+        playTone(ctx, t, f, 0.16, 'sawtooth', 0.31);
+        playTone(ctx, t + 0.22, f, 0.5, 'sawtooth', 0.31);
+      });
+    }
+  } catch (e) { /* 音が鳴らなくても学習の邪魔をしない */ }
+}
+
+function updateSoundBtn() {
+  const btn = document.getElementById('soundBtn');
+  if (!btn) return;
+  btn.textContent = soundOn ? '🔊 音' : '🔇 音';
+  btn.title = soundOn ? '効果音ON（押すとOFF）' : '効果音OFF（押すとON）';
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('quizSound', soundOn ? 'on' : 'off'); } catch (e) { /* 保存できなくても今回は有効 */ }
+  updateSoundBtn();
+  if (soundOn) playResultSound(true);   // ONにしたときに音を確かめられるよう、ピンポンを鳴らす
+}
+updateSoundBtn();
+
+function reveal() {
+  if (selectedOption === null || revealed) return;
+  if (Array.isArray(selectedOption) && selectedOption.length === 0) return;
+  revealed = true;
+
+  const q = questions[idx];
+  const correct = q.type === 'mc' ? selectedOption === q.correctIndex
+    : q.type === 'mc-multi' ? sameIndexSet(selectedOption, q.correctIndexes)
+    : selectedOption === q.correct;
+  sessionResults.push({ id: q.id, chapterIndex: q.chapterIndex, correct, selectedOption });
+  saveProgress(idx + 1);   // 回答した時点で保存（次へを押す前に閉じても、次の問題から再開できる）
+  playResultSound(correct);
+
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, i) => {
+    btn.disabled = true;
+    btn.classList.remove('selected');
+    const isCorrectChoice = q.type === 'mc' ? i === q.correctIndex
+      : q.type === 'mc-multi' ? q.correctIndexes.includes(i)
+      : (i === 0) === q.correct;
+    const isSelectedChoice = q.type === 'mc' ? i === selectedOption
+      : q.type === 'mc-multi' ? selectedOption.includes(i)
+      : (i === 0) === selectedOption;
+    if (isCorrectChoice) btn.classList.add('correct');
+    else if (isSelectedChoice) btn.classList.add('incorrect');
+  });
+
+  const revealOptions = document.getElementById('revealOptions');
+  revealOptions.innerHTML = '';
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    // バッジは「選択肢として選ぶべきか(correctIndex/correctIndexes)」ではなく、解説文が本来持つ○/×
+    // （その文が事実として正しいか）をそのまま使う。「最も不適切なものはどれか」形式の設問では
+    // 正解の選択肢が「事実として誤り（×）」であるため、correctIndexだけで○/×を決めると意味が逆転する。
+    q.explanations.forEach((text, i) => {
+      const row = document.createElement('div');
+      row.className = 'option-explain';
+      const m = text.match(/^([○×])\s*/);
+      const fallbackCorrect = q.type === 'mc-multi' ? q.correctIndexes.includes(i) : i === q.correctIndex;
+      const badge = m ? m[1] : (fallbackCorrect ? '○' : '×');
+      row.innerHTML = '<span class="option-badge">' + badge + '</span>' + escapeHtml(text.replace(/^[○×]\s*/, ''));
+      revealOptions.appendChild(row);
+    });
+  } else {
+    const row = document.createElement('div');
+    row.className = 'option-explain';
+    row.innerHTML = '<span class="option-badge">' + (q.correct ? '○ 正しい' : '× 誤り') + '</span><br>' + escapeHtml(q.explanation.replace(/^[○×]\s*/, ''));
+    revealOptions.appendChild(row);
+  }
+
+  document.getElementById('questionActions').style.display = 'none';
+  document.getElementById('revealArea').style.display = '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 選択肢のindex（mc/mc-multi）やbool（tf）を、スプレッドシート出力・アドバイス用に
+// 人が読めるテキストへ変換する。
+function answerText(q, val) {
+  if (q.type === 'mc') return val == null ? '（未回答）' : q.options[val];
+  if (q.type === 'mc-multi') return (val || []).map((i) => q.options[i]).join(' / ');
+  return val ? '正しい' : '誤り';
+}
+
+function buildAskPrompt(q, selected) {
+  // ラベルは問題タイプではなく、現在解いているモード（MODE_LABEL）から決める。
+  // mc3（追加問題2）もtype:'mc'なので、type起点だと「模擬試験」と誤表示されてしまうため。
+  // 復習モードは複数デッキが混ざるので、その問題自身の出自（deckLabelOf）を使う。
+  const deckLabel = mode === 'review' ? deckLabelOf(q) : (MODE_LABEL[mode] || '問題集');
+  if (q.type === 'mc') {
+    const selfAnswerLine = selected != null && selected !== q.correctIndex
+      ? '\n自分は(' + (selected + 1) + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + (q.correctIndex + 1) + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  if (q.type === 'mc-multi') {
+    const selectedList = (selected || []).map((i) => i + 1).join(', ');
+    const correctList = q.correctIndexes.map((i) => i + 1).join(', ');
+    const selfAnswerLine = selected != null && !sameIndexSet(selected, q.correctIndexes)
+      ? '\n自分は(' + selectedList + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題（複数選択）について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + correctList + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  const selfAnswerLine = selected != null && selected !== q.correct
+    ? '\n自分は「' + (selected ? '正しい' : '誤り') + '」と回答して間違えました。なぜそれが誤りかも教えてください。'
+    : '';
+  return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の文の正誤について教えてください。\n\n' +
+    '問題文：' + q.stem + '\n' +
+    '正解：' + (q.correct ? '正しい' : '誤り') + selfAnswerLine +
+    '\nこの論点の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+}
+
+function askInChat() {
+  const q = questions[idx];
+  // GASのHtmlServiceはページをiframe（サンドボックス）内に読み込むため、
+  // location.href だとiframe内だけが遷移してしまう（top.location.hrefが必要）。
+  // さらに相対URLはiframeの内部配信元（googleusercontent.com）を基準に解決
+  // されてしまうため、GAS_WEBAPP_URLを前置した絶対URLにする必要がある。
+  // チャットの「元の問題に戻る」ボタン用に、戻り先（この問題を開き直すURL）を一緒に渡す。
+  // 復習モードは記録の読み込みが要るので、その問題が属する通常モード（出自のデッキ）へ戻す。
+  const backMode = mode === 'review' ? (q.deck || q.type) : mode;
+  let backUrl = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '-quiz&resume=' + encodeURIComponent(q.id) + '&m=' + encodeURIComponent(backMode);
+  if (mode !== 'review' && scopeChapterIndex != null) backUrl += '&c=' + scopeChapterIndex;
+  if (mode !== 'review' && scopeGroup) backUrl += '&g=' + encodeURIComponent(scopeGroup);
+  top.location.href = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '&ask=' + encodeURIComponent(buildAskPrompt(q, selectedOption))
+    + '&back=' + encodeURIComponent(backUrl);
+}
+
+// チャットの「元の問題に戻る」から開かれたとき、?resume=<問題ID>&m=<モード>[&c=<章>][&g=<グループ>] の問題を開き直す。
+// 出題順は固定（シャッフルなし）なので、同じ範囲を作り直して該当の位置へ移れば続きから解ける。
+function initResumeParam() {
+  if (typeof google === 'undefined' || !google.script || !google.script.url || !google.script.url.getLocation) return;
+  google.script.url.getLocation(function (loc) {
+    const p = (loc && loc.parameter) || {};
+    if (!p.resume || !p.m) return;
+    const target = QUESTIONS.find((q) => q.id === p.resume);
+    if (!target) return;
+    chooseMode(p.m);
+    if (mode !== p.m) return;
+    const c = p.c != null && p.c !== '' ? Number(p.c) : null;
+    chooseScope(Number.isInteger(c) ? c : null, p.g || null);
+    let at = questions.findIndex((q) => q.id === target.id);
+    if (at < 0) { chooseScope(null, null); at = questions.findIndex((q) => q.id === target.id); }
+    if (at < 0) return;
+    idx = at;
+    renderQuestion();
+  });
+}
+initResumeParam();
+
+// ── 中断→再開 ─────────────────────────────────────────────────────────
+// 1問回答／スキップするたびに、いまの出題セッションの途中経過をバックエンド（UserProperties）へ送る。
+// 次に開いたとき、モード選択画面の先頭に「続きから再開」を出し、中断した次の問題から続けられる。
+// 1資格につき1枠（最後に解いていたセッション）。端末をまたいで再開できる。最後まで解くと消える。
+// 状態は小さく詰める（UserProperties は1値約9KB上限）: q=出題順のID列、a=[[ID, 正誤(1/0), 選んだ答え]…]、i=次に解く位置。
+let pendingProgress = null;
+
+function hasGoogleRun() {
+  return typeof google !== 'undefined' && google && google.script && google.script.run;
+}
+
+function saveProgress(nextIdx) {
+  if (!hasGoogleRun() || !mode || !questions.length) return;
+  const state = {
+    v: 1, t: Date.now(), mode: mode, c: scopeChapterIndex, g: scopeGroup, r: reviewScopeKey,
+    h: document.getElementById('headerSub').textContent,
+    q: questions.map((q) => q.id).join(','), i: nextIdx,
+    a: sessionResults.map((r) => [r.id, r.correct ? 1 : 0, r.selectedOption]), sk: skippedCount,
+  };
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiSaveQuizProgress({ examId: TRACKING_EXAM_ID, state: state });
+  } catch (e) { /* 保存に失敗しても出題は続ける */ }
+}
+
+function clearProgress() {
+  pendingProgress = null;
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiClearQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 無視 */ }
+}
+
+// 保存された途中経過が、今の問題集でそのまま復元できるか（問題が差し替わっていたら諦める）。
+function isResumableProgress(s) {
+  if (!s || s.v !== 1 || typeof s.q !== 'string' || !Array.isArray(s.a) || !Number.isInteger(s.i)) return false;
+  const ids = s.q.split(',');
+  if (s.i < 0 || s.i >= ids.length) return false;
+  const known = {};
+  QUESTIONS.forEach((q) => { known[q.id] = true; });
+  return ids.every((id) => known[id]) && s.a.every((r) => Array.isArray(r) && known[r[0]]);
+}
+
+function offerResume(s) {
+  if (!isResumableProgress(s)) return;
+  pendingProgress = s;
+  const total = s.q.split(',').length;
+  document.getElementById('resumeText').textContent =
+    '📌 途中の問題集があります：' + (s.h || '') + '　' + (s.i + 1) + '問目から（全' + total + '問・回答済み' + s.a.length + '問）';
+  document.getElementById('resumeBanner').style.display = '';
+}
+
+(function initProgress() {
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) { if (res && res.ok && res.state) offerResume(res.state); })
+      .withFailureHandler(function () {})
+      .apiLoadQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 再開バナーが出ないだけ */ }
+})();
+
+function discardProgress() {
+  document.getElementById('resumeBanner').style.display = 'none';
+  clearProgress();
+}
+
+async function resumeProgress() {
+  const s = pendingProgress;
+  if (!s || !isResumableProgress(s)) { discardProgress(); return; }
+  const btn = document.getElementById('resumeBtn');
+  btn.disabled = true;
+  try {
+    let pool;
+    if (s.mode === 'review') {
+      // 復習は問題ごとの通算ミス回数・卒業判定が画面に出るので、記録を読み直してから復元する。
+      const data = await new Promise(function (resolve, reject) {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+      });
+      if (!data.ok) { alert('復習の記録を取得できませんでした: ' + (data.error || '')); return; }
+      reviewEntries = data.entries || [];
+      reviewEntryById = {};
+      reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+      pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+      reviewMissingCount = reviewEntries.length - pool.length;
+    } else {
+      pool = s.mode === 'extra' || s.mode === 'extra2' || s.mode === 'extra3'
+        ? QUESTIONS.filter((q) => q.deck === s.mode)
+        : QUESTIONS.filter((q) => q.type === s.mode && !q.deck);
+    }
+    const byId = {};
+    QUESTIONS.forEach((q) => { byId[q.id] = q; });
+    mode = s.mode;
+    modePool = pool;
+    scopeChapterIndex = s.c == null ? null : s.c;
+    scopeGroup = s.g || null;
+    reviewScopeKey = s.r == null ? null : s.r;
+    questions = s.q.split(',').map((id) => byId[id]);
+    idx = s.i;
+    sessionResults = s.a.map((r) => ({ id: r[0], chapterIndex: byId[r[0]].chapterIndex, correct: !!r[1], selectedOption: r[2] }));
+    skippedCount = s.sk || 0;
+    pendingProgress = null;
+    document.getElementById('resumeBanner').style.display = 'none';
+    document.getElementById('headerSub').textContent = s.h || MODE_LABEL[mode] || '';
+    showScreen('screenQuestion');
+    renderQuestion();
+  } catch (err) {
+    alert('再開できませんでした: ' + (err && err.message ? err.message : err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function nextQuestion() {
+  idx++;
+  if (idx >= questions.length) showSummary();
+  else renderQuestion();
+}
+
+// CHAPTERS の全章を常に含めて返す（今回未出題の章は total:0）。
+// スプレッドシート側は最初の記録時に受け取った章名で行を確定するため、
+// 章の集合が回によってブレると2回目以降の記録で行が見つからなくなる。
+// 常に全章を送ることでこれを防ぐ。
+function aggregateByChapter(results) {
+  const byIndex = {};
+  results.forEach((r) => {
+    if (!byIndex[r.chapterIndex]) byIndex[r.chapterIndex] = { correct: 0, total: 0 };
+    byIndex[r.chapterIndex].total++;
+    if (r.correct) byIndex[r.chapterIndex].correct++;
+  });
+  // 新シラバス仮問題集（extra3）は新シラバスの章だけ、それ以外の問題集は旧シラバスの章だけを送る
+  // （新しい成績シートに旧章の行が並んだり、既存シートの章の集合が変わって行が見つからなくなるのを防ぐ）。復習は全章。
+  const inScope = (i) => mode === 'review' || (mode === 'extra3' ? i >= BASE_CHAPTER_COUNT : i < BASE_CHAPTER_COUNT);
+  return CHAPTERS.map((label, i) => ({
+    chapterIndex: i,
+    chapterLabel: i >= BASE_CHAPTER_COUNT ? chapterLabelText(i) : label,
+    correct: (byIndex[i] && byIndex[i].correct) || 0,
+    total: (byIndex[i] && byIndex[i].total) || 0,
+  })).filter((c) => inScope(c.chapterIndex));
+}
+
+function showSummary() {
+  clearProgress();   // 最後まで解いたので、途中経過は不要
+  showScreen('screenSummary');
+  const total = sessionResults.length;
+  const correct = sessionResults.filter((r) => r.correct).length;
+  const wrongCount = total - correct;
+  const pct = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
+  document.getElementById('summaryScore').textContent =
+    correct + ' / ' + total + '（' + pct + '%）' + (skippedCount > 0 ? '　スキップ ' + skippedCount + '問' : '');
+
+  const byChapter = aggregateByChapter(sessionResults);
+  const chaptersEl = document.getElementById('summaryChapters');
+  chaptersEl.innerHTML = '';
+  byChapter.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'summary-chapter-row';
+    const scoreText = c.total > 0
+      ? c.correct + '/' + c.total + '（' + Math.round((c.correct / c.total) * 1000) / 10 + '%）'
+      : '未出題';
+    row.innerHTML = '<span class="name">' + escapeHtml(c.chapterLabel) + '</span><span class="score">' + scoreText + '</span>';
+    chaptersEl.appendChild(row);
+  });
+
+  document.getElementById('recordStatus').textContent = '';
+  const recordBtn = document.getElementById('recordBtn');
+  // 全問スキップ（回答0問）のときは記録しても中身が無いので押させない。
+  recordBtn.disabled = total === 0;
+  recordBtn.textContent = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+
+  // 間違えた問題があるときだけ、その場で解き直すボタンを出す。
+  const retryBtn = document.getElementById('retryWrongBtn');
+  retryBtn.style.display = wrongCount > 0 ? '' : 'none';
+  retryBtn.textContent = '🔁 間違えた' + wrongCount + '問だけもう一度';
+
+  const note = document.getElementById('summaryNote');
+  if (mode === 'review') {
+    note.textContent = '復習の結果は「' + TRACKING_EXAM_ID + '_復習ログ」に記録され、'
+      + GRADUATE_STREAK + '回連続で正解した問題は次回から「克服」として出題対象から外れます'
+      + '（章別の正答率推移シートには影響しません）。';
+    note.style.display = '';
+  } else {
+    note.style.display = 'none';
+    note.textContent = '';
+  }
+
+  document.getElementById('adviceArea').style.display = 'none';
+  document.getElementById('adviceStatus').textContent = '';
+  document.getElementById('adviceBtn').disabled = false;
+  document.getElementById('adviceBtn').textContent = '🎯 学習アドバイスを見る';
+}
+
+// 今回の結果（章別正答率・間違えた問題）と、過去に蓄積した「ミス」シートの履歴を
+// バックエンドで突き合わせ、Geminiに弱点分野・復習優先度・次のアクションをまとめさせる。
+async function getAdvice() {
+  const btn = document.getElementById('adviceBtn');
+  const status = document.getElementById('adviceStatus');
+  const area = document.getElementById('adviceArea');
+  btn.disabled = true;
+  btn.textContent = 'アドバイスを作成中...';
+  status.textContent = '';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiQuizAdvice({
+          examId: EXAM_ID,
+          trackingExamId: TRACKING_EXAM_ID,
+          mode: TRACKING_MODE[mode] || mode,
+          chapters: aggregateByChapter(sessionResults),
+          wrongAnswers: buildWrongAnswers(),
+        });
+    });
+    if (data.ok) {
+      area.textContent = data.advice;
+      area.style.display = '';
+      btn.textContent = '🎯 学習アドバイスを見る';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || 'アドバイスの取得に失敗しました');
+      btn.textContent = '🎯 学習アドバイスを見る';
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.textContent = '🎯 学習アドバイスを見る';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 間違えた問題だけを、問題文・自分の回答・正解を添えたスプレッドシート出力用の形へ整形する。
+function buildWrongAnswers() {
+  return sessionResults.filter((r) => !r.correct).map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+// 復習モードの記録用。正解した問題も含めて全問を送る（連続正解＝克服の判定に必要なため）。
+function buildReviewResults() {
+  return sessionResults.map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      deckLabel: deckLabelOf(q),
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      correct: r.correct,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+async function recordResults() {
+  const btn = document.getElementById('recordBtn');
+  const status = document.getElementById('recordStatus');
+  const labelWhenIdle = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+  btn.disabled = true;
+  btn.textContent = '記録中...';
+  status.textContent = '';
+
+  const byChapter = aggregateByChapter(sessionResults);
+  try {
+    // fetchではなく google.script.run を使う（理由は chat-app.js の callBackend 参照）。
+    // 復習モードは章別の正答率推移シートに混ぜない（出題が間違えた問題に偏っていて
+    // 推移のグラフが本来の実力より低く歪むため）。専用の復習ログへ全問を書く。
+    const data = await new Promise(function (resolve, reject) {
+      const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      if (mode === 'review') {
+        runner.apiRecordReviewLog({
+          examId: TRACKING_EXAM_ID,
+          results: buildReviewResults(),
+          attemptAt: new Date().toISOString(),
+        });
+        return;
+      }
+      runner.apiRecordQuizResult({
+        examId: TRACKING_EXAM_ID,
+        mode: TRACKING_MODE[mode] || mode,
+        chapters: byChapter,
+        wrongAnswers: buildWrongAnswers(),
+        attemptAt: new Date().toISOString(),
+      });
+    });
+    if (data.ok) {
+      status.textContent = '✅ 記録しました';
+      btn.textContent = '記録済み';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || '記録に失敗しました');
+      btn.disabled = false;
+      btn.textContent = labelWhenIdle;
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.disabled = false;
+    btn.textContent = labelWhenIdle;
+  }
+}
+
+</script>
+</body>
+</html>
