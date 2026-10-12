@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>GitHub 使いこなし問題集（非公式）</title>
+<meta name="robots" content="noindex,nofollow">
+<script>
+(function () {
+  function make(ok, fail) {
+    return new Proxy({}, { get: function (_, name) {
+      if (name === "withSuccessHandler") return function (f) { return make(f, fail); };
+      if (name === "withFailureHandler") return function (f) { return make(ok, f); };
+      return function () {
+        var reading = /^(apiLoad|apiGet)/.test(String(name));
+        setTimeout(function () {
+          if (reading) { if (ok) ok(null); }
+          else if (fail) fail(new Error("公開版では記録・AI助言は使えません"));
+        }, 0);
+      };
+    } });
+  }
+  window.google = { script: { run: make(null, null) } };
+})();
+</script>
+  <style>
+    :root {
+      --theme-color: #24292f;
+      --theme-color-dark: #0d1117;
+    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: var(--theme-color-dark);
+  padding: 0;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.container {
+  background: white;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--theme-color) 0%, var(--theme-color-dark) 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-icon { font-size: 32px; }
+
+.header-text { min-width: 0; flex: 1 1 140px; }   /* ボタンに押されてタイトルが1文字幅に潰れ、縦書きのように見えるのを防ぐ */
+.header-text h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; writing-mode: horizontal-tb; }
+.header-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-btn:hover { background: rgba(255,255,255,0.3); }
+
+.quiz-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { width: 100%; max-width: 520px; margin: 0 auto; }
+
+/* --- モード選択画面 --- */
+/* カード数が増えても幅が細くなりすぎないよう、flexではなくgridで自動折り返しする
+   （4つ目の「追加問題2」追加時にスマホで窮屈にならないための変更）。 */
+.mode-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.mode-card {
+  min-width: 0;
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.mode-card:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 復習モードのカードだけ、出題元の問題集カードと見分けられるよう薄く色を敷く。 */
+.review-card {
+  background: #fffaf2;
+  border-color: #f0d9b5;
+}
+.review-card:hover { border-color: #e0a75e; }
+.mode-card:disabled { opacity: 0.6; cursor: wait; }
+
+.mode-icon { font-size: 36px; margin-bottom: 8px; }
+.mode-title { font-size: 17px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.mode-desc { font-size: 13px; color: #888; }
+
+/* --- 範囲選択画面（全部 / 章ごとにチャレンジ） --- */
+.back-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.back-link:hover { color: var(--theme-color); }
+
+.scope-select {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-all-btn {
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  margin-bottom: 8px;
+}
+
+.scope-all-btn:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.scope-all-title { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.scope-all-desc { font-size: 13px; color: #888; }
+
+.scope-chapter-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  margin: 4px 0 2px;
+}
+
+.scope-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scope-chapter-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  background: #f8f9ff;
+  border: 1.5px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scope-chapter-btn:hover { border-color: var(--theme-color); }
+
+.scope-chapter-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.scope-chapter-btn:disabled:hover { border-color: #e6e8ee; }
+
+/* 範囲選択画面の下に出す補足（復習モードの「克服」ルールの説明など） */
+.scope-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.scope-chapter-btn .name { flex: 1; padding-right: 12px; }
+.scope-chapter-btn .count { flex-shrink: 0; color: var(--theme-color); font-weight: 700; font-size: 13px; }
+
+/* --- 出題画面 --- */
+.progress {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.chapter-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--theme-color);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.question-card {
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stem {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #222;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option-btn:hover { border-color: var(--theme-color); }
+
+.option-btn.selected {
+  border-color: var(--theme-color);
+  background: #f0f0ff;
+  font-weight: 600;
+}
+
+.option-btn.tf-btn {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 回答後の表示状態 */
+.option-btn.correct {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.option-btn.incorrect {
+  border-color: #c62828;
+  background: #fdecea;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-badge {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.option-explain {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.answer-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.answer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 回答（複数選択のときだけ表示）とスキップを縦に並べる操作行。
+   mc / tf は選択した時点で判定するため、この行にはスキップだけが残る。 */
+.question-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skip-btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: white;
+  color: #888;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.skip-btn:hover { border-color: var(--theme-color); color: var(--theme-color); }
+
+.reveal-area { margin-top: 20px; }
+
+.reveal-options { margin-bottom: 16px; }
+
+.reveal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.action-btn:hover { border-color: var(--theme-color); }
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+}
+
+/* --- 終了サマリー画面 --- */
+#screenSummary { text-align: center; }
+#screenSummary h2 { font-size: 22px; color: #333; margin-bottom: 16px; }
+
+.summary-score {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--theme-color);
+  margin-bottom: 20px;
+}
+
+.summary-chapters {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.summary-chapter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.summary-chapter-row .name { color: #333; }
+.summary-chapter-row .score { color: var(--theme-color); font-weight: 700; }
+
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 間違えた問題だけを解き直すボタン。記録ボタンの次に置いて目に入るようにする。 */
+.action-btn.retry-wrong {
+  border-color: #f0d9b5;
+  background: #fffaf2;
+  color: #a1670f;
+  font-weight: 700;
+}
+.action-btn.retry-wrong:hover { border-color: #e0a75e; }
+
+.summary-note {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.record-status,
+.advice-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #888;
+  min-height: 18px;
+}
+
+.advice-area {
+  margin-top: 12px;
+  text-align: left;
+  white-space: pre-wrap;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.quiz-body::-webkit-scrollbar { width: 5px; }
+.quiz-body::-webkit-scrollbar-track { background: transparent; }
+.quiz-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+/* --- PCブラウザ（幅900px以上）: 画面幅を広く使う ---
+   以前は .screen が max-width:520px の中央寄せで、PCでは画面の中央に細い1列が出るだけだった（2026-09-20 に変更）。
+   スマホ（600px以下）の指定とは範囲が重ならない。行が長くなりすぎないよう、上限は 1120px（1400px以上は 1240px）。
+   ボタン類は横いっぱいに伸ばさず、中央に寄せた幅に留める。 */
+@media (min-width: 900px) {
+  .header { padding: 18px 40px; }
+  .header-text h1 { font-size: 20px; }
+  .header-text p { font-size: 13px; }
+  .header-btn { font-size: 12px; padding: 7px 14px; }
+
+  .quiz-body { padding: 32px 48px; }
+  .screen { max-width: 1120px; }
+
+  /* モード選択: カードを横に並べて広く使う（4枚なら1行） */
+  .mode-select { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+  .mode-card { padding: 30px 20px; }
+  .mode-icon { font-size: 40px; }
+  .mode-title { font-size: 18px; }
+  .mode-desc { font-size: 14px; }
+
+  /* 範囲選択: 章のボタンを2列に（章が多くても縦に長くなりすぎない） */
+  .scope-chapter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+  .scope-chapter-btn { font-size: 15px; }
+
+  /* 出題: 問題文・選択肢を広く、文字も一段大きく */
+  .question-card { padding: 28px 36px; }
+  .stem { font-size: 18px; line-height: 1.8; }
+  .options { gap: 12px; }
+  .option-btn { font-size: 16px; padding: 14px 20px; }
+  .answer-btn, .action-btn, .skip-btn { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .question-actions { align-items: center; }
+  .question-actions .answer-btn, .question-actions .skip-btn { width: 100%; }
+  .summary-note, .scope-note { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .reveal-actions { align-items: stretch; }
+
+  /* 終了サマリー: 章別の結果を2列に */
+  .summary-chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+  .summary-chapter-row { font-size: 14.5px; padding: 12px 16px; }
+  .summary-actions { align-items: center; }
+  .summary-actions .action-btn { width: 100%; }
+}
+
+@media (min-width: 1400px) {
+  .screen { max-width: 1240px; }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0; }
+  .container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+  .header { padding: 12px 14px; gap: 8px 10px; flex-wrap: wrap; }   /* 狭い画面ではボタン類を2行目へ折り返す */
+  .header-icon { font-size: 28px; }
+  .header-text h1 { font-size: 16px; }
+  .header-text p { display: none; }
+  .header-actions { gap: 6px; flex-wrap: wrap; flex-basis: 100%; margin-left: 0; }
+  .header-btn { font-size: 11px; padding: 6px 10px; }
+  .quiz-body { padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); }
+  .stem { font-size: 16.5px; }
+  .option-btn { font-size: 16px; }
+  .mode-select { gap: 10px; }
+  .mode-card { padding: 16px 8px; }
+  .mode-icon { font-size: 26px; margin-bottom: 4px; }
+  .mode-title { font-size: 14px; margin-bottom: 2px; }
+  .mode-desc { font-size: 11px; }
+}
+
+@media (max-height: 480px) {
+  .quiz-body { padding-top: 14px; }
+  .mode-card { padding: 12px 8px; }
+  .mode-icon { font-size: 22px; margin-bottom: 2px; }
+}
+
+/* --- 中断した問題集の再開バナー（モード選択画面の先頭） --- */
+.resume-banner {
+  border: 2px solid var(--theme-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.resume-text { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 10px; }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.resume-actions .action-btn { flex: 1 1 140px; width: auto; }
+
+  </style>
+<style>#askBtn,#adviceBtn{display:none !important}</style>
+</head>
+<body>
+<div style="background:#fff4d6;color:#5b4300;padding:10px 14px;font-size:14px;line-height:1.6;border-bottom:1px solid #e6c96b">
+<strong>非公式・個人作成の仮問題です。</strong>GitHub, Inc.（GitHub）の公式の試験・規格とは無関係で、公式の出題・難度とは一致しません。事実関係は GitHub の公式ドキュメントで確認した内容に基づきますが、GitHub は頻繁に更新されるため最新の公式ドキュメントで確認してください。この公開版では成績・途中経過は保存されません。
+</div>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">🐙</div>
+    <div class="header-text">
+      <h1>GitHub 使いこなし問題集（非公式）</h1>
+      <p id="headerSub">モードを選んでください</p>
+    </div>
+    <div class="header-actions">
+      
+      
+      
+      <button type="button" class="header-btn" id="soundBtn" onclick="toggleSound()">🔊 音</button>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quizBody">
+    <div class="screen" id="screenMode">
+      <div class="resume-banner" id="resumeBanner" style="display:none;">
+        <div class="resume-text" id="resumeText"></div>
+        <div class="resume-actions">
+          <button class="action-btn primary" id="resumeBtn" onclick="resumeProgress()">▶ 続きから再開</button>
+          <button class="action-btn" onclick="discardProgress()">破棄</button>
+        </div>
+      </div>
+      <div class="mode-select">
+        <button class="mode-card" onclick="chooseMode('mc')">
+          <div class="mode-icon">📝</div>
+          <div class="mode-title" id="mcTitle">模擬試験</div>
+          <div class="mode-desc"><span id="mcCount">0</span>問・<span id="mcKind">4択</span></div>
+        </button>
+        <button class="mode-card" id="tfCard" onclick="chooseMode('tf')">
+          <div class="mode-icon">⭕</div>
+          <div class="mode-title">一問一答</div>
+          <div class="mode-desc"><span id="tfCount">0</span>問・正誤判定</div>
+        </button>
+        <button class="mode-card" id="extraCard" onclick="chooseMode('extra')">
+          <div class="mode-icon">📘</div>
+          <div class="mode-title">追加問題</div>
+          <div class="mode-desc"><span id="extraCount">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra2Card" onclick="chooseMode('extra2')">
+          <div class="mode-icon">📗</div>
+          <div class="mode-title">追加問題2</div>
+          <div class="mode-desc"><span id="extra2Count">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra3Card" onclick="chooseMode('extra3')">
+          <div class="mode-icon">🆕</div>
+          <div class="mode-title">新シラバス仮問題</div>
+          <div class="mode-desc"><span id="extra3Count">0</span>問・4択（2027年2月〜の追加分）</div>
+        </button>
+        <button class="mode-card review-card" id="reviewCard" onclick="chooseMode('review')">
+          <div class="mode-icon">🔁</div>
+          <div class="mode-title">復習</div>
+          <div class="mode-desc" id="reviewCount">間違えた問題だけ</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen" id="screenScope" style="display:none;">
+      <button class="back-link" onclick="backToModeSelect()">← モード選択に戻る</button>
+      <div class="scope-select" id="scopeSelect"></div>
+    </div>
+
+    <div class="screen" id="screenQuestion" style="display:none;">
+      <div class="progress" id="progress"></div>
+      <div class="chapter-label" id="chapterLabel"></div>
+      <div class="question-card">
+        <p class="stem" id="stem"></p>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="question-actions" id="questionActions">
+        <button class="answer-btn" id="answerBtn" onclick="reveal()" disabled>回答</button>
+        <button class="skip-btn" id="skipBtn" onclick="skipQuestion()">回答せずに次へ →</button>
+      </div>
+      <div class="reveal-area" id="revealArea" style="display:none;">
+        <div class="reveal-options" id="revealOptions"></div>
+        <div class="reveal-actions">
+          <button class="action-btn" id="askBtn" style="display:none !important" onclick="askInChat()">🤖 チャットに詳しく聞く</button>
+          <button class="action-btn primary" id="nextBtn" onclick="nextQuestion()">次の問題へ →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenSummary" style="display:none;">
+      <h2>お疲れさまでした！</h2>
+      <div class="summary-score" id="summaryScore"></div>
+      <div class="summary-chapters" id="summaryChapters"></div>
+      <div class="summary-actions">
+        <button class="action-btn primary" id="recordBtn" onclick="recordResults()">この回の結果を記録</button>
+        <button class="action-btn retry-wrong" id="retryWrongBtn" onclick="retryWrongInSession()" style="display:none;">🔁 間違えた問題だけもう一度</button>
+        <button class="action-btn" id="adviceBtn" style="display:none !important" onclick="getAdvice()">🎯 学習アドバイスを見る</button>
+        <button class="action-btn" onclick="restartMode()">もう一度</button>
+        <button class="action-btn" onclick="backToScopeSelect()">別の範囲へ</button>
+        <button class="action-btn" onclick="backToModeSelect()">別のモードへ</button>
+      </div>
+      <div class="summary-note" id="summaryNote" style="display:none;"></div>
+      <div class="record-status" id="recordStatus"></div>
+      <div class="advice-status" id="adviceStatus"></div>
+      <div class="advice-area" id="adviceArea" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_WEBAPP_URL = '';
+  const EXAM_ID = 'github';
+  const EXAM_SHORT_TITLE = 'GitHub';
+  const TRACKING_EXAM_ID = 'github';
+  const MC_TITLE = '問題集';
+  const QUESTIONS = [{"id":"github-1","type":"mc","chapterIndex":0,"stem":"変更を履歴に残すまでの手順として正しいものはどれか。","options":["git add で変更をステージし、git commit で履歴に保存する","git commit で変更をリモートへ送り、そのあと git add で履歴に残す","git push で変更をステージし、git commit で保存する","git add だけで履歴に残るので、commit は要らない"],"correctIndex":0,"explanations":["○ git add はステージ、git commit はステージ済みの変更を履歴に保存する。記録は2段階で行う。","× commit はローカルの履歴への保存で、リモートへ送るのは push である。","× push はリモートへの送信で、ステージは add が行う。","× add はステージだけで、履歴に保存するには commit が必要である。"]},{"id":"github-2","type":"mc","chapterIndex":0,"stem":"チームメンバーが push した最新の変更を、自分のローカルブランチにも1コマンドで取り込みたい。適切なコマンドはどれか。","options":["git fetch を実行すると、取得と同時に自分のブランチへマージされる","git pull は fetch と merge を一度に行うコマンド","git clone を毎回実行すると、既存のローカルブランチに変更が取り込まれる","git push を実行すると、リモートの変更が自分のブランチへ届く"],"correctIndex":1,"explanations":["× fetch は新しい作業を取得するだけで、自分のブランチへはマージしない。","○ git pull は fetch と merge を続けて行うため、ローカルブランチが変わる。","× clone は新しい完全なローカルコピーを作る操作で、既存の作業は取り込まない。","× push は手元の変更をリモートへ送る操作で、受け取りには使わない。"]},{"id":"github-3","type":"mc","chapterIndex":0,"stem":"git clone の動作として正しいものはどれか。","options":["リモートの最新コミットだけを取得し、過去の履歴は含まれない","既存のローカルリポジトリにリモートを追加するだけで、ファイルは取得されない","全履歴を含む完全な複製を作り、既定ブランチを取り出す","ブランチを作成すると同時に、リモートへ push する操作が行われる"],"correctIndex":2,"explanations":["× clone は過去の履歴を含む完全なコピーを作るため、最新コミットだけという説明は誤りである。","× clone は新しいローカルリポジトリを作る操作で、既存リポジトリにリモートを足す操作ではない。","○ clone は全ファイルと全コミットを含む完全なコピーを作り、既定ブランチをチェックアウトする。","× clone はリモートから取得する操作で、push は行われない。"]},{"id":"github-4","type":"mc","chapterIndex":0,"stem":"新しいPCで既存のGitHubリポジトリを複製したあと、リモートの扱いについて正しいものはどれか。","options":["main という名前のリモートが作成され、既定ブランチと同名になる","remote という名前のリモートが作られ、手動で名前を変える必要がある","clone の直後は、リモートが一切登録されない","origin という名前で、複製元の URL を指すリモートが自動的に作成される"],"correctIndex":3,"explanations":["× リモートの既定名は main ではなく origin である。","× 既定の名前は origin であり、remote ではない。","× clone の直後には origin が自動で登録される。","○ clone は複製元の URL を指す origin というリモートを自動で作成する。"]},{"id":"github-5","type":"mc","chapterIndex":0,"stem":".gitignore に書いたのに、以前から追跡されているファイルの変更がコミットされ続けている。適切な対処はどれか。","options":["同じファイルを .gitignore に再度書き加えるだけで、追跡は自動的に止まる","git rm --cached で追跡を解除し、.gitignore を効かせる","そのファイルを削除してから .gitignore を書くと、履歴からも消える","ファイル名を変えると、.gitignore の対象外になる"],"correctIndex":1,"explanations":["× 既に追跡されているファイルは、.gitignore を書いただけでは追跡が止まらない。","○ すでに追跡されているファイルは .gitignore だけでは追跡が止まらない。git rm --cached で追跡解除する必要がある。","× 作業フォルダから消しても、追跡状態と履歴は残るので、追跡は止まらない。","× 名前を変えても追跡は続くため、対象外にはならない。"]},{"id":"github-6","type":"mc","chapterIndex":0,"stem":"PC上のすべての Git リポジトリに、同じ無視ルールを適用したい。適切な方法はどれか。","options":["各リポジトリのルートの .gitignore を全部同じ内容にコピーして管理する","リポジトリ内の .git/config に、無視するファイルの名前一覧を直接書き込む","~/.config/git/ignore に書き、PC 全体に適用する","コミットのたびに --ignore オプションを付けて指定する"],"correctIndex":2,"explanations":["× 個別に書くと手間がかかり、全リポジトリに一括で適用はできない。","× .git/config に無視ルールを書く仕組みは、ここでは使われない。","○ グローバルの ignore ファイルは、そのPC上のすべての Git リポジトリに適用される。","× --ignore というコミット時のオプションは存在しない。"]},{"id":"github-7","type":"mc","chapterIndex":0,"stem":"GitHub へ Git で接続するときの認証方式について、公式の推奨として正しいものはどれか。","options":["SSH だけが使え、HTTPS での接続はサポートされていない","リモートの URL にパスワードを直接埋め込むことが最も推奨される","認証は Git の設定に関係なく、GitHub Desktop でのみ行える","HTTPS を推奨し、認証情報のキャッシュを勧めている"],"correctIndex":3,"explanations":["× HTTPS と SSH の両方がサポートされている。","× URL にパスワードを埋め込むことは推奨されていない。","× Git の認証は GitHub Desktop に限られない。","○ GitHub の接続は HTTPS か SSH で行い、公式は HTTPS を推奨して認証情報のキャッシュを勧めている。"]},{"id":"github-8","type":"mc","chapterIndex":0,"stem":"Git と GitHub の関係について正しい説明はどれか。","options":["Git は分散型のバージョン管理ソフトで、GitHub は Git のリポジトリをクラウド上にホストし、協働のためのツールを加えたプラットフォームである","GitHub は Git の後継となる、まったく別のバージョン管理ソフトである","Git と GitHub は同じ機能を持つ別名であり、区別する必要はない","GitHub は Git を使わず、履歴を独自の方式で管理するシステムである"],"correctIndex":0,"explanations":["○ Git はオープンソースのバージョン管理ソフトで、GitHub はその上に協働の機能を加えたホスティングのプラットフォームである。","× GitHub は Git の後継ではなく、Git を土台にしたサービスである。","× Git はソフトウェア、GitHub はそれを使うサービスで、同じものではない。","× GitHub は Git のリポジトリを扱うため、Git を使っている。"]},{"id":"github-9","type":"mc","chapterIndex":0,"stem":"ターミナルを使わずに、コミットやプッシュを GUI で行いたい。無料で使える公式のデスクトップアプリとして適切なものはどれか。","options":["GitHub CLI（gh）は、GUI で変更を操作するための公式アプリである","GitHub Mobile は、スマートフォンで Git のコミットを作るための専用アプリである","GitHub Desktop（Windows と macOS で動く無料のアプリ）","Git Bash は、GitHub が提供する GUI のクライアントである"],"correctIndex":2,"explanations":["× GitHub CLI はターミナルから使うツールで、GUI アプリではない。","× GitHub Mobile は Issue や PR の確認などが中心で、コミットを作る用途ではない。","○ GitHub Desktop は無料のオープンソースの GUI アプリで、Windows と macOS で動作する。","× Git Bash は Git を使うためのターミナルで、GitHub の GUI ではない。"]},{"id":"github-10","type":"mc","chapterIndex":0,"stem":"GitHub CLI（gh）の説明として正しいものはどれか。","options":["GitHub の機能は使えず、Git の操作だけを行うためのツールである","GitHub 専用ではなく、どのホスティングでも使える Git の拡張である","Windows でしか動かない","ターミナルから PR や Issue などを扱えるツール"],"correctIndex":3,"explanations":["× gh は GitHub の機能をターミナルから扱うためのツールである。","× gh は GitHub 専用で、他のホスティングには使えない。","× gh は特定の OS に限られない。","○ GitHub CLI は、PR、Issue、Actions などの GitHub 機能をターミナルから扱えるオープンソースのツールである。"]},{"id":"github-11","type":"mc","chapterIndex":0,"stem":"リモートの新しい履歴を取り込むが、自分のローカルブランチは変えない操作はどれか。","options":["git fetch（ローカルのブランチは変えない）","git pull（取得したあと、自分のブランチにも自動でマージする）","git merge（別のブランチの内容を現在のブランチへ取り込む）","git clone（リモートのリポジトリを新しく複製する）"],"correctIndex":0,"explanations":["○ fetch は新しい作業を取得するだけで、自分のブランチは変わらない。","× pull は fetch と merge を続けて行うため、ローカルブランチが変わる。","× merge は現在のブランチを変更する操作である。","× clone は新しいリポジトリを複製する操作で、既存の作業は変えない操作ではない。"]},{"id":"github-12","type":"mc","chapterIndex":0,"stem":"コミットを識別するための ID について正しいものはどれか。","options":["コミット ID は作成者が自由に決める連番で、リポジトリ内で重複することがある","コミットには一意の ID（SHA、ハッシュ）が付き、変更内容・時刻・作成者を特定するのに使われる","コミット ID はブランチ名と同じ値になり、ブランチごとに1つだけ存在する","コミット ID は GitHub のユーザー名を基にした文字列である"],"correctIndex":1,"explanations":["× コミット ID は連番ではなく、重複しない一意のハッシュである。","○ コミットには SHA と呼ばれる一意の ID が付き、変更内容、時刻、作成者を特定できる。","× コミット ID はブランチ名とは別の値である。","× コミット ID はユーザー名から作られるものではない。"]},{"id":"github-13","type":"mc","chapterIndex":0,"stem":"GUI で Git を使う人が、Windows と macOS のどちらでも同じ操作をしたい。GitHub Desktop の対応OSとして正しいものはどれか。","options":["Windows、macOS、Linux のすべてで動作する","Linux でのみ動作する","macOS だけで動く","Windows と macOS の両方で動作する"],"correctIndex":3,"explanations":["× Linux は対応OSに含まれない。","× Windows でも動作する。","× Windows でも動作し、Web 版に限られない。","○ GitHub Desktop は Windows と macOS で動作する。"]},{"id":"github-14","type":"mc","chapterIndex":0,"stem":"GitHub Mobile の機能として正しいものはどれか。","options":["通知の確認、Issue や PR のレビューなどができる","リポジトリを clone して、ローカルでビルドを実行できる","Codespaces の開発環境を作成し、ターミナルで操作できる","Git のコマンドを提供する"],"correctIndex":0,"explanations":["○ GitHub Mobile は Android と iOS 向けのアプリで、通知の整理やレビュー、2要素認証の確認などに使う。","× clone やビルドは GitHub Mobile の機能ではない。","× Codespaces は GitHub Mobile から作成して操作するものではない。","× Git のコマンドラインは提供されていない。"]},{"id":"github-15","type":"mc","chapterIndex":0,"stem":"分散型バージョン管理システムの特徴として正しいものはどれか。","options":["中央サーバーとの常時接続が無いと、履歴の確認ができない","各開発者が全履歴の完全なコピーを持つ","変更は中央リポジトリにだけ記録され、手元のコピーには履歴が残らない","過去の任意のバージョンを復元する機能は持たない"],"correctIndex":1,"explanations":["× 分散型では手元で履歴を確認できるため、常時接続は必要ない。","○ 分散型では、各開発者が全履歴を持つため、中央への常時接続は必要ない。","× 分散型では手元にも全履歴があり、中央だけに記録されるわけではない。","× 分散型でも、任意のバージョンを復元できる。"]},{"id":"github-16","type":"mc","chapterIndex":1,"stem":"個人アカウントで作ったリポジトリを、インターネット上の誰でも閲覧できる状態にしたい。適切な設定はどれか。","options":["private に設定すると、インターネット上の誰でも閲覧できる状態になる","ライセンスファイルを追加するだけで、閲覧は誰にでも許可される","リポジトリの可視性を public にすると、インターネット上の誰でも閲覧できる","README を置けば、既定で誰でも閲覧できる状態になる"],"correctIndex":2,"explanations":["× private は閲覧者を限定する設定である。","× ライセンスの有無は閲覧できる範囲を決めない。","○ public のリポジトリは、インターネット上の誰でも閲覧できる。","× README の有無は公開範囲に影響しない。"]},{"id":"github-17","type":"mc","chapterIndex":1,"stem":"社内の限られたメンバーだけに見せたい。リポジトリの設定として適切なものはどれか。","options":["private にし、本人と共有した人だけがアクセスできる","public にして、閲覧者をリポジトリの Issue で絞る","public にして、閲覧者を Issue で絞る","ライセンスを付けて、閲覧できる人を指定する"],"correctIndex":0,"explanations":["○ private のリポジトリは、本人と明示的に共有した人、組織では一部のメンバーにだけアクセスを許す。","× public は誰でも閲覧できるので、閲覧者の絞り込みには使えない。","× 共有した人は作成者以外でもアクセスできる。","× ライセンスは閲覧者を指定する仕組みではない。"]},{"id":"github-18","type":"mc","chapterIndex":1,"stem":"リポジトリの可視性（public か private）を変更できるのは誰か。","options":["write 権限を持つ人なら誰でも、いつでも変更できる","admin 権限を持つ人が変更できる","読み取り権限を持つ人なら、公開設定を切り替えられる","サポートへ依頼するしかない"],"correctIndex":1,"explanations":["× write 権限では可視性は変えられない。","○ リポジトリの可視性を変更できるのは admin 権限を持つ人である。","× read 権限で公開設定は変えられない。","× 管理者が自分で変更でき、サポートへの依頼は不要である。"]},{"id":"github-19","type":"mc","chapterIndex":1,"stem":"fork と clone の違いとして正しいものはどれか。","options":["fork も clone も、元のリポジトリへ直接 push するための操作である","clone は新しいリポジトリを作成し、fork は手元にデータを複製する操作である","fork は新しいリポジトリを作る操作で、clone は手元へ複製する操作","fork は手元のデータを複製する操作で、clone はGitHub上に新しいリポジトリを作る操作である"],"correctIndex":2,"explanations":["× fork と clone はどちらも、元のリポジトリへの直接の push ではない。","× clone と fork の説明が入れ替わっている。","○ fork は GitHub 上に別のリポジトリを作り、clone は手元にデータをダウンロードする操作である。","× fork と clone の説明が入れ替わっている。"]},{"id":"github-20","type":"mc","chapterIndex":1,"stem":"README を表示させたい。GitHub が自動で表示する場所として正しいものはどれか。","options":["リポジトリの設定画面の Description に書いた内容が、README として表示される","コード内の最初の .md ファイルが自動的に README として表示される","wiki に置いたページが、リポジトリのトップに表示される","ルート、docs、.github のいずれかのディレクトリに置くと自動で表示され、複数ある場合は .github、ルート、docs の順に最初のものが使われる"],"correctIndex":3,"explanations":["× Description は README の本文ではない。","× 最初に見つかった .md ファイルが README になるわけではない。","× wiki は README の表示場所ではない。","○ README は .github、ルート、docs のいずれかにあると表示され、複数ある場合は .github、ルート、docs の順に使われる。"]},{"id":"github-21","type":"mc","chapterIndex":1,"stem":"コードの所有者を決めて、そのファイルが変更された PR に自動でレビュー依頼したい。どのファイルに書くか。","options":["SECURITY.md に担当者名を書く","CODEOWNERS に所有者を書く","LICENSE に名前を列挙する","README に担当者を書く"],"correctIndex":1,"explanations":["× SECURITY.md は脆弱性の報告方法を書くファイルである。","○ CODEOWNERS に書いた所有者は、そのファイルが変更された PR でレビューを依頼される。","× LICENSE はライセンス文を書くファイルである。","× README はプロジェクトの説明を書くファイルで、所有者の指定には使わない。"]},{"id":"github-22","type":"mc","chapterIndex":1,"stem":"CODEOWNERS で同じファイルに複数のパターンが一致した場合の扱いとして正しいものはどれか。","options":["最初に一致したパターンが優先され、以降は無視される","すべての一致した所有者に、同時にレビューが依頼される","最後に一致したパターンが優先される","一致数が多いほど優先される"],"correctIndex":2,"explanations":["× 最初のパターンが優先されるわけではない。","× すべての一致が使われるのではなく、最後の一致が優先される。","○ CODEOWNERS では、最後に一致したパターンが優先される。","× パターンの数は優先順位を決めない。"]},{"id":"github-23","type":"mc","chapterIndex":1,"stem":"ライセンスを付けていないリポジトリの扱いとして正しいものはどれか。","options":["誰でも自由に複製・配布・改変できる公開物になる","GitHub が自動で MIT ライセンスを付与するので、問題はない","ライセンスは README に書けば十分で、LICENSE ファイルは不要である","既定の著作権が適用される"],"correctIndex":3,"explanations":["× ライセンスが無いと、自由に使えるわけではない。","× GitHub が自動でライセンスを付けることはない。","× ライセンス文は LICENSE などのファイルに置くのが一般的である。","○ ライセンスが無ければ既定の著作権法が適用され、他者は複製や配布、派生物の作成ができない。"]},{"id":"github-24","type":"mc","chapterIndex":1,"stem":"社内の新規プロジェクトで、毎回同じフォルダ構成とファイルを持つリポジトリを作りたい。リポジトリ側の仕組みとして適切なものはどれか。","options":["テンプレートリポジトリに設定し、そこから新しいリポジトリを作る。作成したリポジトリは履歴が独立している","既存のリポジトリを fork して使うと、以後の変更がテンプレートに自動で反映される","既存のリポジトリをアーカイブし、読み取り専用のコピーとして使い回す","ブランチをコピーして、新しいリポジトリとして公開する"],"correctIndex":0,"explanations":["○ テンプレートリポジトリから作ったリポジトリは、同じ構成を持ちながら履歴は独立している。","× fork は元と繋がるが、テンプレートのように元の変更が自動で反映されるわけではない。","× アーカイブは読み取り専用にする操作で、新しい構成を複製する仕組みではない。","× ブランチのコピーは別のリポジトリを作る操作ではない。"]},{"id":"github-25","type":"mc","chapterIndex":1,"stem":"テンプレートから作ったリポジトリについて正しいものはどれか。","options":["テンプレートの更新は、作成済みのリポジトリに自動で反映される","テンプレートの履歴も引き継がれるので、元との差分をいつでも PR で送れる","元のテンプレートと履歴が独立しており、PR やマージはできない","テンプレートから作ったリポジトリには、後で追加できない"],"correctIndex":2,"explanations":["× テンプレートの変更は、作成済みのリポジトリに自動では反映されない。","× 履歴は独立しているので、元へ PR は送れない。","○ テンプレートから作ったリポジトリは履歴が独立しており、元のテンプレートとの間で PR やマージはできない。","× 作成したリポジトリには自由にファイルを追加できる。"]},{"id":"github-26","type":"mc","chapterIndex":1,"stem":"リポジトリをアーカイブした場合の説明として正しいものはどれか。","options":["リポジトリは削除され、復元はできない","誰でも push できるが、Issue は作成できなくなる","admin だけが閲覧でき、他の利用者からは見えなくなる","全員が読み取り専用になり、あとで解除できる"],"correctIndex":3,"explanations":["× 削除ではなく、解除して元に戻せる。","× push ができなくなるので、誰でも push できるわけではない。","× 閲覧はできるため、admin だけが見られるわけではない。","○ アーカイブすると読み取り専用になり、あとで解除できる。"]},{"id":"github-27","type":"mc","chapterIndex":1,"stem":"Releases の説明として正しいものはどれか。","options":["Git タグを土台にした配布機能","Git の履歴を別のブランチに退避させ、保存する機能である","アイデアを投票で集める Discussions 専用の機能である","訪問者数を日別に集計して表示するためだけの機能である"],"correctIndex":0,"explanations":["○ Releases は Git タグを土台にして、リリースノートや成果物を配布する機能である。","× Releases は履歴の退避ではなく、配布のための機能である。","× Discussions とは別の機能である。","× 訪問者数の集計は Releases の機能ではない。"]},{"id":"github-28","type":"mc","chapterIndex":1,"stem":"リリースを閲覧・管理する権限の関係として正しいものはどれか。","options":["閲覧には admin 権限が必要で、管理は read 権限でも行える","閲覧は read 権限があれば可能で、リリースの作成や編集などの管理には write 権限が必要である","誰でも作成でき、編集は作成者だけに限られる","管理には triage 権限が必要で、閲覧は誰にでも許される"],"correctIndex":1,"explanations":["× 閲覧は read 権限で可能で、admin は必要ない。管理に read は足りない。","○ リリースの閲覧は read 権限で可能だが、管理には write 権限が必要である。","× 作成と編集には write 権限が必要である。","× 管理には write 権限が必要で、triage では足りない。"]},{"id":"github-29","type":"mc","chapterIndex":1,"stem":"リポジトリのルートに CITATION.cff を置いた場合に起きることとして正しいものはどれか。","options":["ライセンス情報が自動で書き換えられ、リポジトリの引用元の表示が変わってしまう","リポジトリ名がその引用の形式に変更される","Issue に引用文が自動で投稿される","サイドバーに「Cite this repository」が表示される"],"correctIndex":3,"explanations":["× ライセンスは変わらない。引用ファイルが読まれるだけである。","× リポジトリ名は変わらない。","× Issue に投稿されることはない。","○ CITATION.cff があると、サイドバーに引用の表示が出て、APA や BibTeX の形式で引用できる。"]},{"id":"github-30","type":"mc","chapterIndex":1,"stem":"リポジトリを別のアカウントや組織に転送したい。転送時の扱いとして正しいものはどれか。","options":["Issue や PR、Wiki も移り、旧 URL は転送される","Issue や PR は失われ、コードだけが新しい所有者へ移される","転送後は所有者が元のままになり、新しい所有者は閲覧のみできる設定になる","転送には削除が必要になる"],"correctIndex":0,"explanations":["○ 転送すると Issue、PR、Wiki、スターなども移り、旧 URL からはリダイレクトされる。","× Issue や PR は移る。","× 転送すると所有者は新しい所有者に変わる。","× ブランチの削除は転送の条件ではない。"]},{"id":"github-31","type":"mc","chapterIndex":2,"stem":"新機能の作業用に新しいブランチを作りたい。一般的な出発点はどれか。","options":["前回の機能ブランチから枝分かれさせるのが推奨される","既定ブランチ（通常は main）から作る","リモートに存在しない名前のブランチは作れないので、先に push する","作業中の別のブランチを、そのまま作業ブランチとして改名して使う"],"correctIndex":1,"explanations":["× 機能ブランチから派生させるのが基本ではない。","○ ブランチは既存のブランチ（通常は既定ブランチ）から作るのが基本である。","× ブランチはローカルで作ってから push できる。","× 作業中のブランチを改名して流用するのは一般的な出発点ではない。"]},{"id":"github-32","type":"mc","chapterIndex":2,"stem":"PR の比較で使う2つのブランチの用語として正しいものはどれか。","options":["head は取り込み先で、base は変更を持つ側のブランチである","head と base が同じブランチでは PR を作れない","head は変更を持つ側のブランチ、base は取り込み先のブランチで、base は作成時に変えられる","base は既定ブランチに固定され、変更はできない"],"correctIndex":2,"explanations":["× head と base の説明が入れ替わっている。","× 同じブランチ同士では比較できないが、ここでは head と base の説明が誤りである。","○ PR は head（変更側）と base（取り込み先）の間で比較される。base は作成時に変更できる。","× base は作成時に変更できる。"]},{"id":"github-33","type":"mc","chapterIndex":2,"stem":"GitHub の PR の差分表示について正しいものはどれか。","options":["三点 diff で、マージベースから topic ブランチの最新までの差分を表示する","二点 diff で、base の最新と topic の最新を比べるので、base の更新で結果は変わらない","base の全履歴と topic の全履歴を単純に並べて、重複を除いて表示する","topic ブランチの最初のコミットだけを表示する"],"correctIndex":0,"explanations":["○ GitHub の PR は三点 diff で、マージベースから topic ブランチの最新までの差分を表示する。","× 二点 diff は base が更新されると結果が変わるので、結果は変わらないという説明は誤りである。","× 単純な並べ替えではなく、マージベースを基準にした差分である。","× 最初のコミットだけを表示するわけではない。"]},{"id":"github-34","type":"mc","chapterIndex":2,"stem":"Rebase and merge の結果として正しいものはどれか。","options":["全コミットが base 上の1つにまとめられる","マージコミットを作らず、各コミットを1つずつ追加する","feature ブランチのすべてのコミットが --no-ff のマージコミットとして残る","ブランチの履歴は残らず、作業内容だけが base に上書きされる"],"correctIndex":1,"explanations":["× 全コミットを1つにまとめるのは Squash and merge である。","○ Rebase and merge は、マージコミットを作らず、各コミットを base に1つずつ追加して線形の履歴にする。","× マージコミットを作るのはマージコミット方式である。","× 履歴は各コミットとして残る。"]},{"id":"github-35","type":"mc","chapterIndex":2,"stem":"細かい修正コミットを、main の履歴では1件にまとめたい。適切なマージ方式はどれか。","options":["マージコミット方式で、履歴をすべて残す","Rebase and merge で、コミットを1つずつ残す","Squash and merge","PR を閉じて、コミットを残さない"],"correctIndex":2,"explanations":["× マージコミット方式は全コミットを残す方式である。","× Rebase and merge は各コミットを1つずつ残す。","○ Squash and merge は PR の全コミットを base 上の1つのコミットにまとめる。","× 閉じると取り込まれないので、1件にまとめる方式ではない。"]},{"id":"github-36","type":"mc","chapterIndex":2,"stem":"GitHub 上で squash や rebase のマージを使うための条件として正しいものはどれか。","options":["マージを行うのは admin 権限者だけで、他の方式は禁止されている","リポジトリの設定で許可されていなくても、ブランチ保護があれば使える","PR の作成者が read 権限を持っていれば、いつでも使える","リポジトリでその方式が許可されており、マージする人に write 権限があること"],"correctIndex":3,"explanations":["× admin 権限の人だけに限られるわけではない。","× リポジトリで許可されていないと使えない。","× read 権限ではマージできない。","○ squash や rebase のマージは、リポジトリで許可され、利用者に write 権限があることが条件である。"]},{"id":"github-37","type":"mc","chapterIndex":2,"stem":"2つのブランチで、同じファイルの同じ行が別々の内容に変更された。この状態の説明として正しいものはどれか。","options":["Git は必ず自動でマージするので、競合は起きない","競合（merge conflict）が起き、人が解決する","同じ行でも、片方が先に push していれば競合は起きない","競合は、異なるファイルの変更で起きやすい"],"correctIndex":1,"explanations":["× Git は同じ行の異なる変更を自動では決められない。","○ 同じファイルの同じ行を異なる内容に変えると競合が起き、人が解決する必要がある。","× 先に push したかどうかは競合の有無に関係しない。","× 競合は同じ行の変更で起きやすい。"]},{"id":"github-38","type":"mc","chapterIndex":2,"stem":"PR に未解決の競合がある場合、GitHub 上の動作として正しいものはどれか。","options":["競合があってもボタンは有効なまま、マージ後に自動で解決される","競合があると PR は自動で閉じられ、再作成が必要になる","マージボタンが無効になり、解決するまでマージできない","競合は Web エディタでのみ解決できる"],"correctIndex":2,"explanations":["× ボタンは無効になり、自動解決はされない。","× 競合で PR が閉じられることはない。","○ 未解決の競合があるとマージボタンが無効になり、解決するまでマージできない。","× 複雑な競合はローカルで解決する必要がある。"]},{"id":"github-39","type":"mc","chapterIndex":2,"stem":"Web エディタで解決できない複雑な競合がある。どうするのが適切か。","options":["Web エディタの機能を使い、リポジトリごと作り直す","競合マーカーを残したまま、そのまま merge ボタンを押す","GitHub のサポートに依頼して、競合を消してもらう","ローカルで競合を解決してから push する"],"correctIndex":3,"explanations":["× リポジトリを作り直す必要はない。","× 競合マーカーが残ったままでは正しく解決されない。","× 競合の解決はサポートの仕事ではなく、利用者が行う。","○ 複雑な競合は Web では解決しにくく、ローカルで解決して push する。"]},{"id":"github-40","type":"mc","chapterIndex":2,"stem":"Web で競合を解決する手順として正しいものはどれか。","options":["ファイルごとに「Mark as resolved」を押して解決済みにし、すべて解決したら「Commit merge」でコミットする","競合マーカーの行を消さずに「Commit merge」を押すと、自動で整えられる","「Mark as resolved」を押すだけで、ファイルの内容は変更されない","すべての競合を解決したあと、新しい PR を作り直す必要がある"],"correctIndex":0,"explanations":["○ Web では、ファイルごとに Mark as resolved を押し、全部解決してから Commit merge でコミットする。","× マーカーを残したままでは、自動で整えられることはない。","× Mark as resolved はファイルを解決済みにするが、内容は手で直す必要がある。","× PR を作り直す必要はない。"]},{"id":"github-41","type":"mc","chapterIndex":2,"stem":"競合マーカー（\u003c\u003c\u003c\u003c\u003c\u003c\u003c、=======、>>>>>>>）の扱いとして正しいものはどれか。","options":["マーカーは残しておけば、Git が次回のマージで自動的に消す","マーカーは Git が管理するため、手で編集すると壊れる","解決時にはこれらのマーカーを削除し、最終的な内容に編集する","マーカーは、コメント行として残しておけば問題ない"],"correctIndex":2,"explanations":["× 残したままでは Git が消すことはない。","× マーカーは手で削除して直す対象である。","○ 競合マーカーは解決時に削除し、最終的な内容に編集する。","× コメントとして残すのは、解決の正しい方法ではない。"]},{"id":"github-42","type":"mc","chapterIndex":2,"stem":"既定ブランチを別のブランチに変更するための条件として正しいものはどれか。","options":["write 権限があれば、既定ブランチの変更はいつでもできる","既定ブランチは一度決めたら変更できない","既定ブランチは clone のためだけのもので、admin の操作は無関係である","admin アクセスがあり、複数のブランチがあること"],"correctIndex":3,"explanations":["× write 権限では変更できない。","× 既定ブランチは変更できる。","× 既定ブランチは admin の操作で変更される。","○ 既定ブランチの変更には admin アクセスが必要で、リポジトリに複数のブランチがあることが前提である。"]},{"id":"github-43","type":"mc","chapterIndex":2,"stem":"Auto-merge の説明として正しいものはどれか。","options":["PR ごとに設定し、要件を満たすと自動でマージされる","リポジトリ設定を有効化すれば、全 PR が要件なしで自動的にマージされる","PR の作成者が設定すれば、write 権限がなくても自動マージできる","自動マージを使えば承認なしでマージされ、ブランチ保護は不要になる"],"correctIndex":0,"explanations":["○ Auto-merge は、リポジトリで有効化したうえで、write 権限を持つ人が PR ごとに設定する。","× 全 PR に自動で効くわけではない。","× 設定には write 権限が必要である。","× ブランチ保護は別の仕組みで、自動マージでも不要にはならない。"]},{"id":"github-44","type":"mc","chapterIndex":2,"stem":"マージ後に head ブランチを自動で削除する設定について正しいものはどれか。","options":["PR の作成者なら誰でもオン／オフでき、リポジトリごとに切り替えられる","リポジトリの admin だけがオン／オフでき、マージ後に head ブランチを自動で削除する設定である","write 権限者ならオン／オフできるが、組織の設定では変更できない","マージ後に base ブランチも削除される設定である"],"correctIndex":1,"explanations":["× 作成者にはその権限がない。","○ この設定は、リポジトリの admin だけがオン／オフできる。","× write 権限では変更できない。","× 削除されるのは head ブランチである。"]},{"id":"github-45","type":"mc","chapterIndex":2,"stem":"squash のマージが有効なとき、既定のコミットメッセージとして正しいものはどれか。","options":["常に PR の本文だけが使われ、タイトルは使われない","常に最初のコミットのメッセージが使われ、他は捨てられる","既定メッセージは空で、マージする人が必ず入力しなければならない","コミットが1つならその内容、2つ以上なら PR タイトル"],"correctIndex":3,"explanations":["× 本文だけが使われるわけではない。","× コミットが2つ以上なら、最初のコミットだけは使われない。","× 既定メッセージは空ではない。","○ コミットが1つならそのコミットの内容、2つ以上なら PR タイトルとコミット一覧が既定になる。"]},{"id":"github-46","type":"mc","chapterIndex":3,"stem":"作業途中の PR を、レビュー依頼前に共有したい。マージは禁止しておきたい。どうするのが適切か。","options":["ドラフト PR にする","PR をクローズしてから、再オープンすればよい","PR の本文に「作業中」と書けば、マージは自動的に止まる","名前を変える"],"correctIndex":0,"explanations":["○ ドラフト PR はマージできず、ready for review にした時点で初めてマージ可能になる。","× クローズはレビューの共有に向かない。","× 本文の文言では、マージは止まらない。","× ブランチ名では、マージは禁止されない。"]},{"id":"github-47","type":"mc","chapterIndex":3,"stem":"ドラフト PR について正しいものはどれか。","options":["ドラフト PR も、通常の PR と同じくマージできる","ready にした時点で依頼される","ドラフト PR にはレビューを付けることができない","ドラフトに戻すと、購読していた人の購読がすべて解除される"],"correctIndex":1,"explanations":["× ドラフト PR はマージできない。","○ ドラフト PR にはコードオーナーへの依頼は行われず、ready for review にした時点で依頼される。","× レビューの有無とドラフトは関係しない。","× ドラフトに戻しても購読は解除されない。"]},{"id":"github-48","type":"mc","chapterIndex":3,"stem":"PR 画面の主なタブの組み合わせとして正しいものはどれか。","options":["Overview、Code、Issues、Settings","Discussion、Diff、Logs、Actions","Conversation、Commits、Checks、Files changed","Summary、Branches、Tags、Insights"],"correctIndex":2,"explanations":["× Overview や Settings は PR の主なタブではない。","× Diff や Logs は PR の主なタブではない。","○ PR の主なタブは Conversation、Commits、Checks、Files changed である。","× Summary や Tags は PR の主なタブではない。"]},{"id":"github-49","type":"mc","chapterIndex":3,"stem":"fork and pull モデルの説明として正しいものはどれか。","options":["自分の fork には許可なく push でき、上流へ PR を出す","上流リポジトリに直接 push するため、write 権限が必須である","fork の作成には、上流の承認が常に必要である","PR は上流から fork 元へ送る必要がある"],"correctIndex":0,"explanations":["○ 自分の fork への push に上流の許可は要らず、上流へは PR で変更を提案する。","× 直接 push するのは共同作業のモデルで、fork and pull ではない。","× 上流が許可していれば fork できるが、常に承認が必要なわけではない。","× PR は fork から上流へ送る。"]},{"id":"github-50","type":"mc","chapterIndex":3,"stem":"レビューの判断の種類として正しいものはどれか。","options":["Approve、Reject、Merge の3種類","Comment、Approve、Request changes の3種類","Comment と Approve の2種類のみで、変更の要求は含まれない","Accept、Decline、Pending の3種類で、承認者が一つ選んで使う"],"correctIndex":1,"explanations":["× Reject と Merge は判断の種類ではない。","○ レビューの判断は Comment、Approve、Request changes の3種類である。","× Request changes も含めて3種類である。","× Accept、Decline、Pending は判断の種類ではない。"]},{"id":"github-51","type":"mc","chapterIndex":3,"stem":"読み取り権限しか持たない利用者ができることとして正しいものはどれか。","options":["レビューを依頼すること","PR を承認してマージすること","コメントを付けること","ブランチ保護を変えること"],"correctIndex":2,"explanations":["× レビューの依頼には write アクセスが必要である。","× マージには write 権限が必要である。","○ read アクセスがあれば、誰でも PR にレビューやコメントを付けられる。","× ブランチ保護の変更には admin 権限が必要である。"]},{"id":"github-52","type":"mc","chapterIndex":3,"stem":"リポジトリ管理者が、PR をマージする前提として設定できることはどれか。","options":["PR の作成者に承認を禁止すること","承認なしでも、マージを一度だけ許可すること","コードオーナーの承認を外しておくこと","マージの前に、承認（レビュー）を必須にすること"],"correctIndex":3,"explanations":["× 作成者の承認を禁止する設定はない。","× 承認なしのマージを一度だけ許可する設定はない。","× コードオーナーの承認を除外する仕組みではない。","○ 管理者はマージ前に承認を必須にできる。"]},{"id":"github-53","type":"mc","chapterIndex":3,"stem":"コードオーナーへの自動レビュー依頼が起きる条件として正しいものはどれか。","options":["PR の作成者が、リポジトリのすべての所有者を手動で指定したとき","所有者が指定したファイルが PR で変更されたとき","ドラフト PR を作った時点で依頼が届くとき","Issue の担当者が変更したとき"],"correctIndex":1,"explanations":["× 手動の指定は自動依頼の条件ではない。","○ CODEOWNERS に書かれたファイルが PR で変更されると、所有者にレビューが依頼される。","× ドラフト PR の時点では依頼されない。","× Issue の担当者は関係しない。"]},{"id":"github-54","type":"mc","chapterIndex":3,"stem":"PR の本文に closing キーワードを書いたときの説明として正しいものはどれか。","options":["closing キーワードは、どのブランチ宛の PR でも Issue を自動で閉じる","closing キーワードは、Issue のコメント欄に書いた場合だけ有効になる","Closes などを書き、既定ブランチ宛の PR をマージすると閉じる","PR を作る前に、Issue が閉じられる"],"correctIndex":2,"explanations":["× 既定ブランチ宛でない PR では効かない。","× PR の本文に書くのが基本で、Issue のコメント欄だけではない。","○ closing キーワードは、PR が既定ブランチ宛のときに効き、マージで Issue を閉じる。","× 閉じるのはマージ時である。"]},{"id":"github-55","type":"mc","chapterIndex":3,"stem":"別のリポジトリの Issue を、PR で閉じたい。PR の本文の書き方として正しいものはどれか。","options":["Fixes #100 と書けば、どのリポジトリの Issue でも閉じられる","Closes の代わりに Mention と書けば、別リポジトリでも閉じられる","Fixes 100 と書けば、番号だけで別リポジトリの Issue が閉じられる","Fixes OWNER/REPO#100 と完全に書く"],"correctIndex":3,"explanations":["× 番号だけでは同じリポジトリの Issue しか指せない。","× Mention は閉じるキーワードではない。","× 番号だけでは別リポジトリの Issue を指定できない。","○ 別リポジトリの Issue は、OWNER/REPO#番号 の形で完全に書く必要がある。"]},{"id":"github-56","type":"mc","chapterIndex":3,"stem":"PR テンプレートの配置として正しいものはどれか。","options":["ファイル名を pull_request_template.md とし、ルート、docs、.github のいずれかに置く","ファイル名は PR_TEMPLATE.md で、Issues ディレクトリに置く","ファイル名は自由で、.github/workflows に置く必要がある","テンプレートは設定画面からのみ作成でき、ファイルとしては置けない"],"correctIndex":0,"explanations":["○ PR テンプレートは pull_request_template.md という名前で、ルート、docs、.github のいずれかに置く。","× ファイル名と置き場所が違う。","× workflows ディレクトリは PR テンプレートの場所ではない。","× ファイルとして置ける。"]},{"id":"github-57","type":"mc","chapterIndex":3,"stem":"PR テンプレートを複数用意し、URL のクエリで選べるようにしたい。配置として適切なものはどれか。","options":["同じファイルに全テンプレートを書き、ヘッダの見出しで切り替えて使う","テンプレートごとにブランチを分け、ブランチ名で選ぶ","PULL_REQUEST_TEMPLATE/ に置いて選ぶ","テンプレートは一つしか使えず、複数は作れない"],"correctIndex":2,"explanations":["× 1つのファイルに全部書く方法は、ここでは使わない。","× ブランチでテンプレートを選ぶ仕組みはない。","○ 複数のテンプレートは PULL_REQUEST_TEMPLATE/ サブディレクトリに置き、template クエリで選ぶ。","× 複数のテンプレートは作成できる。"]},{"id":"github-58","type":"mc","chapterIndex":3,"stem":"PR テンプレートが画面に反映されるタイミングとして正しいものはどれか。","options":["作業ブランチにコミットした時点で、すぐ使われる","設定画面に保存すると使われる","ドラフト PR を作成し、初めて使われるようになる","既定ブランチにマージされてから使われる"],"correctIndex":3,"explanations":["× 作業ブランチのコミットでは、まだ使われない。","× 設定画面への保存ではなく、既定ブランチへのマージが必要である。","× ドラフトの有無とは関係しない。","○ テンプレートは既定ブランチにマージされてから利用可能になる。"]},{"id":"github-59","type":"mc","chapterIndex":3,"stem":"コードの特定の行に、具体的な修正案を提示したい。GitHub の機能として適切なものはどれか。","options":["suggestion ブロックで修正案を書く","PR の本文に修正後のコードを貼り付けるだけで、提案として扱われる","コードを直接編集して、提案として commit する","修正案を Issue に分けて作り、PR からリンクする"],"correctIndex":0,"explanations":["○ コードへのコメントに suggestion ブロックを書くと、具体的な修正案を提示できる。","× 本文への貼り付けは、行の提案としては扱われない。","× 直接の commit は提案ではなく、修正そのものである。","× Issue に分けるのは提案の機能ではない。"]},{"id":"github-60","type":"mc","chapterIndex":3,"stem":"レビューのコメントをまとめて通知するための操作として正しいものはどれか。","options":["コメントを1件ずつ送るのが唯一の方法である","Start a review でコメントを溜め、Submit review でまとめて通知する","コメントを下書きに保存し、PR の作成者が自分で送信する","Resolve conversation を押すと、すべてのコメントがまとめて送信される"],"correctIndex":1,"explanations":["× まとめて送る方法もある。","○ 複数のコメントは Start a review で溜め、Submit review でまとめて通知できる。","× 下書きをレビュアーが送信するのが基本である。","× Resolve conversation は会話を解決済みにする操作で、送信ではない。"]},{"id":"github-61","type":"mc","chapterIndex":4,"stem":"Issue の作成画面を、特定のラベルと担当者を入れた状態で開くリンクを作りたい。使う方法として正しいものはどれか。","options":["Issue の本文に特別な記法を書くと、入力欄が自動で埋まる","リポジトリの設定で既定のラベルを決めると、URL は不要になる","Issue テンプレートを削除すると、URL で入力欄を指定できるようになる","Issue 作成用の URL に labels などのクエリを付ける"],"correctIndex":3,"explanations":["× 本文の記法では作成画面は埋まらない。","× 既定ラベルは新規の Issue に付くだけで、作成画面の URL 指定とは別の仕組みである。","× テンプレートを削除しても、URL で入力欄は指定できない。","○ Issue 作成 URL の title、body、labels、milestone、assignees、projects、template などのクエリで、内容を事前入力できる。"]},{"id":"github-62","type":"mc","chapterIndex":4,"stem":"URL のクエリで Issue の内容を事前入力するときの注意として正しいものはどれか。","options":["権限がないと機能せず、無効な URL は 404 になる","権限がなくても、クエリは機能して内容が事前入力される","無効な URL では、エラーなしで Issue の作成画面が開く","クエリは、作成済みの Issue の内容を書き換えるためにだけ使われる"],"correctIndex":0,"explanations":["○ URL クエリは権限がないと機能せず、権限不足や無効な URL では 404 になる。","× 権限がないと、クエリは機能しない。","× 無効な URL は 404 になり、画面は開かない。","× クエリは作成画面の事前入力に使うもので、作成済みの Issue を書き換えるものではない。"]},{"id":"github-63","type":"mc","chapterIndex":4,"stem":"Discussion の投稿を、正式な作業項目として Issue に移したい。Discussion から Issue を作成できるのは誰か。","options":["Discussion の投稿者なら誰でも、自分の投稿から Issue を作れる","triage 権限を持つユーザー","リポジトリの read 権限を持つ全員","admin 権限を持つ人だけで、triage 権限では作れない"],"correctIndex":1,"explanations":["× 投稿者であることは条件ではない。","○ Discussion から Issue を作成できるのは triage 権限を持つユーザーに限られる。","× read 権限では作成できない。","× triage 権限でも作成できるので、admin だけに限られるわけではない。"]},{"id":"github-64","type":"mc","chapterIndex":4,"stem":"新規リポジトリに最初から付いている既定のラベルについて正しいものはどれか。","options":["既定ラベルは一つもなく、すべて手動で作る必要がある","既定ラベルは Organization の設定を変えたときにだけ付与される","bug や documentation、good first issue などの既定ラベルが付いている","既定ラベルは clone をしたときに、ローカルにだけ作られる"],"correctIndex":2,"explanations":["× 新規リポジトリには既定ラベルが付く。","× Organization の設定とは関係なく付く。","○ 新規リポジトリには bug、documentation、duplicate、enhancement、good first issue などの既定ラベルが付く。","× 既定ラベルはリポジトリ側に作られ、clone の操作とは関係しない。"]},{"id":"github-65","type":"mc","chapterIndex":4,"stem":"ラベルの権限について正しいものはどれか。","options":["作成・編集・削除は write、適用は triage で行う","ラベルの適用には admin 権限が必要である","read 権限があれば、ラベルを作成・削除できる","ラベルの作成は triage 権限があれば、どの人でもいつでもできる"],"correctIndex":0,"explanations":["○ ラベルの作成・編集・削除は write アクセス、適用と解除は triage アクセスで行える。","× 適用は triage 権限でできる。","× read 権限ではラベルを作成・削除できない。","× 削除には write 権限が必要である。"]},{"id":"github-66","type":"mc","chapterIndex":4,"stem":"good first issue ラベルを付けた Issue はどこに表示されるか。","options":["Discussions の先頭","リポジトリの contribute ページ","自分のプロフィールの活動欄に、一覧で表示される","Actions の実行履歴の一覧にも表示され、一覧に残る"],"correctIndex":1,"explanations":["× Discussions のカテゴリには表示されない。","○ good first issue のラベルが付いた Issue は、リポジトリの contribute ページに表示される。","× プロフィールの活動欄には表示されない。","× Actions の実行履歴とは関係しない。"]},{"id":"github-67","type":"mc","chapterIndex":4,"stem":"マイルストーンの役割として正しいものはどれか。","options":["Issue を階層化して、親子関係を設定する仕組み","担当者を一括で割り当てる仕組み、担当者の一覧を管理する","進捗を期日と完了率で追う","ラベルを色分けして、一覧の見た目を変える仕組み"],"correctIndex":2,"explanations":["× 階層化は sub-issues の機能である。","× 担当者の割り当ては assignees の機能である。","○ マイルストーンは Issue や PR のグループの進捗を追跡し、期日と完了率、オープンとクローズの数を表示する。","× 色分けはラベルの機能である。"]},{"id":"github-68","type":"mc","chapterIndex":4,"stem":"Issue テンプレートを別のブランチで作ったが、画面に出てこない。原因として正しいものはどれか。","options":["テンプレートの拡張子が .md だと読み込まれないため、すべて .yml にする必要がある","テンプレートはリポジトリの Wiki に置く必要がある","テンプレートは PR の作成時にだけ使われ、Issue の作成では使われない","Issue テンプレートは既定ブランチの .github/ISSUE_TEMPLATE に置く必要があり、他のブランチのものは使われない"],"correctIndex":3,"explanations":["× .md のテンプレートも読み込まれる。","× テンプレートは Wiki ではなく、リポジトリのファイルに置く。","× Issue テンプレートは Issue の作成で使われる。","○ Issue テンプレートは既定ブランチの .github/ISSUE_TEMPLATE に置く必要があり、他のブランチのものは使われない。"]},{"id":"github-69","type":"mc","chapterIndex":4,"stem":"Issue forms（.yml）の特徴として正しいものはどれか。","options":["Markdown と同じく、入力欄を必須にする記法はない","GitHub のフォームスキーマを使い、入力欄を必須にできる","Discussions のカテゴリ専用の形式である","ファイル名を .md に変えるだけで、フォームとして表示される"],"correctIndex":1,"explanations":["× Issue forms では入力欄を必須にできる。","○ Issue forms は GitHub のフォームスキーマを使い、入力欄を必須にできる。","× Issue forms は Issue 用の形式である。","× .md のままではフォームにならない。"]},{"id":"github-70","type":"mc","chapterIndex":4,"stem":"新規 Issue の選択画面を独自に設定したい。ファイルとその置き場所として正しいものはどれか。","options":["README.md の先頭に、選択肢を書く","ルートに issue_config.json を置く","config.yml で選択画面をカスタマイズ","ISSUE_TEMPLATE を Wiki のページとして作る"],"correctIndex":2,"explanations":["× README の先頭に書いても、選択画面は変わらない。","× issue_config.json という仕組みはない。","○ config.yml を .github/ISSUE_TEMPLATE に置くと、新規 Issue の選択画面をカスタマイズできる。","× 選択画面の設定は Wiki ではなく、リポジトリのファイルに置く。"]},{"id":"github-71","type":"mc","chapterIndex":4,"stem":"Discussions のカテゴリについて正しいものはどれか。","options":["投稿者が投稿ごとに自由にカテゴリを作って付けられる","カテゴリは組織全体で一つだけ存在し、変えられない","カテゴリは Issue のラベルと同じで、削除できない","リポジトリ側で定義されたカテゴリに属する"],"correctIndex":3,"explanations":["× カテゴリは投稿者が自由に作るものではない。","× カテゴリは Organization 全体ではなく、リポジトリごとに定義される。","× カテゴリはラベルとは別の仕組みである。","○ Discussions の各投稿は、リポジトリ側で定義されたカテゴリに属する。"]},{"id":"github-72","type":"mc","chapterIndex":4,"stem":"Q&A 形式のカテゴリで、質問への返答を正解としてマークしたい。どう扱うのが適切か。","options":["Q&A 形式のカテゴリでは、コメントを「回答」としてマークできる","回答のマークは、Issue のクローズと同時に自動で行われる","回答のマークは Issue のラベルで付けるしかない","回答のマークは、カテゴリの種類に関係なくどの形式でも使える"],"correctIndex":0,"explanations":["○ Q&A 形式のカテゴリでは、コメントを「回答」としてマークできる。","× 回答のマークは Issue のクローズとは連動しない。","× 回答のマークは Discussions の機能で、ラベルではない。","× 回答のマークは Q&A 形式のカテゴリに限られる。"]},{"id":"github-73","type":"mc","chapterIndex":4,"stem":"Discussions の機能で、コミュニティの意見を測るために使うものはどれか。","options":["マイルストーン","Projects のロードマップ","投票（poll）の機能","CODEOWNERS"],"correctIndex":2,"explanations":["× マイルストーンは進捗を追跡するための機能である。","× ロードマップは計画の表示に使う。","○ Discussions には投票（poll）の機能があり、コミュニティの意見を測れる。","× CODEOWNERS はレビュー依頼の仕組みである。"]},{"id":"github-74","type":"mc","chapterIndex":4,"stem":"Discussions を使うための前提として正しいものはどれか。","options":["リポジトリが public であれば、設定なしで利用できる","個人アカウントでは使えず、Organization でのみ有効にできる","投稿には Projects の権限が必要である","管理者が Discussions を有効にしていること"],"correctIndex":3,"explanations":["× public であっても有効化は必要である。","× 個人のリポジトリでも有効にできる。","× 投稿に Projects の権限は要らない。","○ Discussions を使うには、管理者がリポジトリまたは組織で有効化する必要がある。"]},{"id":"github-75","type":"mc","chapterIndex":4,"stem":"作業内容が決まったあと、Discussions と Issues をどう使い分けるのが推奨されるか。","options":["具体的な作業は Issues に移して管理する","Discussions で作業の完了まで管理する","作業内容が決まっても、議論が続く限り Discussions のままにする","Issues と Discussions は同じ目的で、どちらを使ってもよい"],"correctIndex":0,"explanations":["○ 方向性を探る段階では Discussions、作業内容が決まったら Issues に移すのが推奨される。","× 作業の管理は Issues で行うのが推奨される。","× 作業内容が決まったら Issues に移すのが推奨される。","× 二つは目的が違い、使い分けが推奨される。"]},{"id":"github-76","type":"mc","chapterIndex":5,"stem":"プロジェクトのボード表示で、カラムの作り方として正しいものはどれか。","options":["カラムは、項目ごとに手作業で一つずつ追加する必要がある","カラムは、Status などの単一選択フィールドか、イテレーションフィールドの値をもとに作られる","カラムは Issue のラベルから自動で作られ、変更できない","カラムは、プロジェクトのメンバーの数に応じて作られる"],"correctIndex":1,"explanations":["× カラムは値から作られ、項目ごとに追加するものではない。","○ ボードのカラムは、単一選択フィールドかイテレーションフィールドの値で作られる。","× カラムはラベルではなく、フィールドの値から作られる。","× カラムはメンバーの数とは関係ない。"]},{"id":"github-77","type":"mc","chapterIndex":5,"stem":"ボードでカードを別のカラムへドラッグしたとき、起きることとして正しいものはどれか。","options":["元の Issue が自動でクローズされる","カードがコピーされ、元のカードは残る","移動先のカラムの WIP 上限を超えると、移動は禁止される","その項目のフィールド値が、移動先のカラムの値に変わる"],"correctIndex":3,"explanations":["× Issue はクローズされない。","× コピーではなく、項目の値が変わる。","× WIP 制限は強調表示だけで、移動を禁止しない。","○ カードをカラムへドラッグすると、その項目のフィールド値がカラムの値に変わる。"]},{"id":"github-78","type":"mc","chapterIndex":5,"stem":"カラムの WIP 制限について正しいものはどれか。","options":["超過は強調表示されるだけで、カードの追加は止まらない","WIP を超えると、追加できないように自動で制限される","WIP 制限は表示の設定だけで、超えても何も表示されない","WIP を超えた項目は、自動でアーカイブされる"],"correctIndex":0,"explanations":["○ WIP 制限は超過を強調表示するだけで、カードの追加自体は禁止しない。","× 追加は禁止されず、強調表示されるだけである。","× 超過は強調表示されるので、何も表示されないわけではない。","× 超過した項目は自動でアーカイブされない。"]},{"id":"github-79","type":"mc","chapterIndex":5,"stem":"ロードマップ表示で、項目を時間軸に配置する方法として正しいものはどれか。","options":["項目のタイトルに日付を書けば、自動で配置される","開始日と終了日の欄を使う","Issue のマイルストーンだけを使い、フィールドは使わない","ボードの Status 列を時間軸として使う"],"correctIndex":1,"explanations":["× タイトルの日付は配置に使われない。","○ ロードマップは開始日と終了日のフィールド、またはイテレーションを使って項目を配置する。","× マイルストーンだけでは配置されない。","× Status は時間軸にはならない。"]},{"id":"github-80","type":"mc","chapterIndex":5,"stem":"ロードマップの表示を、月単位から四半期単位などへ切り替えたい。どうするか。","options":["フィルターの条件で、表示期間を切り替える","表示期間は作成時に一度だけ選べる","ズームの機能を使い、月・四半期・年の表示を切り替えられる","表示期間は、Settings のテーマ設定で切り替える"],"correctIndex":2,"explanations":["× フィルターは表示期間を変えるものではない。","× 表示期間は後から切り替えられる。","○ ロードマップはズームで月・四半期・年の表示を切り替えられる。","× テーマ設定は表示期間とは関係ない。"]},{"id":"github-81","type":"mc","chapterIndex":5,"stem":"数値フィールドで項目を絞り込む方法として正しいものはどれか。","options":["> や >=、\u003c、\u003c= などの比較や、範囲指定を使う","数値は、文字列として部分一致でしか絞り込めず、比較はできない","数値フィールドには絞り込みが使えない","数値は、テキスト検索の結果としてだけ絞り込める"],"correctIndex":0,"explanations":["○ 数値フィールドは >、>=、\u003c、\u003c= や .. による範囲指定でフィルターできる。","× 数値は比較演算子で絞り込める。","× 数値フィールドでも絞り込みはできる。","× 数値はテキスト検索に限られない。"]},{"id":"github-82","type":"mc","chapterIndex":5,"stem":"プロジェクトのアクセス権について正しいものはどれか。","options":["read、write、admin の4段階で、閲覧のみの権限は存在しない","read、write、admin の3段階である","閲覧と編集の2段階だけで、admin は存在しない","編集権限は作成者だけ"],"correctIndex":1,"explanations":["× 閲覧のみの read 権限がある。","○ プロジェクトのアクセス権は read、write、admin の3段階である。","× admin も存在する。","× 編集権限は作成者以外にも与えられる。"]},{"id":"github-83","type":"mc","chapterIndex":5,"stem":"プライベートリポジトリの Issue を、プロジェクトに追加した。見え方として正しいものはどれか。","options":["プロジェクトを見られる全員に見える","アクセス権の有無に関わらず、公開されて見える","そのリポジトリの権限を持つ人だけ","管理者だけに見え、他のメンバーには見えない"],"correctIndex":2,"explanations":["× プロジェクトの閲覧者でも、リポジトリにアクセスできなければ見えない。","× プライベートの項目は公開されない。","○ プライベートリポジトリの項目は、そのリポジトリにアクセスできる人にしか見えない。","× アクセスできるメンバーには見える。"]},{"id":"github-84","type":"mc","chapterIndex":5,"stem":"プロジェクトのインサイト（insights）について正しいものはどれか。","options":["チャートは作成者だけが閲覧でき、共有できない","アーカイブ済みの項目も含めて、すべて追跡される","チャートは Issue の数だけを数え、項目のフィールドは使わない","プロジェクト項目をもとにチャートを作り、見られる人なら誰でも閲覧できる"],"correctIndex":3,"explanations":["× チャートは見られる人が閲覧できる。","× アーカイブ済みや削除済みの項目は追跡されない。","× チャートは項目のフィールドを使う。","○ インサイトではプロジェクト項目をもとにチャートを作成・カスタマイズでき、見られる人なら誰でも閲覧できる。"]},{"id":"github-85","type":"mc","chapterIndex":5,"stem":"インサイトのチャートの種類として正しいものはどれか。","options":["日別の履歴だけで、現在の状態は表示されない","現在の状態と推移を示す、2種類のチャートがある","current の一種類だけで、推移は表示できない","リポジトリごとに一つだけ作られる"],"correctIndex":1,"explanations":["× 現在の状態も表示される。","○ チャートには、現在の状態を示す current チャートと、時間推移を示す historical チャートがある。","× 推移を示す historical チャートもある。","× チャートは複数作成できる。"]},{"id":"github-86","type":"mc","chapterIndex":5,"stem":"既定で用意されている Burn up チャートの見方として正しいものはどれか。","options":["担当者ごとの作業時間を比べる","Issue の開き方を、ラベル別に円グラフで示す","完了作業と残作業を比べて、進捗を把握する","アーカイブ済みの項目の数だけを集計するもの"],"correctIndex":2,"explanations":["× 担当者別の作業時間は示さない。","× ラベル別の円グラフではない。","○ 既定の Burn up チャートは、完了した作業と残作業を比較して、進捗やボトルネックを把握するためのもの。","× アーカイブ済みの数だけを見るものではない。"]},{"id":"github-87","type":"mc","chapterIndex":5,"stem":"プロジェクトの組み込みワークフローについて正しいものはどれか。","options":["項目のフィールド値を、毎回手作業で入力させる","ワークフローは Issue のクローズにだけ反応する","Organization の管理者が実行しないと動かない","イベントに応じて値を自動で設定する"],"correctIndex":3,"explanations":["× 手作業の入力は不要になる。","× クローズ以外のイベントにも反応する。","× 管理者が実行しなくても動く。","○ 組み込みワークフローは、イベントに応じて項目のフィールド値を自動で設定する。"]},{"id":"github-88","type":"mc","chapterIndex":5,"stem":"既定で有効になっている2つのワークフローの説明として正しいものはどれか。","options":["Issue や PR がクローズされたとき、また PR がマージされたときに、Status を Done にする","Issue を作ると、Status が Done になる","PR を作っただけで、Status が Done に変わる","期日を過ぎた項目の Status を Blocked にする"],"correctIndex":0,"explanations":["○ 既定で有効な2つのワークフローは、Issue や PR のクローズ時と、PR のマージ時に Status を Done にする。","× 作成時ではなく、クローズやマージ時に Done になる。","× PR の作成では Done にならない。","× 期日とは関係なく、クローズやマージで Done になる。"]},{"id":"github-89","type":"mc","chapterIndex":5,"stem":"プロジェクトの自動アーカイブと自動追加について正しいものはどれか。","options":["自動アーカイブは項目を削除するので、復元はできない","自動追加は、管理者が一つずつ手動で行う","条件に合う項目を自動でアーカイブでき、自動追加もできる","自動アーカイブは PR だけに使え、Issue には使えない"],"correctIndex":2,"explanations":["× アーカイブは削除ではなく、復元できる。","× 自動追加は手動ではなく、条件で行われる。","○ 条件に合う項目は自動でアーカイブでき、リポジトリの項目も条件に合えば自動で追加（auto-add）できる。","× アーカイブは Issue や PR に使える。"]},{"id":"github-90","type":"mc","chapterIndex":5,"stem":"プロジェクトで進捗を共有するため、ステータス更新を残したい。できることとして正しいものはどれか。","options":["ステータス更新は、Issue のコメントとして自動投稿される","ステータス更新は、アーカイブ済みの項目にだけ付けられる","開始日と目標日は、Issue の作成日から自動で固定され、変更できない","On track などのステータスや開始日・目標日を設定"],"correctIndex":3,"explanations":["× ステータス更新は自動で Issue に投稿されない。","× アーカイブ済みの項目に付けるものではない。","× 開始日と目標日は変更できる。","○ プロジェクトでは、On track などのステータス更新と、開始日・目標日を設定できる。"]},{"id":"github-91","type":"mc","chapterIndex":6,"stem":"GitHub Actions のワークフローを定義するファイルの置き場所として正しいものはどれか。","options":["ワークフローを YAML で定義","リポジトリのルートに、ワークフロー専用の設定ファイルを一つだけ置く","Settings の画面に直接書き込み、ファイルは作らない","Wiki のページとして保存して、実行させる"],"correctIndex":0,"explanations":["○ ワークフローは、リポジトリ内の YAML ファイルとして定義し、.github/workflows に置く。","× ルートに置くのではなく、.github/workflows に置く。","× ワークフローはファイルとして定義する。","× ワークフローは Wiki に置くものではない。"]},{"id":"github-92","type":"mc","chapterIndex":6,"stem":"ワークフローを起動するイベントについて正しいものはどれか。","options":["on キーで列挙したすべてのイベントが同時に起きたときだけ起動する","on キーで起動イベントを定義し、複数列挙した場合はどれか1つが起きれば起動する","イベントは on ではなく、Settings の画面で指定する","イベントを指定しなければ、毎回手動でしか起動しない"],"correctIndex":1,"explanations":["× すべてが同時に起きる必要はない。","○ on キーで起動イベントを定義し、複数を列挙した場合はどれか一つが起きれば起動する。","× on キーで指定する。","× 指定がなければ起動しないわけではなく、on は必須の定義である。"]},{"id":"github-93","type":"mc","chapterIndex":6,"stem":"手動で実行できるワークフローを作るときに必要な設定として正しいものはどれか。","options":["ワークフローの名前を manual にして、ルートのフォルダに置く","schedule を指定し、実行時刻を一つだけ決める","pull_request を指定する","workflow_dispatch を指定し、既定ブランチに置く"],"correctIndex":3,"explanations":["× 名前だけでは手動実行できない。","× schedule は定期実行のための指定である。","× pull_request は PR のイベントで起動する。","○ workflow_dispatch は手動実行用で、ワークフローファイルが既定ブランチにあると Run workflow ボタンが表示される。"]},{"id":"github-94","type":"mc","chapterIndex":6,"stem":"schedule によるワークフローの定期実行について正しいものはどれか。","options":["cron 形式で書き、既定では UTC で動く","ローカル時刻で動作し、ブランチは指定できない","実行はいつも手動で、スケジュールは表示だけに使われる","cron 形式ではなく、日本語で書いた時刻を読み取る設定である"],"correctIndex":0,"explanations":["○ schedule は POSIX cron 形式で書き、既定では UTC で動作し、既定ブランチの最新コミットで実行される。","× 既定では UTC で動作する。","× スケジュールは自動で実行される。","× cron 形式で書く。"]},{"id":"github-95","type":"mc","chapterIndex":6,"stem":"pull_request のイベントについて正しいものはどれか。","options":["fork 由来の PR でも、すべてのシークレットが渡される","シークレットは渡されない","fork の PR は、既定では一切起動しない","pull_request はマージ後にだけ起動する"],"correctIndex":1,"explanations":["× シークレットは渡されない。","○ pull_request のイベントでは、fork 由来の PR に対してシークレット（GITHUB_TOKEN を除く）は渡されない。","× fork の PR も起動することがある。","× 既定では PR の作成や更新で起動する。"]},{"id":"github-96","type":"mc","chapterIndex":6,"stem":"GITHUB_TOKEN の説明として正しいものはどれか。","options":["Organization 全体で一つだけ作られ、全リポジトリで共有される","利用者が手動で作成して、シークレットに登録しておく必要がある","各ジョブの開始時に自動で作られ、ジョブ終了時に失効し、権限はそのリポジトリに限られる","ジョブが終了しても、次回の実行まで有効なまま残る"],"correctIndex":2,"explanations":["× ジョブごとに作られ、Organization で共有されない。","× 自動で生成される。","○ GITHUB_TOKEN は各ジョブの開始時に自動で生成され、ジョブ終了時に失効する。権限はワークフローのあるリポジトリに限られる。","× ジョブ終了時に失効する。"]},{"id":"github-97","type":"mc","chapterIndex":6,"stem":"シークレットの説明として正しいものはどれか。","options":["3レベルで作成でき、secrets で参照する","ワークフローの if 条件で直接参照して、条件分岐に使える","一つのリポジトリにだけ作れる","ログに自動で表示される"],"correctIndex":0,"explanations":["○ シークレットは repository、environment、organization の3レベルで作成でき、${{ secrets.NAME }} で参照する。","× if 条件では直接参照できない。","× Organization でも作成できる。","× ログには表示されないよう扱われる。"]},{"id":"github-98","type":"mc","chapterIndex":6,"stem":"シークレットを if 条件で使いたい。どうするのが適切か。","options":["if の中に secrets の値を書く","ジョブの環境変数に設定し、その変数を条件で使う","シークレットを変数の名前に付けて、条件で参照する","シークレットを Wiki に書き、条件から読み込む"],"correctIndex":1,"explanations":["× if 条件では直接参照できない。","○ シークレットは if 条件で直接参照できないため、ジョブレベルの環境変数に設定して回避する。","× 変数名に使うと参照できない。","× Wiki からは読み込めない。"]},{"id":"github-99","type":"mc","chapterIndex":6,"stem":"設定変数（configuration variables）の説明として正しいものはどれか。","options":["organization、repository、environment のレベルで定義し、secrets で参照する","秘密情報を保存するため、ログには表示されない","3レベルで定義し、vars で参照","リポジトリごとに一つだけ定義でき、組織では使えない"],"correctIndex":2,"explanations":["× 秘密情報はシークレットに入れる。","× 参照は vars コンテキストで行う。","○ 設定変数は organization、repository、environment のレベルで定義でき、vars コンテキストで参照する。","× 組織レベルでも定義できる。"]},{"id":"github-100","type":"mc","chapterIndex":6,"stem":"再利用可能ワークフロー（reusable workflow）とコンポジットアクションの違いとして正しいものはどれか。","options":["再利用可能ワークフローは一つのステップしか含められず、コンポジットアクションは複数のジョブを含む","どちらも一つのステップとして実行され、違いはない","コンポジットアクションは別のリポジトリでは使えない","再利用可能ワークフローは複数のジョブを含められ、コンポジットアクションは一つのステップとして実行される"],"correctIndex":3,"explanations":["× 再利用可能ワークフローは複数のジョブを含む。","× 二つは異なる単位である。","× コンポジットアクションは別のリポジトリでも使える。","○ 再利用可能ワークフローは複数のジョブを含められ、コンポジットアクションは一つのステップとして実行される。"]},{"id":"github-101","type":"mc","chapterIndex":6,"stem":"アーティファクトの用途として正しいものはどれか。","options":["実行中にだけ使われ、終了と同時に消えるメモリ上のデータ","実行後も保持し、別のジョブへファイルを渡す","ブランチを作るための一時データ","ランナーの設定を転送する記録"],"correctIndex":1,"explanations":["× 実行後も保持される。","○ アーティファクトは実行後もデータを保持し、同じワークフローの別のジョブにファイルを渡すために使う。","× ブランチとは関係ない。","× 設定の転送には使わない。"]},{"id":"github-102","type":"mc","chapterIndex":6,"stem":"Environments の保護ルールとして正しいものはどれか。","options":["保護ルールは無く、誰でも読める","保護ルールは Organization の全リポジトリに同じ内容で適用される","必須レビュアーや待機タイマーなどを設定できる","保護ルールは、ワークフローの実行後にだけ確認される"],"correctIndex":2,"explanations":["× 保護ルールは設定できる。","× 保護ルールは環境ごとに設定する。","○ Environments には必須レビュアー、待機タイマー、デプロイ対象ブランチの制限などの保護ルールを設定できる。","× 実行前にルールを確認する。"]},{"id":"github-103","type":"mc","chapterIndex":6,"stem":"Environments の保護ルールを満たすまでの、ジョブとシークレットの扱いとして正しいものはどれか。","options":["ルールが満たされていなくても、シークレットは先に使える","ジョブは実行されるが、シークレットは空の値になる","ルールは、実行が終わったあとに確認される","ルールを満たすまで使えない"],"correctIndex":3,"explanations":["× 満たすまでシークレットは使えない。","× ジョブ自体が止まる。","× ルールは実行の前に確認される。","○ 保護ルールを満たすまでジョブとシークレットが使えない。"]},{"id":"github-104","type":"mc","chapterIndex":6,"stem":"ワークフローの実行を再実行するときについて正しいものはどれか。","options":["全体、失敗したジョブだけ、特定のジョブを再実行でき、元の実行から一定期間内に限られる","再実行は、元の実行から何か月経っても可能である","再実行は、失敗したジョブだけに限られ、特定のジョブは選べない","再実行は、別のブランチでのみ行える"],"correctIndex":0,"explanations":["○ 実行は全体・失敗したジョブのみ・特定のジョブを再実行でき、再実行は元の実行から一定期間内に限られる。","× 期間には制限がある。","× 特定のジョブも選べる。","× 同じブランチで再実行する。"]},{"id":"github-105","type":"mc","chapterIndex":6,"stem":"アクションの参照を固定したい。最も確実な指定方法はどれか。","options":["main などのブランチ名で指定する","バージョンのタグだけを指定する","完全なコミット SHA で指定する","名前だけでは固定にならない"],"correctIndex":2,"explanations":["× ブランチは動くので、固定には向かない。","× タグは付け替えられることがあるため、最も確実ではない。","○ 完全なコミット SHA は不変で、最も確実に固定できる。","× 名前だけでは最新版が使われ、固定にならない。"]},{"id":"github-106","type":"mc","chapterIndex":7,"stem":"Codespace（GitHub Codespaces）の説明として正しいものはどれか。","options":["自分のPC上だけで動き、クラウドは使わない","Git の操作を行えない、閲覧専用のエディタである","Windows でしか動かない","クラウドでホストされる開発環境として動く"],"correctIndex":3,"explanations":["× クラウドでホストされる。","× 閲覧専用ではない。","× Windows 専用ではない。","○ Codespace はクラウドでホストされる開発環境で、GitHub がホストする仮想マシン上の Docker コンテナとして動作する。"]},{"id":"github-107","type":"mc","chapterIndex":7,"stem":"dev container の設定をリポジトリにコミットする利点として正しいものはどれか。","options":["全員が同じ環境を使える","Codespace の料金が無料になる","PC上の全リポジトリに同じ設定が自動で適用される","Copilot の提案が自動で有効になる"],"correctIndex":0,"explanations":["○ dev container の設定をコミットすると、プロジェクトの全員が同じ再現可能な環境を使える。","× 料金は変わらない。","× 設定はそのリポジトリに適用される。","× Copilot の有効化とは関係しない。"]},{"id":"github-108","type":"mc","chapterIndex":7,"stem":"dev container の主な設定ファイルの場所として正しいものはどれか。","options":["ルートの devcontainer.yml ファイル",".devcontainer/devcontainer.json","ルートの devcontainer.yml","Settings の画面の環境設定"],"correctIndex":1,"explanations":["× .vscode は主な設定ファイルではない。","○ 主な設定ファイルは .devcontainer/devcontainer.json で、ルートの .devcontainer.json でもよい。","× ファイル名は devcontainer.json である。","× 設定はファイルとして置く。"]},{"id":"github-109","type":"mc","chapterIndex":7,"stem":"Codespaces で、VS Code の拡張機能やツールを開発環境に追加したい。devcontainer.json で指定するものとして正しいものはどれか。","options":["拡張機能は Settings の画面からしか追加できず、ファイルでは指定できない","ツールは作成後に毎回手動で入れる","features はパスワードを指定するもの","拡張機能や設定、features を指定できる"],"correctIndex":3,"explanations":["× ファイルで指定できる。","× 作成時に自動で入るように設定できる。","× features はツールやランタイムを追加する仕組みである。","○ devcontainer.json では VS Code の拡張機能や設定、features を指定できる。"]},{"id":"github-110","type":"mc","chapterIndex":7,"stem":"github.dev の説明として正しいものはどれか。","options":["ピリオドキーで開く Web エディタ","ビルドや実行ができる専用の仮想マシンが付属する","統合ターミナルを使い、ビルドや実行ができる","有料プランの利用者だけが使える"],"correctIndex":0,"explanations":["○ github.dev は、URL の github.com を github.dev に変えるか、ピリオドキーで開く Web ベースのエディタである。","× コンピュートは付かない。","× 統合ターミナルは使えず、実行はできない。","× 誰でも無料で使える。"]},{"id":"github-111","type":"mc","chapterIndex":7,"stem":"github.dev と Codespaces の違いとして正しいものはどれか。","options":["github.dev はビルドもデバッグもできるが、Codespaces では編集だけができる","github.dev は実行できない","二つは同じ機能で、料金の違いだけがある","Codespaces はブラウザでのみ動き、github.dev はデスクトップアプリでのみ動く"],"correctIndex":1,"explanations":["× github.dev はビルドや実行ができない。","○ github.dev にはコンピュートがなく、ビルドや実行はできない。Codespaces は専用の仮想マシンでアプリの実行やデバッグが可能である。","× 機能が違う。","× どちらも Web で使う。"]},{"id":"github-112","type":"mc","chapterIndex":7,"stem":"codespace を停止したときの扱いとして正しいものはどれか。","options":["停止すると、保存した変更もすべて消える","ブラウザのタブを閉じると、自動的に停止する","実行中のプロセスは止まるが、保存した変更は残る","停止しても、実行中のプロセスは動き続ける"],"correctIndex":2,"explanations":["× 変更は残る。","× タブを閉じても停止はしない。","○ codespace を停止すると実行中のプロセスは止まるが、保存した変更は残る。","× プロセスは止まる。"]},{"id":"github-113","type":"mc","chapterIndex":7,"stem":"Codespace の課金の考え方として正しいものはどれか。","options":["実行中は計算の課金、停止中はストレージだけ課金される","実行中も停止中も、計算の課金は発生しない","停止中も計算の課金は続き、実行中と同じ料金がストレージにもかかる","課金は一回の作成時にだけ発生する"],"correctIndex":0,"explanations":["○ 実行中の codespace は CPU の課金が発生し、停止中はストレージ課金のみになる。","× 実行中は計算の課金が発生する。","× 停止中は計算課金がなく、ストレージだけ課金される。","× 作成時だけではない。"]},{"id":"github-114","type":"mc","chapterIndex":7,"stem":"Codespace で開発中のWebアプリのポートを、外部の人に見せたい。ポートの公開設定の説明として正しいものはどれか。","options":["Private に設定すると、誰でも見られる","Public なら URL を知れば誰でも見られる","Org に設定すると、インターネット上の誰でも見られる","ポートは既定で Public になっており、変更できない"],"correctIndex":1,"explanations":["× Private はそのユーザーだけが見られる。","○ Public のポートは、URL とポート番号を知っていれば認証なしで誰でも見られる。","× Org は組織向けで、インターネット全体には公開されない。","× 既定は Private で、変更できる。"]},{"id":"github-115","type":"mc","chapterIndex":7,"stem":"個人設定の dotfiles リポジトリを使う目的として正しいものはどれか。","options":["既存のすべての codespace に即座に適用される","チームの全員の設定を一つに統一して配布する","新しい codespace に適用される","Copilot の提案を、個人の好みに合わせて変える"],"correctIndex":2,"explanations":["× 既存には適用されない。","× 個人の設定を適用する仕組みで、チームで統一するものではない。","○ dotfiles リポジトリを設定すると、新しい codespace に個人設定を自動で適用できる。既存の codespace には適用されない。","× Copilot の提案を変える仕組みではない。"]},{"id":"github-116","type":"mc","chapterIndex":7,"stem":"GitHub Copilot のインライン提案の表示として正しいものはどれか。","options":["別の画面に一覧で表示され、選ぶまで編集できない","ファイルの先頭に、まとめて自動で挿入される","ターミナルにだけ表示され、エディタには出ない","カーソル位置に、薄い文字で次の候補がそのまま表示される"],"correctIndex":3,"explanations":["× 一覧ではなく、カーソル位置に出る。","× 挿入ではなく、カーソル位置に表示される。","× エディタに表示される。","○ Copilot のインライン提案は、カーソル位置に薄い文字で表示される。"]},{"id":"github-117","type":"mc","chapterIndex":7,"stem":"Copilot の Next edit suggestions の説明として正しいものはどれか。","options":["ファイルを保存すると、すべてのファイルを自動で書き換える","次に変更しそうな箇所と内容を予測して提案する","変更の履歴を一覧にし、過去の版へ戻す","Issue の次の担当者を自動で割り当てる"],"correctIndex":1,"explanations":["× 保存時に自動で書き換えるものではない。","○ Next edit suggestions は、次に変更しそうな箇所と内容を予測して提案する。","× 履歴を戻す機能ではない。","× 担当者の割り当ては行わない。"]},{"id":"github-118","type":"mc","chapterIndex":7,"stem":"特定のファイルを Copilot が参照しないようにしたい。使う機能はどれか。","options":["ブランチ保護","CODEOWNERS によるレビュー担当の指定","コンテンツ除外","Dependabot の設定"],"correctIndex":2,"explanations":["× ブランチ保護はマージの制限である。","× CODEOWNERS はレビューの担当を決める。","○ コンテンツ除外を使うと、特定のファイルを Copilot が参照しないよう設定できる。","× Dependabot は依存関係の更新を扱う。"]},{"id":"github-119","type":"mc","chapterIndex":7,"stem":"リポジトリ全体の Copilot 向けカスタム指示を置く場所として正しいものはどれか。","options":["ルートの copilot-settings.json に、指示を書く","Wiki の Copilot ページに、指示を書いて保存し直す必要がある",".vscode/copilot.md に、指示をまとめて書く設定",".github/copilot-instructions.md"],"correctIndex":3,"explanations":["× ファイル名と場所が違う。","× Wiki は指示の置き場所ではない。","× .vscode ではなく .github に置く。","○ リポジトリ全体向けのカスタム指示は .github/copilot-instructions.md に置く。"]},{"id":"github-120","type":"mc","chapterIndex":7,"stem":"パス（フォルダやファイル）ごとに Copilot の指示を変えたい。適切な方法はどれか。","options":[".github/instructions に NAME.instructions.md を置き、applyTo で対象を指定する","ルートの .instructions を一つにまとめ、すべてのパスに同じ指示を書く","ファイルごとにコメントで指示を書き、Copilot に読ませる","パスごとの指示は Settings の画面で一つずつ登録する"],"correctIndex":0,"explanations":["○ パス別のカスタム指示は .github/instructions 内の NAME.instructions.md に置き、applyTo で対象を指定する。","× 全パス共通の指示になるため、パスごとには変えられない。","× コメントで指示する方法はここでは使わない。","× Settings の登録ではなく、ファイルで指定する。"]},{"id":"github-121","type":"mc","chapterIndex":8,"stem":"Markdown で、Issue や PR の本文に、特定のチームへ通知を送りたい。書き方として正しいものはどれか。","options":["@チーム名とだけ書くと、リポジトリの全員に通知が届く","#チーム名と書くと、そのチームに通知が届く","@組織名/チーム名と書くと、そのチームに通知が届く","チームへの通知は、ラベルを付けて指定する"],"correctIndex":2,"explanations":["× チームのメンションは組織名との組み合わせで書く。","× チームのメンションは @ を使う。","○ @組織名/チーム名 と書くとチームをメンションでき、チームのメンバーに通知が届く。","× 通知はラベルではなく、本文のメンションで行う。"]},{"id":"github-122","type":"mc","chapterIndex":8,"stem":"Markdown でアラートを書きたい。GitHub が用意しているアラートの種類として正しいものはどれか。","options":["NOTE、ERROR、SUCCESS の3種類がある","INFO、WARNING、DANGER の3種類がある","TIP と CAUTION の2種類だけ","NOTE や WARNING など5種類がある"],"correctIndex":3,"explanations":["× ERROR や SUCCESS は用意されていない。","× INFO や DANGER は用意されていない。","× 2種類だけではなく、5種類ある。","○ アラートは > [!NOTE] などの形で、NOTE、TIP、IMPORTANT、WARNING、CAUTION の5種類を書ける。"]},{"id":"github-123","type":"mc","chapterIndex":8,"stem":"Markdown の表で、列の揃えを右寄せにしたい。どう書くか。","options":["右端にコロンを付ける","表の先頭行に、右揃えの指定を入れる","表の前に、揃えを指定する空行を入れる","列の見出しを全角の空白で囲む"],"correctIndex":0,"explanations":["○ ヘッダー区切り行のコロンの位置で、左、右、中央の揃えを指定する。","× 揃えはヘッダー区切り行で指定する。","× 空行は表の前に必要だが、揃えの指定ではない。","× 全角の空白では揃えは変わらない。"]},{"id":"github-124","type":"mc","chapterIndex":8,"stem":"GitHub の Markdown で、図を描画するために使えるものとして正しいものはどれか。","options":["Mermaid と PlantUML の2種類","Mermaid、GeoJSON、TopoJSON、ASCII STL の4種類","SVG の画像ファイルだけで、図の記法はない","Graphviz の図だけで、他は使えない"],"correctIndex":1,"explanations":["× PlantUML は描画対象ではない。","○ GitHub は Mermaid、GeoJSON、TopoJSON、ASCII STL の4種類を Markdown 内で描画する。","× 図の記法はある。","× Graphviz は描画対象ではない。"]},{"id":"github-125","type":"mc","chapterIndex":8,"stem":"Markdown で、長い内容を折りたたんで表示したい。初めから展開された状態にする方法はどれか。","options":["\u003cdetails> に hidden 属性を付けて、中身を隠す","\u003csummary> の代わりに \u003cfold> を使い、中身を隠して閉じておく","改行を3つ入れると、折りたたみが有効になる","\u003cdetails> と \u003csummary> を使い、open を付ける"],"correctIndex":3,"explanations":["× hidden 属性は表示を隠すもので、展開の指定ではない。","× \u003cfold> タグはない。","× 改行では折りたたまれない。","○ 折りたたみは \u003cdetails> と \u003csummary> で作り、open 属性を付けると初期状態で展開される。"]},{"id":"github-126","type":"mc","chapterIndex":8,"stem":"GitHub Pages の説明として正しいものはどれか。","options":["静的サイトを公開するホスティングである","PHP や Ruby などのサーバーサイド言語を実行できる","Git の履歴を保存するサーバー","データベースを使う動的な Web アプリを無料で提供する"],"correctIndex":0,"explanations":["○ GitHub Pages は静的サイトのホスティングで、リポジトリの HTML、CSS、JavaScript などを公開する。","× サーバーサイド言語は実行できない。","× 履歴の保存は Git の機能である。","× データベースを伴う動的な運用は行わない。"]},{"id":"github-127","type":"mc","chapterIndex":8,"stem":"ユーザーの Pages サイトを作るとき、リポジトリ名の形式として正しいものはどれか。","options":["github-pages-\u003cowner>","\u003cowner>.github.io","\u003cowner>-github-site-page","pages-\u003cowner>-site.example"],"correctIndex":1,"explanations":["× その名前では、ユーザー・組織サイトにはならない。","○ ユーザー・組織サイトのリポジトリ名は \u003cowner>.github.io で、URL は https://\u003cowner>.github.io になる。","× その名前は使わない。","× 独自ドメインの名前であり、リポジトリ名ではない。"]},{"id":"github-128","type":"mc","chapterIndex":8,"stem":"プロジェクトサイトの既定の URL の形式として正しいものはどれか。","options":["https://\u003cリポジトリ名>.io/\u003cowner>","https://github.io/\u003cowner>","https://\u003cowner>.github.io/\u003cリポジトリ名>","https://pages.github.com/\u003cリポジトリ名>"],"correctIndex":2,"explanations":["× ホスト名とパスの順が違う。","× github.io のドメインの位置が違う。","○ プロジェクトサイトの既定の URL は https://\u003cowner>.github.io/\u003cリポジトリ名> になる。","× pages.github.com は既定の URL の形式ではない。"]},{"id":"github-129","type":"mc","chapterIndex":8,"stem":"Pages の公開元として選べるものはどれか。","options":["ブランチの / か /docs、または Actions","Wiki のページだけ","Issue のテンプレートフォルダ","Discussions のカテゴリの一覧を公開元にする設定"],"correctIndex":0,"explanations":["○ Pages の公開元は、ブランチの / または /docs、あるいは GitHub Actions から選べる。","× Wiki は公開元にできない。","× Issue テンプレートは公開元にできない。","× Discussions は公開元にできない。"]},{"id":"github-130","type":"mc","chapterIndex":8,"stem":"ブランチ公開の Pages サイトで、既定の Jekyll の処理を無効にしたい。どうするか。","options":["_config.yml に jekyll: off と書く","ルートに空の .nojekyll ファイルを置く","Settings で Jekyll の欄をオフにするだけでよい","Jekyll は無効化できない"],"correctIndex":1,"explanations":["× その書き方は無効化の方法ではない。","○ ブランチ公開のサイトは既定で Jekyll を使い、ルートに空の .nojekyll を置くと無効にできる。","× 設定画面では切り替えない。","× 無効化はできる。"]},{"id":"github-131","type":"mc","chapterIndex":8,"stem":"独自ドメインを GitHub Pages に設定するときの DNS の設定として正しいものはどれか。","options":["すべてのドメインに、MX レコードを設定する","apex ドメインにも CNAME レコードを必ず設定する","サブドメインは CNAME を使う","DNS の設定は不要で、リポジトリの名前だけで決まる"],"correctIndex":2,"explanations":["× MX レコードはメールの設定である。","× apex ドメインには CNAME を使うのが基本ではない。","○ サブドメインは CNAME、apex ドメインは A、ALIAS、ANAME などを使う。www は最も安定した設定とされる。","× DNS の設定は必要である。"]},{"id":"github-132","type":"mc","chapterIndex":8,"stem":"Wiki の編集権限について正しいものはどれか。","options":["既定では誰でも編集でき、権限は変えられない","admin 権限のある人だけが、どの設定でも編集できる","Wiki は private リポジトリでは使えない","既定では write 権限のある人だけが編集でき、public リポジトリでは全員に開放できる"],"correctIndex":3,"explanations":["× 既定の編集者は write 権限者である。","× 編集は write 権限でできる。","× private でも Wiki は使える。","○ Wiki は既定では write 権限のある人が編集でき、public リポジトリでは全員に編集を開放できる。"]},{"id":"github-133","type":"mc","chapterIndex":8,"stem":"Gist の説明として正しいものはどれか。","options":["secret にすると、本人以外は見られない","public と secret があり、Git リポジトリ","Gist は Git リポジトリではなく、fork できない","個人では作れず、組織だけが作れる"],"correctIndex":1,"explanations":["× secret も URL を知る人は見られる。","○ Gist には public と secret があり、secret も URL を知っていれば誰でも見られる。すべての Gist は Git リポジトリである。","× Gist は Git リポジトリで、fork や clone ができる。","× 個人でも作れる。"]},{"id":"github-134","type":"mc","chapterIndex":8,"stem":"プロフィール README の仕組みとして正しいものはどれか。","options":["どのリポジトリの README.md も、プロフィールに自動で表示される","プロフィール専用の設定画面から本文を入力し、保存して公開する","同名の public リポジトリの README.md","同名のリポジトリでも表示される"],"correctIndex":2,"explanations":["× 表示されるのは同名のリポジトリの README である。","× 専用の入力欄はない。","○ プロフィール README は、ユーザー名と同名の public リポジトリのルートにある README.md で、内容が空だと表示されない。","× 表示には public リポジトリが必要である。"]},{"id":"github-135","type":"mc","chapterIndex":8,"stem":"Markdown で見出しを書くとき、自動で目次（Outline）が作られる条件として正しいものはどれか。","options":["見出しが1つでも、必ず目次が作られる","目次は見出しを手動で登録したときだけ作られる","見出しは h6 のみが目次の対象になる","見出しを2つ以上で目次が作られる"],"correctIndex":3,"explanations":["× 見出し1つでは目次は作られない。","× 目次は自動で作られる。","× h1 から h6 の見出しが対象になる。","○ 見出しを2つ以上書くと、自動で目次（Outline）が作られる。"]},{"id":"github-136","type":"mc","chapterIndex":9,"stem":"二要素認証（2FA）の説明として正しいものはどれか。","options":["パスワードに加えて第2の確認を求めるので、攻撃者にはパスワードと認証デバイスの両方が必要になる","パスワードを強くすれば不要になる仕組みである","認証は一度だけで、以後は求められない","2FA を設定すると、パスワードは使えなくなる"],"correctIndex":0,"explanations":["○ 2FA は、パスワードに加えて第2の確認を求める。攻撃者は両方を揃える必要がある。","× パスワードの強さとは別の仕組みである。","× 2FA は通常、サインインのたびに確認を行う。","× パスワードは引き続き使う。"]},{"id":"github-137","type":"mc","chapterIndex":9,"stem":"2FA の第2の要素として使えるものはどれか。","options":["メールアドレスの変更だけ","アカウントの名前とパスワードの組み合わせと決まっている","TOTP アプリ、SMS、セキュリティキー","プロフィールの写真の確認だけ"],"correctIndex":2,"explanations":["× メールの変更は第2要素ではない。","× 名前とパスワードは第1要素である。","○ 2FA の第2要素には、TOTP アプリ、SMS、セキュリティキー、GitHub Mobile が使える。","× 写真は第2要素ではない。"]},{"id":"github-138","type":"mc","chapterIndex":9,"stem":"2FA の設定時に、リカバリー手段（リカバリーコードなど）を控えておく理由として正しいものはどれか。","options":["リカバリーコードは、パスワードの代わりに毎回入力するため","GitHub のサポートに連絡すれば、いつでも 2FA を外せるため","Git の操作を省略するため","認証デバイスを失ったときに、アカウントに戻るため"],"correctIndex":3,"explanations":["× リカバリーコードは通常時には使わない。","× サポートでも復旧できない場合がある。","× Git の操作とは関係ない。","○ 2FA の認証情報とリカバリー手段の両方を失うと、GitHub サポートでも復旧できない場合がある。"]},{"id":"github-139","type":"mc","chapterIndex":9,"stem":"パスキーの仕組みとして正しいものはどれか。","options":["公開鍵のペアを使い、秘密鍵は認証器に残る","秘密鍵をサーバーに登録し、毎回送信して照合する","パスワードを暗号化し、毎回サーバーへ送って照合する","パスキーは SMS の認証コードと同じ仕組みで、毎回送る"],"correctIndex":0,"explanations":["○ パスキーは公開鍵のペアで動作し、秘密鍵は認証器に残って、サインイン時には送信されない。","× 秘密鍵は送信されない。","× パスワードは使わない。","× SMS とは別の仕組みである。"]},{"id":"github-140","type":"mc","chapterIndex":9,"stem":"Personal access token（PAT）で、推奨される種類と理由の組み合わせとして正しいものはどれか。","options":["classic PAT で、すべてのリポジトリに権限を与える","fine-grained PAT で、必要な組織やリポジトリだけに権限を限定する","PAT は使わず、常にパスワードでサインインする","有効期限のない PAT を一つだけ作り、チームで共有する"],"correctIndex":1,"explanations":["× classic PAT は全体の権限を与えやすく、推奨されない。","○ GitHub はできるだけ fine-grained PAT を勧め、1つのユーザーまたは組織のリソースだけにアクセスを限定できる。","× PAT の利用は可能である。","× 期限のない共有は避けるべきである。"]},{"id":"github-141","type":"mc","chapterIndex":9,"stem":"PAT の扱いとして適切なものはどれか。","options":["PAT は公開しても問題ない","PAT は期限がなく、変更の必要がない","PAT は他のメンバーと共有して、同じ権限で使うのが普通である","パスワードと同様に扱い、有効期限を設定する"],"correctIndex":3,"explanations":["× 公開すると漏えいの原因になる。","× 期限を設定できる。","× 共有は避けるべきである。","○ PAT はパスワードと同様に扱い、有効期限の設定が強く推奨される。"]},{"id":"github-142","type":"mc","chapterIndex":9,"stem":"SAML SSO を使う組織で、個人の PAT や SSH キーを使うときに必要なこととして正しいものはどれか。","options":["PAT や SSH キーを組織向けに認可する","何もしなくても、組織のリポジトリにすべて使える","組織のオーナーが、個人の PAT を代わりに作る","SSH キーは使えず、PAT だけ"],"correctIndex":0,"explanations":["○ SAML SSO を使う組織では、PAT や SSH キーをその組織向けに認可する必要がある。","× 認可が必要である。","× 個人の PAT は個人が作る。","× SSH キーも使える。"]},{"id":"github-143","type":"mc","chapterIndex":9,"stem":"依存関係グラフ（dependency graph）でできることとして正しいものはどれか。","options":["依存パッケージを自動で更新し、PR を作る","依存関係の一覧を表示する","コードの脆弱性をすべて修正する","依存関係のライセンスを法的に保証する"],"correctIndex":1,"explanations":["× 更新の PR を作るのは Dependabot の機能である。","○ 依存関係グラフは、マニフェストやロックファイルを解析して依存関係を表示し、SBOM のエクスポートもできる。","× 脆弱性の修正は行わない。","× 法的な保証はしない。"]},{"id":"github-144","type":"mc","chapterIndex":9,"stem":"Dependabot の3つの機能の説明として正しいものはどれか。","options":["alerts は PR を作り、version updates は脆弱性を通知する","security updates は通知だけで、PR は作らない","alerts は既知の脆弱性を通知し、security updates は修正の PR を作り、version updates は依存関係を最新に保つ PR を作る","3つとも同じ機能で、呼び名が違うだけである"],"correctIndex":2,"explanations":["× 通知と PR の役割が入れ替わっている。","× security updates は修正の PR を作る。","○ Dependabot alerts は脆弱性を通知し、security updates は修正 PR を作り、version updates は最新に保つための PR を作る。","× 3つは役割が違う。"]},{"id":"github-145","type":"mc","chapterIndex":9,"stem":"Dependabot version updates の設定ファイルの場所として正しいものはどれか。","options":[".github/dependabot.yml","dependabot.json をルートに置く","workflows に置く","Settings の画面の YAML 欄"],"correctIndex":0,"explanations":["○ version updates の設定は .github/dependabot.yml に書き、version: 2、updates、package-ecosystem、schedule.interval などが必要である。","× ファイル名と形式が違う。","× workflows ディレクトリには置かない。","× 設定は画面ではなく、ファイルに書く。"]},{"id":"github-146","type":"mc","chapterIndex":9,"stem":"シークレットスキャンの説明として正しいものはどれか。","options":["コードの脆弱性を分析して修正する","ハードコードされた認証情報を検出する","依存パッケージの脆弱性を見つけて通知する","PR のレビュー担当を、自動で決めて割り振る"],"correctIndex":1,"explanations":["× 脆弱性の分析は code scanning の役割である。","○ シークレットスキャンは、API キーやトークンなど、ハードコードされた認証情報を全ブランチの履歴から検出する。","× 依存関係の通知は Dependabot の役割である。","× レビュー担当は CODEOWNERS の役割である。"]},{"id":"github-147","type":"mc","chapterIndex":9,"stem":"認証情報が誤ってコミットされ、公開されてしまった。最初に行うべきことはどれか。","options":["コミットを履歴から消して、force push する","リポジトリを private にして、様子を見る","認証情報を失効させる","そのファイルを削除して次のコミットに含める"],"correctIndex":2,"explanations":["× 履歴の書き換えは、まず行うべきことではない。","× 公開範囲を変えても、漏えいした情報は戻らない。","○ 漏えいした認証情報は、まず失効させる（ローテーションする）のが先で、履歴の書き換えは多くの場合不要である。","× 削除しても履歴に残るため、対策にならない。"]},{"id":"github-148","type":"mc","chapterIndex":9,"stem":"push protection（プッシュ保護）の説明として正しいものはどれか。","options":["push の後に、シークレットの一覧をメールで送る","push を自動で取り消して、履歴から消す","push の前に、ブランチ名を変更する","シークレットを含む push を、ブロックできる機能である"],"correctIndex":3,"explanations":["× push の後の通知ではなく、push 自体をブロックする。","× 履歴は自動では消さない。","× ブランチ名は変えない。","○ プッシュ保護は、シークレットを含む push をブロックする機能である。"]},{"id":"github-149","type":"mc","chapterIndex":9,"stem":"code scanning（コードスキャン）の説明として正しいものはどれか。","options":["依存パッケージの更新 PR を自動で作り、脆弱性も直す","脆弱性や不具合を検出し、CodeQL を使える","リポジトリの訪問者数を集計する","ライセンスの違反を一覧にする"],"correctIndex":1,"explanations":["× PR の作成は Dependabot の機能である。","○ code scanning はコードの脆弱性や不具合を検出し、分析エンジンとして CodeQL を使える。","× 訪問者数は Insights の機能である。","× ライセンスの確認は別の仕組みである。"]},{"id":"github-150","type":"mc","chapterIndex":9,"stem":"脆弱性の報告方法を利用者に伝えるファイルとして正しいものはどれか。","options":["LICENSE","CODEOWNERS ファイル","SECURITY.md","CONTRIBUTING.md（貢献の方法）"],"correctIndex":2,"explanations":["× LICENSE はライセンスの文を置く。","× CODEOWNERS は所有者を指定する。","○ SECURITY.md は、脆弱性の報告方法をユーザーに伝えるファイルである。","× CONTRIBUTING は貢献の方法を示す。"]},{"id":"github-151","type":"mc","chapterIndex":10,"stem":"組織の Organization で、アカウントの種類として正しいものはどれか。","options":["個人アカウントと Team の2種類","Organization と Pro の2種類","Enterprise だけで、個人アカウントは存在しない","個人・組織・Enterprise"],"correctIndex":3,"explanations":["× Team はアカウントの種類ではなく、プランである。","× Pro は個人向けのプランである。","× 個人アカウントも存在する。","○ GitHub のアカウントには、個人アカウント、Organization、Enterprise アカウントがある。"]},{"id":"github-152","type":"mc","chapterIndex":10,"stem":"Organization のメンバーが、サインインして作業するときの正しい方法はどれか。","options":["各自の個人アカウントでサインインし、Organization の中で作業する","Organization のアカウントに直接サインインする","Organization ごとに共通のユーザーを一つ使う","Organization のオーナーのアカウントを借りて使う"],"correctIndex":0,"explanations":["○ Organization 自体にはサインインせず、メンバーは各自の個人アカウントでサインインして作業する。","× Organization 自体にはサインインしない。","× 共通アカウントは使わない。","× 借りて使う仕組みではない。"]},{"id":"github-153","type":"mc","chapterIndex":10,"stem":"Enterprise Managed Users（EMU）の説明として正しいものはどれか。","options":["利用者が自分で作った個人アカウントを、そのまま使う","Organization の外で、公開リポジトリに自由に貢献できる","Enterprise が作成・管理し、外部 IdP が認証する","個人アカウントでのみ使える"],"correctIndex":2,"explanations":["× 個人アカウントをそのまま使うのではない。","× EMU は Enterprise の外では公開貢献ができない。","○ EMU は Enterprise が作成・管理するアカウントで、外部の IdP がユーザーの作成・認証・プロビジョニングを担う。","× Enterprise で使うアカウントである。"]},{"id":"github-154","type":"mc","chapterIndex":10,"stem":"Organization のリポジトリのロールを、権限の低い順に並べたものとして正しいものはどれか。","options":["Read、Write、Triage、Maintain、Admin、Owner","Triage、Read、Write、Admin","Read、Write、Maintain、Triage、Admin、Member、Owner","Read、Triage、Write、Maintain、Admin"],"correctIndex":3,"explanations":["× Triage は Write より低い。","× Read が最も低い。","× Maintain は Admin より低い。","○ Organization リポジトリのロールは、低い順に Read、Triage、Write、Maintain、Admin の5つである。"]},{"id":"github-155","type":"mc","chapterIndex":10,"stem":"Maintain ロールの説明として正しいものはどれか。","options":["管理できるが、ブランチ保護は管理できない","Admin と同じく、ブランチ保護ルールを管理できる","読み取りだけができ、Issue の作成もできない","リポジトリの可視性を変更し、アーカイブもできる"],"correctIndex":0,"explanations":["○ Maintain ロールはリポジトリ管理を行えるが、ブランチ保護ルールやルールセットは管理できない。","× ブランチ保護の管理は Admin の権限である。","× Read の説明である。","× 可視性の変更は Admin の権限である。"]},{"id":"github-156","type":"mc","chapterIndex":10,"stem":"Organization のリポジトリで、可視性の変更、アーカイブ、既定ブランチの変更などを行えるのはどのロールか。","options":["Maintain ロール以上","Admin ロールだけが、可視性の変更などを行える","Write ロール以上","Triage ロール以上"],"correctIndex":1,"explanations":["× Maintain は可視性やブランチ保護を変えられない。","○ Admin ロールだけが、可視性の変更、アーカイブや削除、ブランチ保護ルールの管理、既定ブランチの変更ができる。","× Write は可視性を変えられない。","× Triage は管理権限ではない。"]},{"id":"github-157","type":"mc","chapterIndex":10,"stem":"カスタムリポジトリロールについて正しいものはどれか。","options":["すべての無料の Organization で使える","個人アカウントで使える","Read を消す機能","Enterprise Cloud の組織だけ"],"correctIndex":3,"explanations":["× 無料の Organization では使えない。","× 個人アカウントでは使えない。","× 既存のロールを削除する機能ではない。","○ カスタムリポジトリロールは、Enterprise Cloud の Organization でのみ使える。"]},{"id":"github-158","type":"mc","chapterIndex":10,"stem":"Organization のオーナーが2人未満にならないように、推奨されることはどれか。","options":["少なくとも2人のオーナーを置く","オーナーは1人で十分なので、増やさない","オーナーは全員が同じアカウントを使う","オーナーは増やさない"],"correctIndex":0,"explanations":["○ オーナーが2人未満にならないよう、少なくとも2人のオーナーを置くことが推奨される。","× 1人では不測の事態に対応しにくい。","× アカウントは個人ごとに使う。","× 自動では増えない。"]},{"id":"github-159","type":"mc","chapterIndex":10,"stem":"Organization の security manager ロールの説明として正しいものはどれか。","options":["メンバーの請求情報を変更できる権限","セキュリティアラートを閲覧する","Organization の所有者を変更できる","GitHub App を作成して、インストールを管理できる"],"correctIndex":1,"explanations":["× 請求の管理は billing manager の役割である。","○ security manager は、Organization 全体のセキュリティアラートを閲覧して設定を管理でき、全リポジトリへの read 権限を持つ。","× オーナーの変更はオーナーにしかできない。","× GitHub App の管理は GitHub App manager の役割である。"]},{"id":"github-160","type":"mc","chapterIndex":10,"stem":"Outside collaborator の説明として正しいものはどれか。","options":["Organization のすべてのリポジトリに、自動で read 権限を持つ人","チームに所属して、チームの権限を継承する人","Organization の正式メンバーではないが、1つ以上のリポジトリにアクセスできる人","オーナーに許可されていなくても、Organization の設定を変えられる人"],"correctIndex":2,"explanations":["× 全リポジトリに自動では権限がない。","× チームには所属できない。","○ Outside collaborator は Organization の正式メンバーではないが、1つ以上のリポジトリにアクセスできる人である。","× 設定の変更権限はない。"]},{"id":"github-161","type":"mc","chapterIndex":10,"stem":"Outside collaborator に関する制限として正しいものはどれか。","options":["チームに所属できず、ベース権限も適用されない","チームに所属でき、ベース権限も必ず適用される設定だ","リポジトリを作成でき、請求の管理もできる","オーナーのみが招待できる"],"correctIndex":0,"explanations":["○ Outside collaborator はチームに所属できず、Organization のベース権限も適用されない。","× チームには所属できない。","× ベース権限は適用されない。","× リポジトリの作成や請求の管理は含まれない。"]},{"id":"github-162","type":"mc","chapterIndex":10,"stem":"Organization のチームについて正しいものはどれか。","options":["チームは Organization のメンバーに限られず、誰でも入れる","チームを @メンションすると通知が届く","チームは入れ子にできない","チームにはリポジトリの権限を与えることはできない"],"correctIndex":1,"explanations":["× チームは Organization のメンバーで構成される。","○ チームは Organization のメンバーのグループで、@メンションすると全メンバーに通知が届く。","× チームは入れ子にできる。","× チームにリポジトリの権限を与えられる。"]},{"id":"github-163","type":"mc","chapterIndex":10,"stem":"入れ子のチーム（親子のチーム）の権限の扱いとして正しいものはどれか。","options":["子チームは親チームの権限を継承せず、常に独立している","子チームは親を複数持てる場合がある","親チームの権限を継承する","親チームの権限は、子チームには一切影響しない"],"correctIndex":2,"explanations":["× 継承される。","× 親は1つだけである。","○ チームは入れ子にでき、子チームは親チームのリポジトリアクセスを継承する。子チームの親は1つだけである。","× 親の権限は子に影響する。"]},{"id":"github-164","type":"mc","chapterIndex":10,"stem":"Organization で、2要素認証（2FA）を必須にした場合の扱いとして正しいものはどれか。","options":["2FA 未設定のメンバーはそのまま使え、警告だけが表示される","2FA 必須は、オーナーにだけ適用される","2FA を必須にすると、既存のリポジトリはすべて private になる","2FA を設定していないメンバーはアクセスがブロックされ、outside collaborator は削除される"],"correctIndex":3,"explanations":["× 警告ではなく、アクセスがブロックされる。","× メンバーとアウトサイドコラボレーターにも適用される。","× 公開範囲は変わらない。","○ 2FA を必須にすると、未設定のメンバーはアクセスがブロックされ、outside collaborator は削除される。"]},{"id":"github-165","type":"mc","chapterIndex":10,"stem":"Organization の audit log（監査ログ）について正しいものはどれか。","options":["すべてのメンバーが、いつでも全期間の記録を見られる","閲覧できるのはオーナーだけで、過去のイベントを一定期間分見られる","個人アカウントのリポジトリの履歴も、同じ画面で見られる","監査ログは Enterprise の利用者だけが、有料プランで見られる"],"correctIndex":1,"explanations":["× 閲覧はオーナーだけ。","○ Organization の audit log はオーナーだけが閲覧でき、一定期間の過去のイベントを対象とする。","× 個人のリポジトリは対象外である。","× 有料機能に限られるわけではない。"]},{"id":"github-166","type":"mc","chapterIndex":11,"stem":"GitHub Sponsors の説明として正しいものはどれか。","options":["利用者がライセンス料を払う仕組み","企業の Organization だけが使える、広告の仕組みである","開発者や組織に直接資金を援助できる","スポンサーを受けるには、事前に有料プランへの加入が必要である"],"correctIndex":2,"explanations":["× ライセンス料の仕組みではない。","× 広告の仕組みではない。","○ GitHub Sponsors は、オープンソースを維持する開発者や組織に直接資金援助できる仕組みである。","× 有料プランへの加入は条件ではない。"]},{"id":"github-167","type":"mc","chapterIndex":11,"stem":"スポンサーボタンを表示するための設定として正しいものはどれか。","options":["README の先頭に、スポンサー専用の記法を書く","Wiki に寄付の URL を書き、ボタンを作る","Discussions のカテゴリに、寄付の投稿を作る","FUNDING.yml で設定する"],"correctIndex":3,"explanations":["× README の記法ではボタンは作られない。","× Wiki はボタンの設定場所ではない。","× Discussions では設定しない。","○ スポンサーボタンは .github フォルダの FUNDING.yml で設定し、設定には admin 権限が必要である。"]},{"id":"github-168","type":"mc","chapterIndex":11,"stem":"FUNDING.yml で指定できる支援の受け付け先として正しいものはどれか。","options":["GitHub Sponsors のほか、Open Collective、Patreon、Ko-fi などの外部プラットフォームやカスタム URL","GitHub Sponsors だけに限られる","銀行の口座番号だけ","Marketplace の有料アプリだけ"],"correctIndex":0,"explanations":["○ FUNDING.yml では GitHub Sponsors のほか、外部プラットフォームやカスタム URL を指定できる。","× GitHub Sponsors 以外も指定できる。","× 口座番号は指定しない。","× Marketplace のアプリは関係ない。"]},{"id":"github-169","type":"mc","chapterIndex":11,"stem":"ユーザーを follow すると、どうなるか。","options":["自動で write 権限が付く","そのユーザーが作った Issue が、すべて自分に割り当てられる","公開アクティビティがフィードに表示される","非公開のリポジトリも見られる"],"correctIndex":2,"explanations":["× 権限は付かない。","× Issue は割り当てられない。","○ ユーザーを follow すると、その公開アクティビティがダッシュボードのフィードに表示される。","× 非公開は見られない。"]},{"id":"github-170","type":"mc","chapterIndex":11,"stem":"初心者が取り組みやすい作業を探すためのラベルとして正しいものはどれか。","options":["bug と wontfix","duplicate、invalid、question、wontfix の4つ","enhancement、accessibility、bug、wontfix の4つ","good first issue と help wanted"],"correctIndex":3,"explanations":["× bug と wontfix は初心者向けの目印ではない。","× duplicate と invalid は整理のためのラベルである。","× enhancement と accessibility は内容の分類である。","○ good first issue と help wanted のラベルは、初心者が取り組みやすい作業を探すために使われる。"]},{"id":"github-171","type":"mc","chapterIndex":11,"stem":"リポジトリのトピックの扱いとして正しいものはどれか。","options":["小文字の英数字とハイフンのみ","大文字や日本語を使え、private リポジトリでは非公開になる","トピックは Organization の管理者だけが付けられる","トピックは1リポジトリに1つだけ付けられる"],"correctIndex":0,"explanations":["○ トピックは小文字の英数字とハイフンのみで、private リポジトリで作っても常に公開される。","× 大文字や日本語は使えない。","× トピックは権限があれば誰でも付けられる。","× 複数付けられる。"]},{"id":"github-172","type":"mc","chapterIndex":11,"stem":"fork して貢献するときの一般的な流れとして正しい順序はどれか。","options":["clone、fork、PR 作成、ブランチ作成の順","fork、clone、ブランチ作成、コミットと push、PR 作成の順","ブランチ作成、PR 作成、fork、clone、push の順","ブランチ作成、fork、PR 作成の順"],"correctIndex":1,"explanations":["× fork は clone より先に行う。","○ fork して貢献する流れは、fork、clone、ブランチ作成、コミットと push、PR 作成の順である。","× PR は push の後に作る。","× PR は最後に作る。"]},{"id":"github-173","type":"mc","chapterIndex":11,"stem":"fork を上流リポジトリと同期する方法として正しいものはどれか。","options":["上流のコードを手でコピーする","fork を削除して、上流から新しく作り直す以外に方法はない","PR を出すと、自動で同期される","Sync fork や gh repo sync を使う"],"correctIndex":3,"explanations":["× 手作業のコピーに限らない。","× 作り直す必要はない。","× PR は同期の仕組みではない。","○ fork の同期には、Web の Sync fork、gh repo sync、upstream リモートの fetch と merge を使う。"]},{"id":"github-174","type":"mc","chapterIndex":11,"stem":"CONTRIBUTING ファイルの置き場所と効果として正しいものはどれか。","options":["ルート、docs、.github のいずれか","Wiki のページに置くと、Issue の作成画面で自動で読み込まれる","ラベルの説明欄に書くと、PR の本文に表示される","Settings のライセンス欄に書く"],"correctIndex":0,"explanations":["○ CONTRIBUTING はルート、docs、.github のいずれかに置き、新規 Issue や PR 作成時にリンクが表示される。","× Wiki の自動読み込みはない。","× ラベルの説明は PR の本文に表示されない。","× ライセンス欄は CONTRIBUTING の場所ではない。"]},{"id":"github-175","type":"mc","chapterIndex":11,"stem":"コミュニティプロフィールの説明として正しいものはどれか。","options":["貢献者の一覧を、コミット数の多い順に表示する","推奨ファイルの有無を示す","リポジトリの訪問者を地域別に集計する","Issue のラベルを、色と説明つきで一覧にする"],"correctIndex":1,"explanations":["× 貢献者の一覧は別の機能である。","○ コミュニティプロフィールは、README、CODE_OF_CONDUCT、LICENSE、CONTRIBUTING などの推奨ファイルの有無をチェックリストで示す。","× 訪問者の集計は Insights の機能である。","× ラベルの一覧は Issue の画面の機能である。"]},{"id":"github-176","type":"mc","chapterIndex":11,"stem":"GitHub Marketplace の説明として正しいものはどれか。","options":["掲載できるのは企業だけで、個人は公開できない","アプリだけが掲載され、Actions は掲載できない","Actions とアプリが掲載され、Actions は誰でも公開できる","有料のアプリだけが載り、無料は載らない"],"correctIndex":2,"explanations":["× 個人も Actions を公開できる。","× Actions も掲載される。","○ Marketplace には Actions とアプリが掲載され、Actions は誰でも公開できる。","× 無料のものも掲載される。"]},{"id":"github-177","type":"mc","chapterIndex":11,"stem":"GitHub Marketplace で有料プランを販売できるのはどれか。","options":["Organization が所有するアプリ","個人アカウントが所有するアプリ","無料の Actions を公開する","Marketplace で購入して使う利用者の一覧"],"correctIndex":0,"explanations":["○ 有料プランを販売できるのは Organization 所有のアプリだけで、個人は販売できない。","× 個人は有料プランを販売できない。","× 無料の Actions は販売対象ではない。","× 利用者は販売者ではない。"]},{"id":"github-178","type":"mc","chapterIndex":11,"stem":"ユーザーをブロックしたときの説明として正しいものはどれか。","options":["ブロックされた人には通知が届き、フォローだけはできる","ブロックされた人には通知されず、一部の操作ができなくなる","ブロックは Organization の管理者だけが行える","ブロックは、リポジトリの admin の権限で行う必要がある"],"correctIndex":1,"explanations":["× 通知は届かない。","○ ブロックされた人に通知は届かず、Issue、PR、コメント、fork、スター、フォローなどができなくなる。","× 個人でもブロックできる。","× リポジトリの admin の権限は要らない。"]},{"id":"github-179","type":"mc","chapterIndex":11,"stem":"コントリビューショングラフについて正しいものはどれか。","options":["時刻は日本時間で記録され、private の活動も既定で表示される","時刻はローカル時刻で記録され、既定ではすべて表示される","既定では public の活動だけ","時刻は UTC だが、private の活動も既定で見せる"],"correctIndex":2,"explanations":["× 時刻は UTC で記録される。","× 既定では public の活動だけ。","○ コントリビューショングラフの時刻は UTC で記録され、既定では public リポジトリの活動のみが表示される。","× private は既定では表示されない。"]},{"id":"github-180","type":"mc","chapterIndex":11,"stem":"個人アカウントから GitHub Sponsors でスポンサーするときの手数料について正しいものはどれか。","options":["スポンサーの金額の一定割合が、GitHub の手数料になる","一回払いには手数料がかからず、月額には手数料がかかる","手数料は、支払う人の国によって一律に決まる","個人アカウントからのスポンサーには、GitHub の手数料がかからない"],"correctIndex":3,"explanations":["× 手数料はかからない。","× 一回払いも月額も手数料は同じく無料。","× 国によって変わる仕組みではない。","○ 個人アカウントからのスポンサーには GitHub の手数料がかからない。"]}];
+  const CHAPTERS = ["Git の基本","リポジトリ","ブランチとマージ","Pull Request とレビュー","Issues・Discussions","Projects","GitHub Actions","Codespaces・Copilot などの開発環境","Markdown・README・GitHub Pages","セキュリティ","権限・Organization・管理","コミュニティ・オープンソース"];
+  const BASE_CHAPTER_COUNT = 12;   // これ以降の章は新シラバス仮問題集（deck:'extra3'）用
+// GAS_WEBAPP_URL / EXAM_ID / EXAM_SHORT_TITLE / TRACKING_EXAM_ID / QUESTIONS / CHAPTERS は build_html.js が
+// ビルド時にこのファイルの直前へ注入する。QUESTIONS は {id, type:'mc'|'tf'|'mc-multi', chapterIndex, stem, ...}
+// の配列。TRACKING_EXAM_ID は成績記録シート名（<TRACKING_EXAM_ID>_<mode>）専用のIDで、
+// 同じexam.id配下に複数の問題集（quiz/quiz2）がある場合に成績を分離するため EXAM_ID とは別に持つ
+// （EXAM_ID はチャットへ戻る遷移先ページなので exam.id のまま変えない）。
+// 'mc-multi' は「すべて選びなさい」形式（正解が複数）。見た目は 'mc' と同じ選択肢ボタンだが、
+// クリックのたびにトグル選択（複数選択可）になり、正解は correctIndexes（配列）で持つ。
+
+const MODE_LABEL = { mc: '模擬試験', tf: '一問一答', extra: '追加問題', extra2: '追加問題2', extra3: '新シラバス仮問題', review: '復習' };
+// 成績記録（QuizTracking.js）のシートを分けるための mode 変換。
+// 'extra'（追加問題、別ソースの問題集）は既存の 模擬試験(seiseiai_mc) と混在しないよう
+// 'mc2' という別モード名で記録する。'extra2'（3つ目の問題集）は同様に'mc3'。
+// 'review'（復習モード）は章別推移表には記録せず、専用の復習ログへ書く（recordResults参照）。
+const TRACKING_MODE = { mc: 'mc', tf: 'tf', extra: 'mc2', extra2: 'mc3', extra3: 'mc4', review: 'review' };
+
+// 復習モードの「卒業」条件。復習でこの回数だけ連続正解したら、既定の出題対象から外す
+// （「記録にある全部」を選べば卒業ぶんも出題できる）。バックエンド QuizReview.js は
+// 生の連続正解数(streak)だけを返し、閾値の判断はこの画面側で持つ。
+const GRADUATE_STREAK = 2;
+// 復習の範囲「最近間違えた問題」が遡る日数。
+const RECENT_MISS_DAYS = 14;
+
+let mode = null;             // 'mc' | 'tf' | 'extra' | 'extra2' | 'extra3' | 'review'
+let modePool = [];           // モードごとの出題プール（下記参照）
+let scopeChapterIndex = null; // null = 全部、それ以外は対象chapterIndex
+let scopeGroup = null;        // null = 章全体、それ以外は章の中のテーマ別グループ名
+let questions = [];          // 範囲確定時に modePool を全部 or 該当章でfilterしたもの
+let idx = 0;
+let selectedOption = null;   // mc: 0-3 の数値、tf: true/false、mc-multi: 選択中indexの配列、未選択は null（mc-multiは[]）
+let revealed = false;
+let sessionResults = [];     // [{id, chapterIndex, correct, selectedOption}]
+let skippedCount = 0;        // 回答せずに飛ばした問題数（正答率の母数には入れない）
+
+// 復習モード用の状態。reviewEntries はバックエンド apiGetReviewPool の戻り
+// [{id, mode, missCount, lastMissAt, reviewCount, streak, lastReviewAt}]。
+let reviewEntries = [];
+let reviewEntryById = {};
+let reviewScopeKey = null;   // 'active' | 'repeat' | 'recent' | 'all' | chapterIndex(数値)
+let reviewMissingCount = 0;  // 記録にあるが今の問題集に見つからない問題数（ID未記録の旧データなど）
+
+(function initCounts() {
+  document.getElementById('mcCount').textContent = QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).length;
+  document.getElementById('tfCount').textContent = QUESTIONS.filter((q) => q.type === 'tf' && !q.deck).length;
+  document.getElementById('extraCount').textContent = QUESTIONS.filter((q) => q.deck === 'extra').length;
+  document.getElementById('extra2Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra2').length;
+  document.getElementById('extra3Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra3').length;
+  // 問題が1問も無いモードのカードは出さない（FP3のように問題集が1本だけの資格向け）。
+  [['tfCard', 'tfCount'], ['extraCard', 'extraCount'], ['extra2Card', 'extra2Count'], ['extra3Card', 'extra3Count']].forEach(([card, count]) => {
+    if (!Number(document.getElementById(count).textContent)) document.getElementById(card).style.display = 'none';
+  });
+  // 模擬試験カードの選択肢数表記（FP3は3択）。選択肢数が混在するときは「3〜4択」のように範囲で出す。
+  const sizes = Array.from(new Set(QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).map((q) => q.options.length)));
+  if (sizes.length) {
+    const lo = Math.min.apply(null, sizes), hi = Math.max.apply(null, sizes);
+    document.getElementById('mcKind').textContent = (lo === hi ? lo : lo + '〜' + hi) + '択';
+  }
+  // 問題集1本だけの資格は「模擬試験」ではなく exams.js の quiz.mcTitle で呼び替える。
+  if (typeof MC_TITLE === 'string' && MC_TITLE) {
+    MODE_LABEL.mc = MC_TITLE;
+    document.getElementById('mcTitle').textContent = MC_TITLE;
+  }
+})();
+
+function showScreen(id) {
+  ['screenMode', 'screenScope', 'screenQuestion', 'screenSummary'].forEach((s) => {
+    document.getElementById(s).style.display = s === id ? '' : 'none';
+  });
+}
+
+function chooseMode(m) {
+  if (m === 'review') { startReview(); return; }
+  const pool = m === 'extra' || m === 'extra2' || m === 'extra3'
+    ? QUESTIONS.filter((q) => q.deck === m)
+    : QUESTIONS.filter((q) => q.type === m && !q.deck);
+  if (!pool.length) { alert('このモードの問題がまだ登録されていません。'); return; }
+  mode = m;
+  modePool = pool;
+  renderScopeScreen();
+}
+
+// ── 復習モード（間違えた問題だけの再学習） ────────────────────────────────
+// 出題プールはスプレッドシートの記録（<examId>_<mode>_ミス、全モードぶん）から作る。
+// 端末のlocalStorageは使わない: このページはGASのサンドボックスiframe（*.googleusercontent.com）
+// で配信されるため保存先が端末・ブラウザごとにバラバラになり、スマホとPCで復習状況が
+// 食い違ってしまう。記録は既にスプレッドシートにあるのでそれを唯一の正とする。
+async function startReview() {
+  const card = document.getElementById('reviewCard');
+  const desc = document.getElementById('reviewCount');
+  const prevDesc = desc.textContent;
+  card.disabled = true;
+  desc.textContent = '記録を読み込み中...';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+    });
+    if (!data.ok) {
+      alert('復習リストを取得できませんでした: ' + (data.error || ''));
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    reviewEntries = data.entries || [];
+    reviewEntryById = {};
+    reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+
+    const pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+    reviewMissingCount = reviewEntries.length - pool.length;
+    if (!pool.length) {
+      alert(reviewEntries.length
+        ? '記録にある問題が今の問題集に見つかりませんでした（問題IDの無い古い記録のみです）。'
+        : 'まだ間違えた問題の記録がありません。\n各モードを解いたあとサマリー画面で「この回の結果を記録」を押すと、ここに溜まっていきます。');
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    mode = 'review';
+    modePool = pool;
+    desc.textContent = pool.filter((q) => !isGraduated(q)).length + '問が未克服';
+    renderScopeScreen();
+  } catch (err) {
+    alert('通信エラー: ' + (err && err.message ? err.message : err));
+    desc.textContent = prevDesc;
+  } finally {
+    card.disabled = false;
+  }
+}
+
+// 復習プールの1問あたりの状態を引く小物。記録に無い問題（通常は起きない）は0扱い。
+function isGraduated(q) {
+  const e = reviewEntryById[q.id];
+  return !!e && e.streak >= GRADUATE_STREAK;
+}
+function missCountOf(q) {
+  const e = reviewEntryById[q.id];
+  return e ? e.missCount : 0;
+}
+function lastMissTimeOf(q) {
+  const e = reviewEntryById[q.id];
+  return e && e.lastMissAt ? new Date(e.lastMissAt).getTime() : 0;
+}
+
+// 復習の範囲キー → 出題対象の絞り込み条件。
+function reviewFilter(key) {
+  if (key === 'all') return function () { return true; };
+  if (key === 'repeat') return function (q) { return !isGraduated(q) && missCountOf(q) >= 2; };
+  if (key === 'recent') {
+    const since = Date.now() - RECENT_MISS_DAYS * 24 * 60 * 60 * 1000;
+    return function (q) { return !isGraduated(q) && lastMissTimeOf(q) >= since; };
+  }
+  if (typeof key === 'number') return function (q) { return !isGraduated(q) && q.chapterIndex === key; };
+  return function (q) { return !isGraduated(q); }; // 'active'（既定）
+}
+
+function reviewScopeLabel(key) {
+  if (key === 'all') return '記録にある全部';
+  if (key === 'repeat') return '2回以上間違えた問題';
+  if (key === 'recent') return '最近' + RECENT_MISS_DAYS + '日で間違えた問題';
+  if (typeof key === 'number') return chapterLabelText(key);
+  return '未克服の問題';
+}
+
+// 復習モードでは色々なデッキの問題が混ざるので、その問題がどの問題集のものかを示す。
+function deckLabelOf(q) {
+  if (q.deck === 'extra') return '追加問題';
+  if (q.deck === 'extra2') return '追加問題2';
+  if (q.deck === 'extra3') return '新シラバス仮問題';
+  return q.type === 'tf' ? '一問一答' : '模擬試験';
+}
+
+// モード確定後、「全部」か「章ごとにチャレンジ」かを選ぶ画面を組み立てる。
+function renderScopeScreen() {
+  if (mode === 'review') { renderReviewScopeScreen(); return; }
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">📚 全部</div><div class="scope-all-desc">' + modePool.length + '問すべて出題</div>';
+  allBtn.onclick = () => chooseScope(null);
+  el.appendChild(allBtn);
+
+  const chapterIndexes = Array.from(new Set(modePool.map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとにチャレンジ';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const count = modePool.filter((q) => q.chapterIndex === ci).length;
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + count + '問</span>';
+      btn.onclick = () => chooseScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+
+    // 章の下のテーマ別グループ（問題に group が付いているときだけ）。
+    if (modePool.some((q) => q.group)) {
+      const gHeading = document.createElement('div');
+      gHeading.className = 'scope-chapter-heading';
+      gHeading.textContent = 'テーマ別にチャレンジ';
+      el.appendChild(gHeading);
+      chapterIndexes.forEach((ci) => {
+        const inChapter = modePool.filter((q) => q.chapterIndex === ci && q.group);
+        const names = [];
+        inChapter.slice().sort((a, b) => (a.groupIndex || 0) - (b.groupIndex || 0)).forEach((q) => { if (names.indexOf(q.group) < 0) names.push(q.group); });
+        if (!names.length) return;
+        const sub = document.createElement('div');
+        sub.className = 'scope-note';
+        sub.textContent = chapterLabelText(ci);
+        el.appendChild(sub);
+        const gList = document.createElement('div');
+        gList.className = 'scope-chapter-list';
+        names.forEach((name) => {
+          const n = inChapter.filter((q) => q.group === name).length;
+          const btn = document.createElement('button');
+          btn.className = 'scope-chapter-btn';
+          btn.innerHTML = '<span class="name">' + escapeHtml(name) + '</span><span class="count">' + n + '問</span>';
+          btn.onclick = () => chooseScope(ci, name);
+          gList.appendChild(btn);
+        });
+        el.appendChild(gList);
+      });
+    }
+  }
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲選択画面。章ではなく「未克服／繰り返しミス／最近／全部」で切る。
+function renderReviewScopeScreen() {
+  document.getElementById('headerSub').textContent = '復習　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const countOf = (key) => modePool.filter(reviewFilter(key)).length;
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">🔁 未克服の問題</div><div class="scope-all-desc">'
+    + countOf('active') + '問・間違えたまま克服できていない問題</div>';
+  allBtn.onclick = () => chooseReviewScope('active');
+  el.appendChild(allBtn);
+
+  const presets = [
+    { key: 'repeat', name: '🔥 2回以上間違えた問題' },
+    { key: 'recent', name: '📅 最近' + RECENT_MISS_DAYS + '日で間違えた問題' },
+    { key: 'all', name: '📚 記録にある全部（克服済みも含む）' },
+  ];
+  const presetList = document.createElement('div');
+  presetList.className = 'scope-chapter-list';
+  presets.forEach((p) => {
+    const n = countOf(p.key);
+    const btn = document.createElement('button');
+    btn.className = 'scope-chapter-btn';
+    btn.disabled = n === 0;
+    btn.innerHTML = '<span class="name">' + escapeHtml(p.name) + '</span><span class="count">' + n + '問</span>';
+    btn.onclick = () => chooseReviewScope(p.key);
+    presetList.appendChild(btn);
+  });
+  el.appendChild(presetList);
+
+  // 章ごと（未克服のぶんだけ）。0問の章はボタン自体を出さない。
+  const chapterIndexes = Array.from(new Set(modePool.filter(reviewFilter('active')).map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとに復習（未克服ぶん）';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const n = countOf(ci);
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + n + '問</span>';
+      btn.onclick = () => chooseReviewScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+  }
+
+  const note = document.createElement('div');
+  note.className = 'scope-note';
+  note.textContent = '復習で' + GRADUATE_STREAK + '回連続で正解した問題は「克服」として既定の出題から外れます。'
+    + (reviewMissingCount > 0 ? '（記録のうち' + reviewMissingCount + '問は今の問題集に無いため対象外）' : '');
+  el.appendChild(note);
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲確定。ミスが多い問題・最近間違えた問題から先に出す。
+function chooseReviewScope(key) {
+  const pool = modePool.filter(reviewFilter(key));
+  if (!pool.length) { alert('この条件に当てはまる問題がありません。'); return; }
+  reviewScopeKey = key;
+  scopeChapterIndex = typeof key === 'number' ? key : null;
+  scopeGroup = null;
+  questions = pool.slice().sort((a, b) => (missCountOf(b) - missCountOf(a)) || (lastMissTimeOf(b) - lastMissTimeOf(a)));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = '復習　' + reviewScopeLabel(key) + '（' + questions.length + '問）';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function chooseScope(chapterIndex, group) {
+  scopeChapterIndex = chapterIndex;
+  scopeGroup = group || null;
+  questions = chapterIndex == null ? modePool : modePool.filter((q) => q.chapterIndex === chapterIndex && (!scopeGroup || q.group === scopeGroup));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　' + (chapterIndex == null ? '全部' : chapterLabelText(chapterIndex) + (scopeGroup ? '／' + scopeGroup : ''));
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function restartMode() {
+  if (mode === 'review') { chooseReviewScope(reviewScopeKey); return; }
+  chooseScope(scopeChapterIndex, scopeGroup);
+}
+
+// 今のセッションで間違えた問題だけを、その場でもう一度出題する（記録を待たない簡易復習）。
+// 記録ベースの本格的な復習はモード選択の「🔁 復習」。
+function retryWrongInSession() {
+  const wrong = sessionResults.filter((r) => !r.correct)
+    .map((r) => questions.find((q) => q.id === r.id))
+    .filter(Boolean);
+  if (!wrong.length) return;
+  questions = wrong;
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent =
+    (mode === 'review' ? '復習' : MODE_LABEL[mode]) + '　間違えた' + wrong.length + '問をもう一度';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function backToScopeSelect() {
+  renderScopeScreen();
+}
+
+function backToModeSelect() {
+  mode = null;
+  modePool = [];
+  scopeChapterIndex = null;
+  scopeGroup = null;
+  document.getElementById('headerSub').textContent = 'モードを選んでください';
+  showScreen('screenMode');
+}
+
+function chapterLabelText(chapterIndex) {
+  if (chapterIndex == null || !CHAPTERS[chapterIndex]) return '';
+  // BASE_CHAPTER_COUNT 以降は新シラバス仮問題集の章（旧シラバスの章と名前が重なるので「新」を付ける）
+  if (chapterIndex >= BASE_CHAPTER_COUNT) return '新シラバス第' + (chapterIndex - BASE_CHAPTER_COUNT + 1) + '章：' + CHAPTERS[chapterIndex];
+  return '第' + (chapterIndex + 1) + '章：' + CHAPTERS[chapterIndex];
+}
+
+function renderQuestion() {
+  const q = questions[idx];
+  selectedOption = q.type === 'mc-multi' ? [] : null;
+  revealed = false;
+
+  // 復習モードは色々なデッキが混ざるので、どの問題集の何問目かと通算ミス回数も出す。
+  const progressLabel = mode === 'review'
+    ? '復習（' + deckLabelOf(q) + '）　' + (idx + 1) + ' / ' + questions.length + '　通算' + missCountOf(q) + '回ミス'
+    : MODE_LABEL[mode] + '　' + (idx + 1) + ' / ' + questions.length;
+  document.getElementById('progress').textContent = progressLabel;
+  document.getElementById('chapterLabel').textContent = chapterLabelText(q.chapterIndex) + (q.group ? '／' + q.group : '');
+  document.getElementById('stem').textContent = q.stem + (q.type === 'mc-multi' ? '（複数選択可）' : '');
+
+  const optionsEl = document.getElementById('options');
+  optionsEl.innerHTML = '';
+
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    q.options.forEach((text, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = '(' + (i + 1) + ') ' + text;
+      btn.onclick = () => selectOption(i);
+      optionsEl.appendChild(btn);
+    });
+  } else {
+    const trueBtn = document.createElement('button');
+    trueBtn.className = 'option-btn tf-btn';
+    trueBtn.textContent = '○ 正しい';
+    trueBtn.onclick = () => selectOption(true);
+    const falseBtn = document.createElement('button');
+    falseBtn.className = 'option-btn tf-btn';
+    falseBtn.textContent = '× 誤り';
+    falseBtn.onclick = () => selectOption(false);
+    optionsEl.appendChild(trueBtn);
+    optionsEl.appendChild(falseBtn);
+  }
+
+  // 「回答」ボタンは複数選択（mc-multi）専用。mc / tf は選択した時点で即判定するため出さない。
+  const answerBtn = document.getElementById('answerBtn');
+  answerBtn.disabled = true;
+  answerBtn.style.display = q.type === 'mc-multi' ? '' : 'none';
+  document.getElementById('questionActions').style.display = '';
+  document.getElementById('revealArea').style.display = 'none';
+}
+
+// 回答せずに次の問題へ飛ばす。スキップした問題は sessionResults に入れないので
+// 正答率の母数にも、間違えた問題の記録にも入らない（＝ミス扱いにはしない）。
+function skipQuestion() {
+  if (revealed) return;
+  skippedCount++;
+  saveProgress(idx + 1);
+  nextQuestion();
+}
+
+// mc / tf は「選択＝回答」で、選択肢を押した時点でそのまま正誤を表示する（回答ボタンは出さない）。
+// mc-multi（すべて選びなさい）は複数選んでから確定する必要があるため、従来どおり
+// トグル選択 →「回答」ボタンで reveal() する。
+function selectOption(v) {
+  if (revealed) return;
+  const q = questions[idx];
+
+  if (q.type !== 'mc-multi') {
+    selectedOption = v;
+    reveal();
+    return;
+  }
+
+  const i = selectedOption.indexOf(v);
+  if (i === -1) selectedOption.push(v);
+  else selectedOption.splice(i, 1);
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, j) => {
+    btn.classList.toggle('selected', selectedOption.includes(j));
+  });
+  document.getElementById('answerBtn').disabled = selectedOption.length === 0;
+}
+
+function sameIndexSet(a, b) {
+  if (a.length !== b.length) return false;
+  const sortedA = a.slice().sort();
+  const sortedB = b.slice().sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+// ── 効果音（正解＝ピンポン／不正解＝ブブー） ─────────────────────────────────────
+// 音声ファイルは使わず Web Audio で合成する。鳴らすのは回答の瞬間（利用者のクリック直後）なので
+// ブラウザの自動再生制限にかからない。失敗しても回答の処理は止めない。ON/OFFは端末ごとの好みなので
+// localStorage に覚える（読めない環境ではONのまま）。
+let soundOn = true;
+let audioCtx = null;
+try { soundOn = localStorage.getItem('quizSound') !== 'off'; } catch (e) { /* 読めなければON */ }
+
+function getAudioCtx() {
+  if (audioCtx) return audioCtx;
+  const AC = typeof AudioContext !== 'undefined' ? AudioContext
+    : (typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null);
+  if (!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+
+// 1音: 立ち上がりを素早く、あとは指数的に減衰させる（ぷつっというノイズを避ける）。
+function playTone(ctx, start, freq, dur, type, peak) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
+function playResultSound(correct) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const t = ctx.currentTime;
+    // 音量: 同時に鳴る音の合計が 1.0 を超えない範囲（超えると割れる）。
+    if (correct) {
+      // ピン（高）→ポーン（低）。倍音を足してベルらしくする。
+      playTone(ctx, t, 1175, 0.3, 'sine', 0.65);
+      playTone(ctx, t, 2350, 0.2, 'sine', 0.18);
+      playTone(ctx, t + 0.18, 880, 0.6, 'sine', 0.65);
+      playTone(ctx, t + 0.18, 1760, 0.35, 'sine', 0.18);
+    } else {
+      // ブッ、ブー。少しずらした低いのこぎり波2本でブザーらしいざらつきを出す。
+      [150, 157].forEach((f) => {
+        playTone(ctx, t, f, 0.16, 'sawtooth', 0.31);
+        playTone(ctx, t + 0.22, f, 0.5, 'sawtooth', 0.31);
+      });
+    }
+  } catch (e) { /* 音が鳴らなくても学習の邪魔をしない */ }
+}
+
+function updateSoundBtn() {
+  const btn = document.getElementById('soundBtn');
+  if (!btn) return;
+  btn.textContent = soundOn ? '🔊 音' : '🔇 音';
+  btn.title = soundOn ? '効果音ON（押すとOFF）' : '効果音OFF（押すとON）';
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('quizSound', soundOn ? 'on' : 'off'); } catch (e) { /* 保存できなくても今回は有効 */ }
+  updateSoundBtn();
+  if (soundOn) playResultSound(true);   // ONにしたときに音を確かめられるよう、ピンポンを鳴らす
+}
+updateSoundBtn();
+
+function reveal() {
+  if (selectedOption === null || revealed) return;
+  if (Array.isArray(selectedOption) && selectedOption.length === 0) return;
+  revealed = true;
+
+  const q = questions[idx];
+  const correct = q.type === 'mc' ? selectedOption === q.correctIndex
+    : q.type === 'mc-multi' ? sameIndexSet(selectedOption, q.correctIndexes)
+    : selectedOption === q.correct;
+  sessionResults.push({ id: q.id, chapterIndex: q.chapterIndex, correct, selectedOption });
+  saveProgress(idx + 1);   // 回答した時点で保存（次へを押す前に閉じても、次の問題から再開できる）
+  playResultSound(correct);
+
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, i) => {
+    btn.disabled = true;
+    btn.classList.remove('selected');
+    const isCorrectChoice = q.type === 'mc' ? i === q.correctIndex
+      : q.type === 'mc-multi' ? q.correctIndexes.includes(i)
+      : (i === 0) === q.correct;
+    const isSelectedChoice = q.type === 'mc' ? i === selectedOption
+      : q.type === 'mc-multi' ? selectedOption.includes(i)
+      : (i === 0) === selectedOption;
+    if (isCorrectChoice) btn.classList.add('correct');
+    else if (isSelectedChoice) btn.classList.add('incorrect');
+  });
+
+  const revealOptions = document.getElementById('revealOptions');
+  revealOptions.innerHTML = '';
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    // バッジは「選択肢として選ぶべきか(correctIndex/correctIndexes)」ではなく、解説文が本来持つ○/×
+    // （その文が事実として正しいか）をそのまま使う。「最も不適切なものはどれか」形式の設問では
+    // 正解の選択肢が「事実として誤り（×）」であるため、correctIndexだけで○/×を決めると意味が逆転する。
+    q.explanations.forEach((text, i) => {
+      const row = document.createElement('div');
+      row.className = 'option-explain';
+      const m = text.match(/^([○×])\s*/);
+      const fallbackCorrect = q.type === 'mc-multi' ? q.correctIndexes.includes(i) : i === q.correctIndex;
+      const badge = m ? m[1] : (fallbackCorrect ? '○' : '×');
+      row.innerHTML = '<span class="option-badge">' + badge + '</span>' + escapeHtml(text.replace(/^[○×]\s*/, ''));
+      revealOptions.appendChild(row);
+    });
+  } else {
+    const row = document.createElement('div');
+    row.className = 'option-explain';
+    row.innerHTML = '<span class="option-badge">' + (q.correct ? '○ 正しい' : '× 誤り') + '</span><br>' + escapeHtml(q.explanation.replace(/^[○×]\s*/, ''));
+    revealOptions.appendChild(row);
+  }
+
+  document.getElementById('questionActions').style.display = 'none';
+  document.getElementById('revealArea').style.display = '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 選択肢のindex（mc/mc-multi）やbool（tf）を、スプレッドシート出力・アドバイス用に
+// 人が読めるテキストへ変換する。
+function answerText(q, val) {
+  if (q.type === 'mc') return val == null ? '（未回答）' : q.options[val];
+  if (q.type === 'mc-multi') return (val || []).map((i) => q.options[i]).join(' / ');
+  return val ? '正しい' : '誤り';
+}
+
+function buildAskPrompt(q, selected) {
+  // ラベルは問題タイプではなく、現在解いているモード（MODE_LABEL）から決める。
+  // mc3（追加問題2）もtype:'mc'なので、type起点だと「模擬試験」と誤表示されてしまうため。
+  // 復習モードは複数デッキが混ざるので、その問題自身の出自（deckLabelOf）を使う。
+  const deckLabel = mode === 'review' ? deckLabelOf(q) : (MODE_LABEL[mode] || '問題集');
+  if (q.type === 'mc') {
+    const selfAnswerLine = selected != null && selected !== q.correctIndex
+      ? '\n自分は(' + (selected + 1) + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + (q.correctIndex + 1) + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  if (q.type === 'mc-multi') {
+    const selectedList = (selected || []).map((i) => i + 1).join(', ');
+    const correctList = q.correctIndexes.map((i) => i + 1).join(', ');
+    const selfAnswerLine = selected != null && !sameIndexSet(selected, q.correctIndexes)
+      ? '\n自分は(' + selectedList + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題（複数選択）について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + correctList + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  const selfAnswerLine = selected != null && selected !== q.correct
+    ? '\n自分は「' + (selected ? '正しい' : '誤り') + '」と回答して間違えました。なぜそれが誤りかも教えてください。'
+    : '';
+  return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の文の正誤について教えてください。\n\n' +
+    '問題文：' + q.stem + '\n' +
+    '正解：' + (q.correct ? '正しい' : '誤り') + selfAnswerLine +
+    '\nこの論点の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+}
+
+function askInChat() {
+  const q = questions[idx];
+  // GASのHtmlServiceはページをiframe（サンドボックス）内に読み込むため、
+  // location.href だとiframe内だけが遷移してしまう（top.location.hrefが必要）。
+  // さらに相対URLはiframeの内部配信元（googleusercontent.com）を基準に解決
+  // されてしまうため、GAS_WEBAPP_URLを前置した絶対URLにする必要がある。
+  // チャットの「元の問題に戻る」ボタン用に、戻り先（この問題を開き直すURL）を一緒に渡す。
+  // 復習モードは記録の読み込みが要るので、その問題が属する通常モード（出自のデッキ）へ戻す。
+  const backMode = mode === 'review' ? (q.deck || q.type) : mode;
+  let backUrl = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '-quiz&resume=' + encodeURIComponent(q.id) + '&m=' + encodeURIComponent(backMode);
+  if (mode !== 'review' && scopeChapterIndex != null) backUrl += '&c=' + scopeChapterIndex;
+  if (mode !== 'review' && scopeGroup) backUrl += '&g=' + encodeURIComponent(scopeGroup);
+  top.location.href = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '&ask=' + encodeURIComponent(buildAskPrompt(q, selectedOption))
+    + '&back=' + encodeURIComponent(backUrl);
+}
+
+// チャットの「元の問題に戻る」から開かれたとき、?resume=<問題ID>&m=<モード>[&c=<章>][&g=<グループ>] の問題を開き直す。
+// 出題順は固定（シャッフルなし）なので、同じ範囲を作り直して該当の位置へ移れば続きから解ける。
+function initResumeParam() {
+  if (typeof google === 'undefined' || !google.script || !google.script.url || !google.script.url.getLocation) return;
+  google.script.url.getLocation(function (loc) {
+    const p = (loc && loc.parameter) || {};
+    if (!p.resume || !p.m) return;
+    const target = QUESTIONS.find((q) => q.id === p.resume);
+    if (!target) return;
+    chooseMode(p.m);
+    if (mode !== p.m) return;
+    const c = p.c != null && p.c !== '' ? Number(p.c) : null;
+    chooseScope(Number.isInteger(c) ? c : null, p.g || null);
+    let at = questions.findIndex((q) => q.id === target.id);
+    if (at < 0) { chooseScope(null, null); at = questions.findIndex((q) => q.id === target.id); }
+    if (at < 0) return;
+    idx = at;
+    renderQuestion();
+  });
+}
+initResumeParam();
+
+// ── 中断→再開 ─────────────────────────────────────────────────────────
+// 1問回答／スキップするたびに、いまの出題セッションの途中経過をバックエンド（UserProperties）へ送る。
+// 次に開いたとき、モード選択画面の先頭に「続きから再開」を出し、中断した次の問題から続けられる。
+// 1資格につき1枠（最後に解いていたセッション）。端末をまたいで再開できる。最後まで解くと消える。
+// 状態は小さく詰める（UserProperties は1値約9KB上限）: q=出題順のID列、a=[[ID, 正誤(1/0), 選んだ答え]…]、i=次に解く位置。
+let pendingProgress = null;
+
+function hasGoogleRun() {
+  return typeof google !== 'undefined' && google && google.script && google.script.run;
+}
+
+function saveProgress(nextIdx) {
+  if (!hasGoogleRun() || !mode || !questions.length) return;
+  const state = {
+    v: 1, t: Date.now(), mode: mode, c: scopeChapterIndex, g: scopeGroup, r: reviewScopeKey,
+    h: document.getElementById('headerSub').textContent,
+    q: questions.map((q) => q.id).join(','), i: nextIdx,
+    a: sessionResults.map((r) => [r.id, r.correct ? 1 : 0, r.selectedOption]), sk: skippedCount,
+  };
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiSaveQuizProgress({ examId: TRACKING_EXAM_ID, state: state });
+  } catch (e) { /* 保存に失敗しても出題は続ける */ }
+}
+
+function clearProgress() {
+  pendingProgress = null;
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiClearQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 無視 */ }
+}
+
+// 保存された途中経過が、今の問題集でそのまま復元できるか（問題が差し替わっていたら諦める）。
+function isResumableProgress(s) {
+  if (!s || s.v !== 1 || typeof s.q !== 'string' || !Array.isArray(s.a) || !Number.isInteger(s.i)) return false;
+  const ids = s.q.split(',');
+  if (s.i < 0 || s.i >= ids.length) return false;
+  const known = {};
+  QUESTIONS.forEach((q) => { known[q.id] = true; });
+  return ids.every((id) => known[id]) && s.a.every((r) => Array.isArray(r) && known[r[0]]);
+}
+
+function offerResume(s) {
+  if (!isResumableProgress(s)) return;
+  pendingProgress = s;
+  const total = s.q.split(',').length;
+  document.getElementById('resumeText').textContent =
+    '📌 途中の問題集があります：' + (s.h || '') + '　' + (s.i + 1) + '問目から（全' + total + '問・回答済み' + s.a.length + '問）';
+  document.getElementById('resumeBanner').style.display = '';
+}
+
+(function initProgress() {
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) { if (res && res.ok && res.state) offerResume(res.state); })
+      .withFailureHandler(function () {})
+      .apiLoadQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 再開バナーが出ないだけ */ }
+})();
+
+function discardProgress() {
+  document.getElementById('resumeBanner').style.display = 'none';
+  clearProgress();
+}
+
+async function resumeProgress() {
+  const s = pendingProgress;
+  if (!s || !isResumableProgress(s)) { discardProgress(); return; }
+  const btn = document.getElementById('resumeBtn');
+  btn.disabled = true;
+  try {
+    let pool;
+    if (s.mode === 'review') {
+      // 復習は問題ごとの通算ミス回数・卒業判定が画面に出るので、記録を読み直してから復元する。
+      const data = await new Promise(function (resolve, reject) {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+      });
+      if (!data.ok) { alert('復習の記録を取得できませんでした: ' + (data.error || '')); return; }
+      reviewEntries = data.entries || [];
+      reviewEntryById = {};
+      reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+      pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+      reviewMissingCount = reviewEntries.length - pool.length;
+    } else {
+      pool = s.mode === 'extra' || s.mode === 'extra2' || s.mode === 'extra3'
+        ? QUESTIONS.filter((q) => q.deck === s.mode)
+        : QUESTIONS.filter((q) => q.type === s.mode && !q.deck);
+    }
+    const byId = {};
+    QUESTIONS.forEach((q) => { byId[q.id] = q; });
+    mode = s.mode;
+    modePool = pool;
+    scopeChapterIndex = s.c == null ? null : s.c;
+    scopeGroup = s.g || null;
+    reviewScopeKey = s.r == null ? null : s.r;
+    questions = s.q.split(',').map((id) => byId[id]);
+    idx = s.i;
+    sessionResults = s.a.map((r) => ({ id: r[0], chapterIndex: byId[r[0]].chapterIndex, correct: !!r[1], selectedOption: r[2] }));
+    skippedCount = s.sk || 0;
+    pendingProgress = null;
+    document.getElementById('resumeBanner').style.display = 'none';
+    document.getElementById('headerSub').textContent = s.h || MODE_LABEL[mode] || '';
+    showScreen('screenQuestion');
+    renderQuestion();
+  } catch (err) {
+    alert('再開できませんでした: ' + (err && err.message ? err.message : err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function nextQuestion() {
+  idx++;
+  if (idx >= questions.length) showSummary();
+  else renderQuestion();
+}
+
+// CHAPTERS の全章を常に含めて返す（今回未出題の章は total:0）。
+// スプレッドシート側は最初の記録時に受け取った章名で行を確定するため、
+// 章の集合が回によってブレると2回目以降の記録で行が見つからなくなる。
+// 常に全章を送ることでこれを防ぐ。
+function aggregateByChapter(results) {
+  const byIndex = {};
+  results.forEach((r) => {
+    if (!byIndex[r.chapterIndex]) byIndex[r.chapterIndex] = { correct: 0, total: 0 };
+    byIndex[r.chapterIndex].total++;
+    if (r.correct) byIndex[r.chapterIndex].correct++;
+  });
+  // 新シラバス仮問題集（extra3）は新シラバスの章だけ、それ以外の問題集は旧シラバスの章だけを送る
+  // （新しい成績シートに旧章の行が並んだり、既存シートの章の集合が変わって行が見つからなくなるのを防ぐ）。復習は全章。
+  const inScope = (i) => mode === 'review' || (mode === 'extra3' ? i >= BASE_CHAPTER_COUNT : i < BASE_CHAPTER_COUNT);
+  return CHAPTERS.map((label, i) => ({
+    chapterIndex: i,
+    chapterLabel: i >= BASE_CHAPTER_COUNT ? chapterLabelText(i) : label,
+    correct: (byIndex[i] && byIndex[i].correct) || 0,
+    total: (byIndex[i] && byIndex[i].total) || 0,
+  })).filter((c) => inScope(c.chapterIndex));
+}
+
+function showSummary() {
+  clearProgress();   // 最後まで解いたので、途中経過は不要
+  showScreen('screenSummary');
+  const total = sessionResults.length;
+  const correct = sessionResults.filter((r) => r.correct).length;
+  const wrongCount = total - correct;
+  const pct = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
+  document.getElementById('summaryScore').textContent =
+    correct + ' / ' + total + '（' + pct + '%）' + (skippedCount > 0 ? '　スキップ ' + skippedCount + '問' : '');
+
+  const byChapter = aggregateByChapter(sessionResults);
+  const chaptersEl = document.getElementById('summaryChapters');
+  chaptersEl.innerHTML = '';
+  byChapter.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'summary-chapter-row';
+    const scoreText = c.total > 0
+      ? c.correct + '/' + c.total + '（' + Math.round((c.correct / c.total) * 1000) / 10 + '%）'
+      : '未出題';
+    row.innerHTML = '<span class="name">' + escapeHtml(c.chapterLabel) + '</span><span class="score">' + scoreText + '</span>';
+    chaptersEl.appendChild(row);
+  });
+
+  document.getElementById('recordStatus').textContent = '';
+  const recordBtn = document.getElementById('recordBtn');
+  // 全問スキップ（回答0問）のときは記録しても中身が無いので押させない。
+  recordBtn.disabled = total === 0;
+  recordBtn.textContent = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+
+  // 間違えた問題があるときだけ、その場で解き直すボタンを出す。
+  const retryBtn = document.getElementById('retryWrongBtn');
+  retryBtn.style.display = wrongCount > 0 ? '' : 'none';
+  retryBtn.textContent = '🔁 間違えた' + wrongCount + '問だけもう一度';
+
+  const note = document.getElementById('summaryNote');
+  if (mode === 'review') {
+    note.textContent = '復習の結果は「' + TRACKING_EXAM_ID + '_復習ログ」に記録され、'
+      + GRADUATE_STREAK + '回連続で正解した問題は次回から「克服」として出題対象から外れます'
+      + '（章別の正答率推移シートには影響しません）。';
+    note.style.display = '';
+  } else {
+    note.style.display = 'none';
+    note.textContent = '';
+  }
+
+  document.getElementById('adviceArea').style.display = 'none';
+  document.getElementById('adviceStatus').textContent = '';
+  document.getElementById('adviceBtn').disabled = false;
+  document.getElementById('adviceBtn').textContent = '🎯 学習アドバイスを見る';
+}
+
+// 今回の結果（章別正答率・間違えた問題）と、過去に蓄積した「ミス」シートの履歴を
+// バックエンドで突き合わせ、Geminiに弱点分野・復習優先度・次のアクションをまとめさせる。
+async function getAdvice() {
+  const btn = document.getElementById('adviceBtn');
+  const status = document.getElementById('adviceStatus');
+  const area = document.getElementById('adviceArea');
+  btn.disabled = true;
+  btn.textContent = 'アドバイスを作成中...';
+  status.textContent = '';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiQuizAdvice({
+          examId: EXAM_ID,
+          trackingExamId: TRACKING_EXAM_ID,
+          mode: TRACKING_MODE[mode] || mode,
+          chapters: aggregateByChapter(sessionResults),
+          wrongAnswers: buildWrongAnswers(),
+        });
+    });
+    if (data.ok) {
+      area.textContent = data.advice;
+      area.style.display = '';
+      btn.textContent = '🎯 学習アドバイスを見る';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || 'アドバイスの取得に失敗しました');
+      btn.textContent = '🎯 学習アドバイスを見る';
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.textContent = '🎯 学習アドバイスを見る';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 間違えた問題だけを、問題文・自分の回答・正解を添えたスプレッドシート出力用の形へ整形する。
+function buildWrongAnswers() {
+  return sessionResults.filter((r) => !r.correct).map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+// 復習モードの記録用。正解した問題も含めて全問を送る（連続正解＝克服の判定に必要なため）。
+function buildReviewResults() {
+  return sessionResults.map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      deckLabel: deckLabelOf(q),
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      correct: r.correct,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+async function recordResults() {
+  const btn = document.getElementById('recordBtn');
+  const status = document.getElementById('recordStatus');
+  const labelWhenIdle = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+  btn.disabled = true;
+  btn.textContent = '記録中...';
+  status.textContent = '';
+
+  const byChapter = aggregateByChapter(sessionResults);
+  try {
+    // fetchではなく google.script.run を使う（理由は chat-app.js の callBackend 参照）。
+    // 復習モードは章別の正答率推移シートに混ぜない（出題が間違えた問題に偏っていて
+    // 推移のグラフが本来の実力より低く歪むため）。専用の復習ログへ全問を書く。
+    const data = await new Promise(function (resolve, reject) {
+      const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      if (mode === 'review') {
+        runner.apiRecordReviewLog({
+          examId: TRACKING_EXAM_ID,
+          results: buildReviewResults(),
+          attemptAt: new Date().toISOString(),
+        });
+        return;
+      }
+      runner.apiRecordQuizResult({
+        examId: TRACKING_EXAM_ID,
+        mode: TRACKING_MODE[mode] || mode,
+        chapters: byChapter,
+        wrongAnswers: buildWrongAnswers(),
+        attemptAt: new Date().toISOString(),
+      });
+    });
+    if (data.ok) {
+      status.textContent = '✅ 記録しました';
+      btn.textContent = '記録済み';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || '記録に失敗しました');
+      btn.disabled = false;
+      btn.textContent = labelWhenIdle;
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.disabled = false;
+    btn.textContent = labelWhenIdle;
+  }
+}
+
+</script>
+</body>
+</html>

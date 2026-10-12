@@ -19,12 +19,14 @@ const ORG = {
   cisa: 'ISACA（CISA）',
   pmp: 'PMI（PMP）',
   claudecode: 'Anthropic（Claude Code）',
+  github: 'GitHub, Inc.（GitHub）',
 };
-const ids = ['aaia', 'isms', 'au', 'pms', 'jsox', 'cisa', 'pmp', 'claudecode'];
+const ids = ['aaia', 'isms', 'au', 'pms', 'jsox', 'cisa', 'pmp', 'claudecode', 'github'];
 const quizzes = ids.map((id) => exams.find((e) => e.id === id && e.quiz)).filter(Boolean);
 // 注記の「事実関係」の一文を差し替える問題集
 const NOTE = {
   claudecode: '事実関係は公式ドキュメントで確認した内容に基づきますが、Claude Code は頻繁に更新されるため最新の公式ドキュメントで確認してください。',
+  github: '事実関係は GitHub の公式ドキュメントで確認した内容に基づきますが、GitHub は頻繁に更新されるため最新の公式ドキュメントで確認してください。',
 };
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
