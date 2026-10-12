@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>IPPF サイバーセキュリティ トピック別要求事項 問題集（非公式）</title>
+<meta name="robots" content="noindex,nofollow">
+<script>
+(function () {
+  function make(ok, fail) {
+    return new Proxy({}, { get: function (_, name) {
+      if (name === "withSuccessHandler") return function (f) { return make(f, fail); };
+      if (name === "withFailureHandler") return function (f) { return make(ok, f); };
+      return function () {
+        var reading = /^(apiLoad|apiGet)/.test(String(name));
+        setTimeout(function () {
+          if (reading) { if (ok) ok(null); }
+          else if (fail) fail(new Error("公開版では記録・AI助言は使えません"));
+        }, 0);
+      };
+    } });
+  }
+  window.google = { script: { run: make(null, null) } };
+})();
+</script>
+  <style>
+    :root {
+      --theme-color: #5a3d1e;
+      --theme-color-dark: #2b1d0e;
+    }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: var(--theme-color-dark);
+  padding: 0;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.container {
+  background: white;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, var(--theme-color) 0%, var(--theme-color-dark) 100%);
+  color: white;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.header-icon { font-size: 32px; }
+
+.header-text { min-width: 0; flex: 1 1 140px; }   /* ボタンに押されてタイトルが1文字幅に潰れ、縦書きのように見えるのを防ぐ */
+.header-text h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; writing-mode: horizontal-tb; }
+.header-text p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.header-btn:hover { background: rgba(255,255,255,0.3); }
+
+.quiz-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { width: 100%; max-width: 520px; margin: 0 auto; }
+
+/* --- モード選択画面 --- */
+/* カード数が増えても幅が細くなりすぎないよう、flexではなくgridで自動折り返しする
+   （4つ目の「追加問題2」追加時にスマホで窮屈にならないための変更）。 */
+.mode-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.mode-card {
+  min-width: 0;
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+
+.mode-card:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 復習モードのカードだけ、出題元の問題集カードと見分けられるよう薄く色を敷く。 */
+.review-card {
+  background: #fffaf2;
+  border-color: #f0d9b5;
+}
+.review-card:hover { border-color: #e0a75e; }
+.mode-card:disabled { opacity: 0.6; cursor: wait; }
+
+.mode-icon { font-size: 36px; margin-bottom: 8px; }
+.mode-title { font-size: 17px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.mode-desc { font-size: 13px; color: #888; }
+
+/* --- 範囲選択画面（全部 / 章ごとにチャレンジ） --- */
+.back-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.back-link:hover { color: var(--theme-color); }
+
+.scope-select {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scope-all-btn {
+  background: white;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  margin-bottom: 8px;
+}
+
+.scope-all-btn:hover {
+  border-color: var(--theme-color);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.scope-all-title { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 4px; }
+.scope-all-desc { font-size: 13px; color: #888; }
+
+.scope-chapter-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #999;
+  margin: 4px 0 2px;
+}
+
+.scope-chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scope-chapter-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  background: #f8f9ff;
+  border: 1.5px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scope-chapter-btn:hover { border-color: var(--theme-color); }
+
+.scope-chapter-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.scope-chapter-btn:disabled:hover { border-color: #e6e8ee; }
+
+/* 範囲選択画面の下に出す補足（復習モードの「克服」ルールの説明など） */
+.scope-note {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.scope-chapter-btn .name { flex: 1; padding-right: 12px; }
+.scope-chapter-btn .count { flex-shrink: 0; color: var(--theme-color); font-weight: 700; font-size: 13px; }
+
+/* --- 出題画面 --- */
+.progress {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.chapter-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--theme-color);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.question-card {
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stem {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: #222;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.option-btn:hover { border-color: var(--theme-color); }
+
+.option-btn.selected {
+  border-color: var(--theme-color);
+  background: #f0f0ff;
+  font-weight: 600;
+}
+
+.option-btn.tf-btn {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* 回答後の表示状態 */
+.option-btn.correct {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.option-btn.incorrect {
+  border-color: #c62828;
+  background: #fdecea;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-badge {
+  display: inline-block;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.option-explain {
+  display: block;
+  font-size: 13px;
+  color: #555;
+  margin-top: 6px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.answer-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.answer-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 回答（複数選択のときだけ表示）とスキップを縦に並べる操作行。
+   mc / tf は選択した時点で判定するため、この行にはスキップだけが残る。 */
+.question-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skip-btn {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  background: white;
+  color: #888;
+  border: 1.5px solid #e6e8ee;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.skip-btn:hover { border-color: var(--theme-color); color: var(--theme-color); }
+
+.reveal-area { margin-top: 20px; }
+
+.reveal-options { margin-bottom: 16px; }
+
+.reveal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.action-btn:hover { border-color: var(--theme-color); }
+
+.action-btn.primary {
+  background: linear-gradient(135deg, var(--theme-color), var(--theme-color-dark));
+  color: white;
+  border: none;
+}
+
+/* --- 終了サマリー画面 --- */
+#screenSummary { text-align: center; }
+#screenSummary h2 { font-size: 22px; color: #333; margin-bottom: 16px; }
+
+.summary-score {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--theme-color);
+  margin-bottom: 20px;
+}
+
+.summary-chapters {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.summary-chapter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.summary-chapter-row .name { color: #333; }
+.summary-chapter-row .score { color: var(--theme-color); font-weight: 700; }
+
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 間違えた問題だけを解き直すボタン。記録ボタンの次に置いて目に入るようにする。 */
+.action-btn.retry-wrong {
+  border-color: #f0d9b5;
+  background: #fffaf2;
+  color: #a1670f;
+  font-weight: 700;
+}
+.action-btn.retry-wrong:hover { border-color: #e0a75e; }
+
+.summary-note {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #888;
+  text-align: left;
+}
+
+.record-status,
+.advice-status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #888;
+  min-height: 18px;
+}
+
+.advice-area {
+  margin-top: 12px;
+  text-align: left;
+  white-space: pre-wrap;
+  background: #f8f9ff;
+  border: 1px solid #e8eaf6;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.quiz-body::-webkit-scrollbar { width: 5px; }
+.quiz-body::-webkit-scrollbar-track { background: transparent; }
+.quiz-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+/* --- PCブラウザ（幅900px以上）: 画面幅を広く使う ---
+   以前は .screen が max-width:520px の中央寄せで、PCでは画面の中央に細い1列が出るだけだった（2026-09-20 に変更）。
+   スマホ（600px以下）の指定とは範囲が重ならない。行が長くなりすぎないよう、上限は 1120px（1400px以上は 1240px）。
+   ボタン類は横いっぱいに伸ばさず、中央に寄せた幅に留める。 */
+@media (min-width: 900px) {
+  .header { padding: 18px 40px; }
+  .header-text h1 { font-size: 20px; }
+  .header-text p { font-size: 13px; }
+  .header-btn { font-size: 12px; padding: 7px 14px; }
+
+  .quiz-body { padding: 32px 48px; }
+  .screen { max-width: 1120px; }
+
+  /* モード選択: カードを横に並べて広く使う（4枚なら1行） */
+  .mode-select { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+  .mode-card { padding: 30px 20px; }
+  .mode-icon { font-size: 40px; }
+  .mode-title { font-size: 18px; }
+  .mode-desc { font-size: 14px; }
+
+  /* 範囲選択: 章のボタンを2列に（章が多くても縦に長くなりすぎない） */
+  .scope-chapter-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+  .scope-chapter-btn { font-size: 15px; }
+
+  /* 出題: 問題文・選択肢を広く、文字も一段大きく */
+  .question-card { padding: 28px 36px; }
+  .stem { font-size: 18px; line-height: 1.8; }
+  .options { gap: 12px; }
+  .option-btn { font-size: 16px; padding: 14px 20px; }
+  .answer-btn, .action-btn, .skip-btn { max-width: 520px; margin-left: auto; margin-right: auto; }
+  .question-actions { align-items: center; }
+  .question-actions .answer-btn, .question-actions .skip-btn { width: 100%; }
+  .summary-note, .scope-note { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .reveal-actions { align-items: stretch; }
+
+  /* 終了サマリー: 章別の結果を2列に */
+  .summary-chapters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+  .summary-chapter-row { font-size: 14.5px; padding: 12px 16px; }
+  .summary-actions { align-items: center; }
+  .summary-actions .action-btn { width: 100%; }
+}
+
+@media (min-width: 1400px) {
+  .screen { max-width: 1240px; }
+}
+
+@media (max-width: 600px) {
+  body { padding: 0; }
+  .container {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+  .header { padding: 12px 14px; gap: 8px 10px; flex-wrap: wrap; }   /* 狭い画面ではボタン類を2行目へ折り返す */
+  .header-icon { font-size: 28px; }
+  .header-text h1 { font-size: 16px; }
+  .header-text p { display: none; }
+  .header-actions { gap: 6px; flex-wrap: wrap; flex-basis: 100%; margin-left: 0; }
+  .header-btn { font-size: 11px; padding: 6px 10px; }
+  .quiz-body { padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); }
+  .stem { font-size: 16.5px; }
+  .option-btn { font-size: 16px; }
+  .mode-select { gap: 10px; }
+  .mode-card { padding: 16px 8px; }
+  .mode-icon { font-size: 26px; margin-bottom: 4px; }
+  .mode-title { font-size: 14px; margin-bottom: 2px; }
+  .mode-desc { font-size: 11px; }
+}
+
+@media (max-height: 480px) {
+  .quiz-body { padding-top: 14px; }
+  .mode-card { padding: 12px 8px; }
+  .mode-icon { font-size: 22px; margin-bottom: 2px; }
+}
+
+/* --- 中断した問題集の再開バナー（モード選択画面の先頭） --- */
+.resume-banner {
+  border: 2px solid var(--theme-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: #fff;
+}
+.resume-text { font-size: 14px; font-weight: 600; line-height: 1.5; margin-bottom: 10px; }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.resume-actions .action-btn { flex: 1 1 140px; width: auto; }
+
+  </style>
+<style>#askBtn,#adviceBtn{display:none !important}</style>
+</head>
+<body>
+<div style="background:#fff4d6;color:#5b4300;padding:10px 14px;font-size:14px;line-height:1.6;border-bottom:1px solid #e6c96b">
+<strong>非公式・個人作成の仮問題です。</strong>内部監査人協会（IIA）の公式の試験・規格とは無関係で、公式の出題・難度とは一致しません。事実関係は IIA の公式文書（トピック別要求事項の本文・ユーザーガイド・Q&A）で確認した内容に基づきますが、トピック別要求事項は定期的に見直されるため最新の公式文書で確認してください。この公開版では成績・途中経過は保存されません。
+</div>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">🛡</div>
+    <div class="header-text">
+      <h1>IPPF サイバーセキュリティ トピック別要求事項 問題集（非公式）</h1>
+      <p id="headerSub">モードを選んでください</p>
+    </div>
+    <div class="header-actions">
+      
+      
+      
+      <button type="button" class="header-btn" id="soundBtn" onclick="toggleSound()">🔊 音</button>
+    </div>
+  </div>
+
+  <div class="quiz-body" id="quizBody">
+    <div class="screen" id="screenMode">
+      <div class="resume-banner" id="resumeBanner" style="display:none;">
+        <div class="resume-text" id="resumeText"></div>
+        <div class="resume-actions">
+          <button class="action-btn primary" id="resumeBtn" onclick="resumeProgress()">▶ 続きから再開</button>
+          <button class="action-btn" onclick="discardProgress()">破棄</button>
+        </div>
+      </div>
+      <div class="mode-select">
+        <button class="mode-card" onclick="chooseMode('mc')">
+          <div class="mode-icon">📝</div>
+          <div class="mode-title" id="mcTitle">模擬試験</div>
+          <div class="mode-desc"><span id="mcCount">0</span>問・<span id="mcKind">4択</span></div>
+        </button>
+        <button class="mode-card" id="tfCard" onclick="chooseMode('tf')">
+          <div class="mode-icon">⭕</div>
+          <div class="mode-title">一問一答</div>
+          <div class="mode-desc"><span id="tfCount">0</span>問・正誤判定</div>
+        </button>
+        <button class="mode-card" id="extraCard" onclick="chooseMode('extra')">
+          <div class="mode-icon">📘</div>
+          <div class="mode-title">追加問題</div>
+          <div class="mode-desc"><span id="extraCount">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra2Card" onclick="chooseMode('extra2')">
+          <div class="mode-icon">📗</div>
+          <div class="mode-title">追加問題2</div>
+          <div class="mode-desc"><span id="extra2Count">0</span>問・4択</div>
+        </button>
+        <button class="mode-card" id="extra3Card" onclick="chooseMode('extra3')">
+          <div class="mode-icon">🆕</div>
+          <div class="mode-title">新シラバス仮問題</div>
+          <div class="mode-desc"><span id="extra3Count">0</span>問・4択（2027年2月〜の追加分）</div>
+        </button>
+        <button class="mode-card review-card" id="reviewCard" onclick="chooseMode('review')">
+          <div class="mode-icon">🔁</div>
+          <div class="mode-title">復習</div>
+          <div class="mode-desc" id="reviewCount">間違えた問題だけ</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="screen" id="screenScope" style="display:none;">
+      <button class="back-link" onclick="backToModeSelect()">← モード選択に戻る</button>
+      <div class="scope-select" id="scopeSelect"></div>
+    </div>
+
+    <div class="screen" id="screenQuestion" style="display:none;">
+      <div class="progress" id="progress"></div>
+      <div class="chapter-label" id="chapterLabel"></div>
+      <div class="question-card">
+        <p class="stem" id="stem"></p>
+        <div class="options" id="options"></div>
+      </div>
+      <div class="question-actions" id="questionActions">
+        <button class="answer-btn" id="answerBtn" onclick="reveal()" disabled>回答</button>
+        <button class="skip-btn" id="skipBtn" onclick="skipQuestion()">回答せずに次へ →</button>
+      </div>
+      <div class="reveal-area" id="revealArea" style="display:none;">
+        <div class="reveal-options" id="revealOptions"></div>
+        <div class="reveal-actions">
+          <button class="action-btn" id="askBtn" style="display:none !important" onclick="askInChat()">🤖 チャットに詳しく聞く</button>
+          <button class="action-btn primary" id="nextBtn" onclick="nextQuestion()">次の問題へ →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screenSummary" style="display:none;">
+      <h2>お疲れさまでした！</h2>
+      <div class="summary-score" id="summaryScore"></div>
+      <div class="summary-chapters" id="summaryChapters"></div>
+      <div class="summary-actions">
+        <button class="action-btn primary" id="recordBtn" onclick="recordResults()">この回の結果を記録</button>
+        <button class="action-btn retry-wrong" id="retryWrongBtn" onclick="retryWrongInSession()" style="display:none;">🔁 間違えた問題だけもう一度</button>
+        <button class="action-btn" id="adviceBtn" style="display:none !important" onclick="getAdvice()">🎯 学習アドバイスを見る</button>
+        <button class="action-btn" onclick="restartMode()">もう一度</button>
+        <button class="action-btn" onclick="backToScopeSelect()">別の範囲へ</button>
+        <button class="action-btn" onclick="backToModeSelect()">別のモードへ</button>
+      </div>
+      <div class="summary-note" id="summaryNote" style="display:none;"></div>
+      <div class="record-status" id="recordStatus"></div>
+      <div class="advice-status" id="adviceStatus"></div>
+      <div class="advice-area" id="adviceArea" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAS_WEBAPP_URL = '';
+  const EXAM_ID = 'ippfcyber';
+  const EXAM_SHORT_TITLE = 'IPPF サイバー';
+  const TRACKING_EXAM_ID = 'ippfcyber';
+  const MC_TITLE = '問題集';
+  const QUESTIONS = [{"id":"ippfcyber-1","type":"mc","chapterIndex":0,"stem":"IIA の「トピック別要求事項」の位置づけとして、最も適切なものはどれか。","options":["「グローバル内部監査基準」とは独立に適用でき、業務を実施する場合にのみ参照すれば足りるガイダンスであり、適合は品質評価の対象外となるもの","必須事項として位置付けられ、「グローバル内部監査基準」と共に使用しなければならないもの","任意の参考資料であり、適用の要否は内部監査部門長が判断するもの","監査計画の作成時にのみ用いる書式集"],"correctIndex":1,"explanations":["× 独立適用や品質評価の対象外という点が誤り。適合は必須事項で、品質評価で評価される。","○ 「トピック別要求事項」は必須事項として位置付けられ、「グローバル内部監査基準」と共に使用しなければならない（本文 p.1）。","× 任意の参考資料という位置づけは誤り。","× 書式集という位置づけは誤り。IPPFの構成要素の一つである。"]},{"id":"ippfcyber-2","type":"mc","chapterIndex":0,"stem":"アシュアランス業務とアドバイザリー業務における「トピック別要求事項」への適合の扱いとして、正しいものはどれか。","options":["アシュアランス業務でもアドバイザリー業務でも、適合は必須事項であり、業務の種類によって扱いが変わることはない","アシュアランス業務では推奨事項にとどまり、アドバイザリー業務でのみ必須となる","アシュアランス業務では必須、アドバイザリー業務では推奨事項である","業務の種類を問わず適合は任意である"],"correctIndex":2,"explanations":["× アドバイザリー業務では推奨事項とされており、必須ではない。","× アシュアランスとアドバイザリーの関係が逆になっている。","○ 適合はアシュアランス業務では必須、アドバイザリー業務では推奨事項とされている（本文 p.1）。","× 適合が任意という点が誤り。アシュアランス業務では必須である。"]},{"id":"ippfcyber-3","type":"mc","chapterIndex":0,"stem":"次のうち、「トピック別要求事項」が適用される場面に当たるものはどれか。","options":["計画外の依頼だけは適用除外となり、計画内の業務と業務中の発見事項には適用されない","内部監査部門長が重要と判断した業務にだけ適用し、それ以外は適用しない","業務の途中で課題が識別された場合に、後の業務に限って適用する","計画内の監査対象に、特定された課題が含まれるとき"],"correctIndex":3,"explanations":["× 計画外の依頼も適用対象である（業務依頼の対象となった場合）。計画内の業務も対象になる。","× 適用は部門長の裁量ではなく、課題の有無で決まる。","× 業務中に課題が識別された場合は、その業務の中で適用される。後の業務に限るわけではない。","○ 適用される3つの場面のうち、計画内の監査対象に特定された課題が含まれる場合に当たる。"]},{"id":"ippfcyber-4","type":"mc","chapterIndex":0,"stem":"「トピック別要求事項」の適用可否に関する記述として、最も適切なものはどれか。","options":["当初の監査計画に含まれていない限り、業務中に識別された課題には適用されない","特定された課題が業務中に識別された場合は、当初の計画になくても、その業務で要求事項の適用可能性を評価しなければならない","適用の要否は業務開始前に一度だけ判断し、以後の変更は認められない","適用対象外と判断した場合でも、理由を記録する必要はない"],"correctIndex":1,"explanations":["× 業務中に識別された場合も適用される。計画に含まれていないことは適用の条件ではない。","○ 業務中に要求事項の要素が特定された場合は、業務の一環として適用可能性を評価しなければならない（本文 p.2-3）。","× 適用可能性は業務の進行に応じて評価する。一度判断して固定するという規定はない。","× 適用可能性の評価と除外の根拠は、文書化して保管しなければならない。"]},{"id":"ippfcyber-5","type":"mc","chapterIndex":0,"stem":"適用可能性の評価と要求事項の除外について、正しいものはどれか。","options":["すべての個別要求事項はすべての個々の業務に適用されるため、除外は認められず、適用可能性の評価だけを行えばよい","除外するには内部監査部門長の承認があれば足り、根拠の文書化は不要である","すべての要求事項がすべての業務に適用されるとは限らず、除外する場合は根拠を文書化して保管する","除外は一切認められない"],"correctIndex":2,"explanations":["× 個別要求事項はすべての業務に適用されるとは限らない。また、除外は根拠を文書化すれば認められる。","× 承認があっても、除外の根拠は文書化して保管しなければならない。","○ すべての個別要求事項がすべての業務に適用されるとは限らない。除外には根拠の文書化と保管が必要（本文 p.1）。","× 除外は根拠を文書化すれば認められる。"]},{"id":"ippfcyber-6","type":"mc","chapterIndex":0,"stem":"「トピック別要求事項」への適合と品質評価の関係として、正しいものはどれか。","options":["適合は品質評価の対象にはならず、内部監査部門の自己評価によってのみ確認される","適合は推奨事項として扱われるため、品質評価で評価されることはない","品質評価では扱わない","適合は必須事項であり、品質評価の際に評価される"],"correctIndex":3,"explanations":["× 品質評価で評価される。自己評価のみで確認するという規定はない。","× 適合は必須事項であり、推奨事項ではない。","× 品質評価で評価されるため、扱わないという選択は誤り。","○ 適合は必須事項であり、品質評価の際に評価される（本文 p.1）。"]},{"id":"ippfcyber-7","type":"mc","chapterIndex":0,"stem":"「トピック別要求事項」の位置づけについて、IPPFを構成する要素の組合せとして正しいものはどれか。","options":["グローバル内部監査基準、トピック別要求事項、グローバル・ガイダンス","グローバル内部監査基準、トピック別要求事項、グローバル・ガイダンス、および内部監査部門の年度計画書","グローバル内部監査基準、トピック別要求事項、および内部統制の評価指針書","グローバル内部監査基準、トピック別要求事項、および、適合の証拠に関する文書化のための標準書式"],"correctIndex":0,"explanations":["○ IPPF は「グローバル内部監査基準」「トピック別要求事項」「グローバル・ガイダンス」で構成される（本文 p.1）。","× 年度計画書は IPPF の構成要素ではない。","× 内部統制の評価指針書は IPPF の構成要素ではない。","× 適合の証拠に関する書式は IPPF の構成要素ではない。"]},{"id":"ippfcyber-8","type":"mc","chapterIndex":0,"stem":"「トピック別要求事項」が対象とするサイバーセキュリティの業務の範囲として、最も適切な説明はどれか。","options":["サイバーセキュリティ業務にのみ適用され、ほかの業務には適用されない","情報システム部門の監査に限って適用される","サイバーセキュリティ業務に適用されるだけでなく、サイバーセキュリティの要素を含むほかの業務にも、その要素について適用される","内部監査の全業務に一律に適用される"],"correctIndex":2,"explanations":["× サイバーセキュリティの要素を含む業務にも適用される。","× 対象は情報システム部門に限られない。","○ サイバーセキュリティ業務と、サイバーセキュリティの要素を含む業務に適用される（S3 Q&A）。","× 要素がない業務には一律には適用されない。"]},{"id":"ippfcyber-9","type":"mc","chapterIndex":0,"stem":"内部監査部門が年次の監査計画に「サイバーセキュリティ」の業務を含めた。トピック別要求事項の扱いとして正しいものはどれか。","options":["計画に含めた時点で本要求事項への適合は完了したとみなされるため、個々の業務での適用可能性の評価や文書化は必要ない","アドバイザリー業務として扱えば、本要求事項は適用されない","業務の結論だけを報告すれば足りる","その業務で本要求事項が必須となり、計画内の1つ以上の業務に要求事項を含めることで適合できる"],"correctIndex":3,"explanations":["× 計画に含めても、個々の業務での適用可能性の評価と文書化は必要である。","× 業務の種類を変えても、適用の要件を外れるわけではない。","× 要求事項の評価と文書化が必要であり、結論だけでは足りない。","○ 計画内の業務で本要求事項が必須となる。1つ以上の業務に要求事項を含めれば適合できる（付録A 例1）。"]},{"id":"ippfcyber-10","type":"mc","chapterIndex":0,"stem":"サイバーに焦点を当てていない買掛金支払の業務を評価中に、発注依頼書のWeb提出に関するサイバーリスクが判明した。適切な対応はどれか。","options":["主要なサイバー要求事項の適用可能性を確認し、除外は根拠を文書化する","サイバーに焦点を当てていない業務なので、要求事項の評価は不要であり、判明したリスクは次回の監査計画で扱う","買掛金支払の業務なので、サイバーに関する要求事項は適用せず、結論にも記載しない","業務の範囲を変えず、そのまま完了させる"],"correctIndex":0,"explanations":["○ 関連リスクが識別されたら、主要なサイバー要求事項の適用可能性を確認する。除外は根拠を文書化する（付録A 例2）。","× 業務の焦点にかかわらず、識別されたリスクに対して適用可能性を評価する必要がある。","× 業務の焦点が違っても、識別されたリスクに要求事項が適用される。結論への記載も必要である。","× 範囲の見直しや評価なしに完了させることは、要求事項に反する。"]},{"id":"ippfcyber-11","type":"mc","chapterIndex":0,"stem":"取締役会から、当初の監査計画にないサイバーセキュリティ評価の依頼を受けた。適切な対応はどれか。","options":["依頼は計画外なので、トピック別要求事項は適用されず、通常の監査手続のみで対応する","要求事項を評価し、除外があれば根拠を文書化する","取締役会の依頼は監査人の判断で対応を決めてよく、適用可能性の評価は任意である","依頼内容を経営管理者に任せ、内部監査部門は関与しない"],"correctIndex":1,"explanations":["× 計画外の依頼は、適用対象の1つとして明記されている。","○ 計画外の依頼でも要求事項が適用される。評価し、除外は根拠を文書化する（付録A 例3）。","× 適用可能性の評価は任意ではなく、必ず行う。","× 内部監査部門が要求事項に従って業務を行う責任を負う。"]},{"id":"ippfcyber-12","type":"mc","chapterIndex":0,"stem":"適用可能性の評価証拠と要求事項の除外の扱いに関して、最も適切なものはどれか。","options":["評価の証拠は口頭の説明で足り、文書として保管する必要はない","除外した要求事項は、業務終了後に削除する","評価は内部監査部門長だけが行い、記録は残さない","各要求事項の適用可能性を評価した証拠を文書化して保管し、除外する要求事項がある場合は、その根拠も文書化して保管する"],"correctIndex":3,"explanations":["× 口頭の説明では不十分で、文書化と保管が必要である。","× 除外の根拠は保管が必要であり、業務終了後に削除してはならない。","× 評価の記録を残さないことは、要求事項に反する。","○ 適用可能性の評価証拠と除外の根拠は、文書化して保管しなければならない（本文 p.1）。"]},{"id":"ippfcyber-13","type":"mc","chapterIndex":0,"stem":"「グローバル内部監査基準」との関係に関する記述のうち、正しいものはどれか。","options":["内部監査人は、グローバル内部監査基準に適合してトピック別要求事項を適用しなければならない","トピック別要求事項は、グローバル内部監査基準の適用とは別の手続きとして、業務ごとに選択して適用することができる","グローバル内部監査基準と併用せず単独で適用する","基準とは無関係に運用する"],"correctIndex":0,"explanations":["○ 内部監査人は「グローバル内部監査基準」に適合して、トピック別要求事項を適用しなければならない（本文 p.1）。","× 両者は併用されなければならない。業務ごとに選択して適用するものではない。","× 両者は併用されなければならない。単独での適用は規定されていない。","× 両者は関連して運用される。無関係ではない。"]},{"id":"ippfcyber-14","type":"mc","chapterIndex":0,"stem":"IIA の「３ラインモデル」と内部監査の関係に関する記述のうち、最も適切なものはどれか。","options":["内部監査機能は第1ラインに位置付けられ、経営管理者と同じ立場でコントロールの実施責任を負う","内部監査機能は第3ラインに位置付けられ、取締役会／統治機関に報告する","内部監査機能は第2ラインに位置付けられ、リスク・マネジメントの責任を負う","経営管理者に報告する"],"correctIndex":1,"explanations":["× 内部監査は第1ラインではない。独立性の観点から、実施責任を負う立場ではない。","○ 内部監査機能は独立した客観的なアシュアランス提供者として第3ラインに位置付けられ、取締役会／統治機関に報告する（ユーザーガイド p.1）。","× 内部監査は第2ラインではない。リスク・マネジメントは第2ラインの役割である。","× 内部監査機能は取締役会／統治機関に報告する。経営管理者への報告ではない。"]},{"id":"ippfcyber-15","type":"mc","chapterIndex":0,"stem":"品質評価で、トピック別要求事項への適合を検証するために求められる記録として、最も適切なものはどれか。","options":["業務で発見した不備の数と改善計画の進捗をまとめた報告書","取締役会の議事録と、経営者が作成した方針書の写し","適用可能性の評価と除外の根拠の文書化","外部の保証報告書の全文と、ベンダーとの契約書一式を保存したファイル"],"correctIndex":2,"explanations":["× 不備の数や改善の進捗は、適合の検証に直接求められる記録ではない。","× 議事録や方針書は、適合の検証に直接求められる記録ではない。","○ 品質評価では、基準13.2・13.3のテストでD5・D6テンプレートを用いて適合を検証する（S3 Q&A）。適用可能性の評価と除外根拠が要点。","× 保証報告書や契約書は、適合の検証に直接求められる記録ではない。"]},{"id":"ippfcyber-16","type":"mc","chapterIndex":1,"stem":"ガバナンスの要求事項のうち、正式なサイバーセキュリティ戦略と目標について、正しく説明したものはどれか。","options":["戦略と目標を正式に設定して定期的に更新し、目標達成の最新情報を定期的に取締役会へ伝えてレビューさせること","戦略は内部監査部門が毎年一度だけ作成すればよい","目標は経営者の口頭説明で足り、文書化は求められない","取締役会への報告は年1回で足りる"],"correctIndex":0,"explanations":["○ 正式な戦略と目標が設定され定期的に更新されている。達成状況は定期的に伝達され、取締役会がレビューする（本文 p.2）。","× 戦略の作成は経営の責任であり、内部監査部門が毎年作成するものではない。","× 正式な文書化が求められている。口頭説明だけでは足りない。","× 報告は定期的であり、年1回は要求事項を満たさない場合がある。"]},{"id":"ippfcyber-17","type":"mc","chapterIndex":1,"stem":"ガバナンスの要求事項における「方針と手続」の見直しに関する考慮事項として、最も適切なものはどれか。","options":["方針は組織の規模に応じて数年に一度見直せば足り、新たなリスクがあっても、次回の定期見直しまで更新しなくてもよい","方針は少なくとも年1回見直し・更新する。新たなリスクがあれば、より頻繁に更新する必要が生じることもある","方針は承認された時点で固定し、以後変更しない","方針の見直しは任意とする"],"correctIndex":1,"explanations":["× 少なくとも年1回の見直しが例示されている。数年に一度では不足する。","○ 方針は少なくとも年1回見直し・更新する。新たなリスクにより、より頻繁な見直しが必要になる場合もある（ユーザーガイド p.5）。","× 固定せず、定期的に更新する必要がある。","× 見直しは任意ではなく、少なくとも年1回の見直しが例示されている。"]},{"id":"ippfcyber-18","type":"mc","chapterIndex":1,"stem":"取締役会がレビューするサイバーセキュリティの報告について、内部監査人が確認する内容として、最も適切なものはどれか。","options":["取締役会は年に一度、サイバーセキュリティに関する全社の予算配分を承認するだけで、目標の達成状況はレビューしない","取締役会は経営の判断に任せ、サイバーセキュリティの最新情報は必要に応じてのみ確認する","CISOなど情報セキュリティ責任者から定期的に最新情報を受けてレビューする","取締役会への報告は不要とする"],"correctIndex":2,"explanations":["× 目標の達成状況のレビューが含まれる。予算だけの承認では不足する。","× 定期的なレビューが必要である。必要に応じてのみでは不足する。","○ 取締役会は、CISOなど責任者から定期的（通常は四半期ごと）に最新情報を受けてレビューしているという証拠を確認する（ユーザーガイド p.5）。","× 取締役会への報告は、要求事項の中核である。不要ではない。"]},{"id":"ippfcyber-19","type":"mc","chapterIndex":1,"stem":"サイバーセキュリティの役割と責任に関する要求事項の内容として、適切なものはどれか。","options":["役割と責任は、サイバーセキュリティに関する担当者の個人的な裁量に任せ、組織としての基準は設けない","役割と責任は文書化せず、担当者の口頭での合意に基づいて運用すればよい","担当者の能力は採用時に一度確認すれば足り、その後の定期的な評価は不要である","役割と責任を確立し、担当者の能力を定期的に評価する"],"correctIndex":3,"explanations":["× 組織として役割と責任を確立することが求められている。個人の裁量に任せるのは誤り。","× 役割と責任は確立され、定期的な評価のプロセスも必要である。","× 採用時の確認だけでは、定期的な評価の要求を満たさない。","○ サイバーセキュリティの目標を支える役割と責任が確立され、その役割を果たす人の知識・スキル・能力を定期的に評価するプロセスが必要である（本文 p.2）。"]},{"id":"ippfcyber-20","type":"mc","chapterIndex":1,"stem":"既存の脆弱性や新たな脅威を議論し対処するために関与するステークホルダーとして、要求事項で例示されているものはどれか。","options":["情報システム部門の担当者のみ","最高経営者、業務部門、リスク管理部門、人事部門、法務部門、コンプライアンス部門、ベンダーなど","取締役会の議長のみ","規制当局とのみ協議する"],"correctIndex":1,"explanations":["× 情報システム部門のみでは、例示されたステークホルダーの範囲を満たさない。","○ 要求事項Dでは、最高経営者、業務部門、リスク管理、人事、法務、コンプライアンス、ベンダーなどが例示されている（本文 p.2）。","× 取締役会の議長のみは例示に含まれない。","× 規制当局のみでは例示の範囲を満たさない。"]},{"id":"ippfcyber-21","type":"mc","chapterIndex":1,"stem":"取締役会へのサイバーセキュリティの報告に含まれるものとして、考慮事項で例示されているものはどれか。","options":["従業員の休暇取得状況と教育訓練の受講履歴の一覧","オフィスの入退室記録の全件一覧","戦略目標の達成、予算、KPI、人材育成など","会議室の予約の履歴"],"correctIndex":2,"explanations":["× 休暇取得状況は、考慮事項で例示された報告内容ではない。","× 入退室記録は、考慮事項で例示された報告内容ではない。","○ 報告には、戦略目標の達成のモニタリング、予算ニーズ、リスクと内部統制、KPI、人材の育成の必要性などが含まれる（ユーザーガイド p.5）。","× 会議室の予約履歴は、考慮事項で例示された報告内容ではない。"]},{"id":"ippfcyber-22","type":"mc","chapterIndex":1,"stem":"ガバナンスの考慮事項で例示されている、方針と手続の整備に関する内容として、適切なものはどれか。","options":["フレームワークは全組織に強制適用されるため、内部監査人は組織がその全項目を満たしていることを個別に確認しなければならない","フレームワークの使用は必須ではないが、利用すると不利になる","フレームワークは使わない方がよい","NISTやCOBITなどの枠組みで統制を強化する"],"correctIndex":3,"explanations":["× IIAはフレームワークの適用を要求しておらず、強制適用ではない（付録B）。","× フレームワークの利用が不利になるという記述は、考慮事項に含まれない。","× フレームワークの利用は、考慮事項で例示された有効な手段である。","○ NISTやCOBITなど広く採用されたフレームワークの利用が、プロセスと統制の強化の例として挙げられている（ユーザーガイド p.5）。"]},{"id":"ippfcyber-23","type":"mc","chapterIndex":1,"stem":"ステークホルダーとのコミュニケーションの証拠として、考慮事項で例示されているものはどれか。","options":["議事録、報告書、電子メールなど","ステークホルダーとの面談は口頭で行われるため、記録を残す必要はなく、内部監査人の記憶を証拠として扱う","ステークホルダーとの連絡のうち、重要と判断したものだけを証拠として保管すればよい","会議の記録は、その都度廃棄してよい"],"correctIndex":0,"explanations":["○ コミュニケーションの証拠には、会議の議事録、報告書、電子メールなどが含まれる（ユーザーガイド p.5）。","× 口頭のやり取りだけを証拠とすることは、例示に反する。","× 重要と判断したものだけに限ると、例示された証拠の範囲を狭めてしまう。","× 会議の記録は、考慮事項で例示された証拠に含まれる。"]},{"id":"ippfcyber-24","type":"mc","chapterIndex":1,"stem":"内部監査人が、取締役会向けのサイバーセキュリティ報告が年1回しかないことを確認した。最も適切な評価はどれか。","options":["年1回なので、取締役会の報告の要求事項を満たしていないと判断し、内部監査部門が直接報告を作成する","報告頻度は取締役会の判断事項なので、内部監査人が評価の対象にすべきでない","報告頻度が十分かを、組織のリスクに照らして判断し、考慮事項の例示（通常は四半期ごと）と比べて評価する","四半期ごとでなければ要求事項違反と判定する"],"correctIndex":2,"explanations":["× 年1回が直ちに違反とは規定されていない。報告の作成は経営の責任である。","× 頻度の評価は、内部監査人がガバナンスのプロセスを評価する対象に含まれる。","○ 要求事項は定期的なレビューを求め、考慮事項では通常は四半期ごとが例示されている。リスクに照らして判断する（ユーザーガイド p.5）。","× 四半期ごとは例示であり、強制ではない（考慮事項の位置づけ）。"]},{"id":"ippfcyber-25","type":"mc","chapterIndex":1,"stem":"内部監査人が、サイバーセキュリティ機能が組織の支援を得られる階層に報告されているかを確認する意義として、最も適切なものはどれか。","options":["報告先が多いほど情報の量が増え、経営が正確に判断できるため","報告先の階層を揃えるため","財務報告の正確性を確かめるため","サイバー機能が経営の支援を得られる可視性を確認するため"],"correctIndex":3,"explanations":["× 報告先の数と正確性は直接の関係として示されていない。","× 階層を揃えることは要求事項の目的ではない。","× 財務報告の正確性は、この要求事項の目的ではない。","○ 考慮事項Cでは、サイバー機能が組織の支援を得るために十分な可視性を持つ階層に報告される仕組みが例示されている（ユーザーガイド p.5）。"]},{"id":"ippfcyber-26","type":"mc","chapterIndex":1,"stem":"ガバナンスの要求事項に関する記述のうち、内部監査人が評価する対象として、正しいものはどれか。","options":["戦略と目標、方針と手続、役割と責任、関与の4点","内部監査部門の年度予算と人員配置、および外部の監査法人の選定基準","個人情報の保管期間、保存場所、廃棄手順の一覧表と、その更新履歴","個人情報の保管期間"],"correctIndex":0,"explanations":["○ ガバナンスは要求事項A〜Dの4点（戦略と目標、方針と手続、役割と責任、ステークホルダーの関与）を評価する（本文 p.2）。","× 内部監査部門の予算と人員は、ガバナンス要求事項の評価対象ではない。","× 外部監査法人の選定基準は、ガバナンス要求事項の評価対象ではない。","× 個人情報の保管期間は、ガバナンス要求事項の評価対象ではない。"]},{"id":"ippfcyber-27","type":"mc","chapterIndex":1,"stem":"サイバーセキュリティの戦略計画と目標について、考慮事項で例示されている正式な文書化の証拠に当たるものはどれか。","options":["戦略計画は、担当者間の口頭の合意により確認されている証拠","戦略計画と目標を正式に文書化した証拠","戦略計画を作成したこと自体を示すのみで、目標の達成状況の報告は不要とする","年に一度の予算承認の記録だけを確認する"],"correctIndex":1,"explanations":["× 口頭の合意は、正式な文書化の証拠に当たらない。","○ 戦略計画と目標の正式な文書化と、取締役会によるレビューの証拠が例示されている（ユーザーガイド p.5）。","× 達成状況の報告は、考慮事項で例示された証拠に含まれる。","× 予算承認の記録だけでは、考慮事項の証拠として不十分である。"]},{"id":"ippfcyber-28","type":"mc","chapterIndex":1,"stem":"サイバーセキュリティの方針と手続について、内部監査人が確認する考慮事項として、最も適切なものはどれか。","options":["方針と手続は作成した年以降は更新しないことを確認する","方針と手続は、内部監査部門が単独で作成されているかを確認する","方針と手続の本文量が一定以上であるかを確認する","方針と手続が、サイバーセキュリティのリスクへの対応業務を支えるのに十分かを判断するプロセスがあるか"],"correctIndex":3,"explanations":["× 方針と手続は少なくとも年1回の見直しと更新が例示されている。","× 方針は経営が策定するもので、内部監査部門が単独で作るという規定はない。","× 文字数は評価の観点として例示されていない。","○ 考慮事項Bには、方針と手続がリスクへの対応業務を支えるのに十分かを判断するプロセスが含まれる（ユーザーガイド p.5）。"]},{"id":"ippfcyber-29","type":"mc","chapterIndex":1,"stem":"ガバナンスの要求事項の評価において、内部監査人が「保証」として求める証拠の性質として、最も適切なものはどれか。","options":["文書や記録によって、取締役会と経営の関与を裏付ける","担当者の口頭の説明と、年度ごとの簡単な覚書があれば足り、文書化は不要とする","取締役会の意向を内部監査部門が推測して記述する","外部の評判記事を証拠として採用する"],"correctIndex":0,"explanations":["○ 要求事項の評価には、議事録・報告書・電子メールなどの確認できる証拠が必要である（ユーザーガイド p.5）。","× 説明のみでは証拠として不十分であり、文書の確認が必要である。","× 推測による記述は証拠にならない。","× 外部の評判記事は、要求事項の証拠として例示されていない。"]},{"id":"ippfcyber-30","type":"mc","chapterIndex":1,"stem":"ガバナンスの評価に関する記述のうち、要求事項の内容と考慮事項の位置づけとして正しいものはどれか。","options":["考慮事項は強制であり、すべてを必ず評価しなければならない","考慮事項は例示にすぎず、強制ではない。","考慮事項は、アシュアランス業務のみで用いる任意の参考資料である","考慮事項は、品質評価でのみ用いられる"],"correctIndex":1,"explanations":["× 考慮事項は例示であり、すべてを必ず評価する強制ではない。","○ 考慮事項は要求事項を相互参照する例示であり、強制ではない。評価の範囲は専門職としての判断で決める（ユーザーガイド p.5）。","× 考慮事項はアシュアランス業務に限定されていない。","× 考慮事項は業務の評価で用いるものであり、品質評価に限られない。"]},{"id":"ippfcyber-31","type":"mc","chapterIndex":2,"stem":"リスク・マネジメントの要求事項Aに関する記述として、最も適切なものはどれか。","options":["サイバーリスクは情報技術部門だけで評価すれば足りるため、全社のプロセスに含める必要はない","脅威の影響は財務面だけで評価すればよい","脅威の識別・分析・低減・モニタリング","リスク評価は年1回の監査計画の時点でのみ行えばよい"],"correctIndex":2,"explanations":["× サイバーリスク・マネジメントは組織全体で実施するものとされている（要求事項B）。","× 財務面だけでの評価は、要求事項の内容に含まれない。財務と非財務の両面を考慮する。","○ 組織のリスク評価とリスク・マネジメントのプロセスに、サイバー脅威と戦略目標への影響の識別・分析・低減・モニタリングが含まれる（本文 p.2）。","× リスク評価とモニタリングは継続的に行う必要があり、年1回の計画時点だけでは不足する。"]},{"id":"ippfcyber-32","type":"mc","chapterIndex":2,"stem":"サイバーセキュリティのリスク・マネジメントの実施範囲に関する記述として、正しいものはどれか。","options":["組織全体で実施し、情報技術、全社的リスク・マネジメント、人事、法務、コンプライアンス、業務、サプライチェーン、経理、財務などの分野を含めてもよい","情報技術部門の範囲に限って実施し、他の部門は対象としない","サプライチェーンの分野は含めることができない","経理と財務の分野は、サイバーリスクと関係がないため除外する"],"correctIndex":0,"explanations":["○ 要求事項Bは、組織全体での実施を求め、各分野を含めてもよいとしている（本文 p.2-3）。","× 情報技術に限るのは誤り。組織全体で実施する。","× サプライチェーンは、含めてもよい分野として挙げられている。","× 経理と財務は、含めてもよい分野として挙げられている。"]},{"id":"ippfcyber-33","type":"mc","chapterIndex":2,"stem":"サイバーリスクの遂行責任と説明責任について、要求事項Cが求める内容として、最も適切なものはどれか。","options":["責任は全員で分担するため、個人やチームを特定する必要はない","遂行責任と説明責任を明確にし、個人またはチームを特定する","責任の所在は、外部のベンダーに委ねれば明確になる","責任者は、年1回の監査報告時だけ決めればよい"],"correctIndex":1,"explanations":["× 全員での分担だけでは、個人またはチームの特定という要求を満たさない。","○ 遂行責任と説明責任の所在が明確で、リスクの管理状況を定期的に監視・報告する個人またはチームが特定されている（本文 p.3）。","× ベンダーに委ねるだけでは、組織内の責任は明確にならない。","× 責任の特定は、監査報告の時点に限られるものではない。"]},{"id":"ippfcyber-34","type":"mc","chapterIndex":2,"stem":"サイバーリスクのエスカレーションに関する要求事項Dの内容として、最も適切なものはどれか。","options":["上申は重大な事故が起きた後に限り、事前の評価は不要とする","上申はリスクが金銭的に確定したものに限り、評価リスクは対象にしない","許容できないリスクを迅速に上申し、財務と非財務の両面を考慮する","上申する基準は、各担当者の判断に任せ、組織としての定義は設けない"],"correctIndex":2,"explanations":["× 事故後に限るという規定はない。迅速な上申のプロセスが必要である。","× 評価段階のリスク（過去に識別されたものを含む）も対象になる。","○ 要求事項Dは、許容できないレベルのリスクを迅速に上申するプロセスの確立と、財務・非財務両面の影響の考慮を求める（本文 p.3）。","× 組織が定めたガイドラインや法規制に従う必要があり、個人の判断だけに任せるのは誤り。"]},{"id":"ippfcyber-35","type":"mc","chapterIndex":2,"stem":"サイバーリスクの財務的影響と非財務的影響について、要求事項Dと考慮事項が示す内容として、正しいものはどれか。","options":["非財務的影響は、財務諸表に計上できない場合は考慮しない","財務的影響だけを考慮すれば、要求事項を満たす","非財務的影響は、評価の対象とは別に管理するものとする","財務的影響と非財務的影響の両方を考慮する"],"correctIndex":3,"explanations":["× 財務諸表に計上できるかどうかは、考慮の要否を決める基準ではない。","× 財務的影響だけでは、非財務的影響を考慮する要求を満たさない。","× 非財務的影響は、考慮の対象として明示されている。","○ 財務的影響と非財務的影響の両方を考慮する。考慮事項では、非財務的影響（例：レピュテーション）も挙げられている（本文 p.3、ユーザーガイド p.6）。"]},{"id":"ippfcyber-36","type":"mc","chapterIndex":2,"stem":"要求事項Eの経営管理者と従業員へのリスクの伝達について、考慮事項で例示されている取組として、最も適切なものはどれか。","options":["研修は新入社員の入社時にのみ行い、以後は実施しない","従業員のサイバーセキュリティ研修を少なくとも年1回行い、抜き打ちの模擬フィッシングなどで意識をテストし追跡する","模擬フィッシングは、従業員に事前に予告してから実施する","従業員への伝達は、経営管理者だけに限り、従業員には行わない"],"correctIndex":1,"explanations":["× 入社時だけでは、少なくとも年1回の研修の例示を満たさない。","○ 従業員研修は少なくとも年1回行い、抜き打ちの模擬フィッシングなどで意識を試し、追跡する例が挙げられている（ユーザーガイド p.6）。","× 抜き打ちで行うことが例として示されており、事前予告はその趣旨に合わない。","× 従業員にも伝達する必要がある。経営管理者だけに限るのは誤り。"]},{"id":"ippfcyber-37","type":"mc","chapterIndex":2,"stem":"要求事項Eに関連して、内部監査人が確認する問題、ギャップ、不備の扱いとして、正しいものはどれか。","options":["問題の是正は、内部監査部門が自ら行うことで足り、経営管理者の役割は問わない","不備は、年度末の一度の確認にまとめて報告すればよい","経営管理者が問題を定期的に確認し、適時に報告・是正する仕組みを確立する","統制の機能不全は、重大と判断されたもの以外は記録しない"],"correctIndex":2,"explanations":["× 是正の責任は経営管理者にある。内部監査部門が行うのは、プロセスの評価である。","× 年度末の一度だけでは、適時の報告という要求を満たさない。","○ 経営管理者が定期的に確認し、適時に報告・是正するプロセスの確立が求められている（本文 p.3）。","× 統制の機能不全は、重大さに限らず記録と報告の対象となる。"]},{"id":"ippfcyber-38","type":"mc","chapterIndex":2,"stem":"インシデント対応・復旧プロセスについて、要求事項Fが求める内容として、最も適切なものはどれか。","options":["インシデント対応は、発生した時点で都度検討すればよく、事前の計画は不要とする","復旧プロセスは、バックアップの取得だけで足り、業務の再開計画は含めなくてよいとする","テストは、実際のインシデントが発生した時にのみ行う","検知、抑制、復旧、事後分析を含むプロセスを導入し、定期的にテストする"],"correctIndex":3,"explanations":["× 事前の文書化された計画が例示されている（ユーザーガイド p.7）。都度の検討だけでは不足する。","× バックアップだけでは、検知・抑制・復旧・事後分析を含む要求を満たさない。","× テストは定期的に行うことが求められており、事故時だけでは不足する。","○ インシデント対応・復旧プロセスの導入と、定期的なテストが求められている（本文 p.3）。"]},{"id":"ippfcyber-39","type":"mc","chapterIndex":2,"stem":"インシデント計画の文書化について、考慮事項で例示されている内容として、正しいものはどれか。","options":["文書化して見直し、検出から再発防止まで含む","計画は作成時の内容を固定し、以後は見直しを行わないものとする","計画には、検出と報告の方法は含めず、復旧の手順だけを記す","計画は口頭で共有されていれば、文書化は不要とする"],"correctIndex":0,"explanations":["○ 計画は業務の変化に応じて見直し、検出・報告、収束、復旧、事後分析と再発防止を含める（ユーザーガイド p.7）。","× 見直しと更新が必要であり、固定することは例示に反する。","× 検出と報告の方法は、計画に含めるべき内容として例示されている。","× 口頭の共有だけでは、文書化の要件を満たさない。"]},{"id":"ippfcyber-40","type":"mc","chapterIndex":2,"stem":"インシデント対応計画のテストについて、考慮事項で例示されているものとして、最も適切なものはどれか。","options":["テストは3年に一度行えば足りる","テストは、外部のテスト業者が実施した結果だけを採用し、組織内では行わない","少なくとも年1回、卓上演習などでテストし、その結果を最高経営者と関係ステークホルダーに報告する","テストの結果は、内部のみで共有し、最高経営者には報告しない"],"correctIndex":2,"explanations":["× 3年に一度では、少なくとも年1回の例示を満たさない。","× 外部テストの採用だけに限る規定はない。","○ 少なくとも年1回、卓上演習などでテストし、結果を最高経営者と関係ステークホルダーに報告する例が挙げられている（ユーザーガイド p.7）。","× 結果は最高経営者に報告する必要がある。内部のみでは不足する。"]},{"id":"ippfcyber-41","type":"mc","chapterIndex":2,"stem":"サイバーリスクの脅威と脆弱性の存在を評価する方法について、考慮事項で例示されているものとして、正しいものはどれか。","options":["脅威と脆弱性は、外部のニュースが報じたものだけを対象とする","脅威の評価は、一度行えば以後は不要とする","脆弱性は、重大な被害が出たものに限って評価する","脅威と脆弱性の評価と管理を識別から監視まで確認する"],"correctIndex":3,"explanations":["× 外部のニュースだけを対象にするという規定はない。","× リスク選好度が変われば再評価するとされており、一度の評価で足りるわけではない（考慮事項E）。","× 被害の有無で限定する規定はない。","○ 識別・報告、分析、低減、モニタリングの各段階を確認する（ユーザーガイド p.6）。"]},{"id":"ippfcyber-42","type":"mc","chapterIndex":2,"stem":"サイバーリスクのエスカレーション・プロセスの確認内容として、考慮事項で例示されているものはどれか。","options":["リスクレベル、カテゴリ別の手順、法規制の要件","リスクレベルは定めず、担当者ごとに判断するものとする","法規制の要件は、リスク評価の対象外とする","現在のリスクの一覧は、上申の対象となった事案に限り確認する"],"correctIndex":0,"explanations":["○ リスクレベルとその説明、カテゴリごとの手順、現在のリスクと軽減状況、法規制の要件などが例示されている（ユーザーガイド p.6）。","× 組織としてリスクレベルを定める例示になっている。担当者任せは誤り。","× 法規制の要件は、考慮事項で確認対象として挙げられている。","× 現在のリスクの一覧は、軽減状況を含めて確認対象として例示されている。"]},{"id":"ippfcyber-43","type":"mc","chapterIndex":2,"stem":"サイバーリスクの評価に関して、内部監査人が財務面と非財務面の影響を示す記録として扱うものはどれか。","options":["財務的な影響の評価記録だけでよい","財務と非財務の両方の影響","非財務的な影響は、評価の対象とは別に管理し、リスク評価の記録には含めない","影響の評価は、リスクが顕在化した後にのみ記録する"],"correctIndex":1,"explanations":["× 財務的な影響だけでは、非財務的影響の考慮という要求を満たさない。","○ 財務的影響と非財務的影響（例：レピュテーション）の両方を、評価の対象として扱う（ユーザーガイド p.6）。","× 非財務的影響もリスク評価の記録に含めるべきである。","× 影響の評価は、顕在化の前に行うリスク評価の一部である。"]},{"id":"ippfcyber-44","type":"mc","chapterIndex":2,"stem":"サイバーリスクに関する情報を組織内の機能領域から入手する方法として、考慮事項で例示されているものはどれか。","options":["情報は、IT部門の担当者からだけ得ればよい","情報の入手は、年に一度の監査の際にまとめて行う","他部門からの情報は、サイバーに関係ないとみなして入手しない","機能横断的なサイバーセキュリティチームやITステアリング・コミッティを活用し、各機能から定期的に情報を得る"],"correctIndex":3,"explanations":["× IT部門だけでは、各機能領域からの情報入手の例示を満たさない。","× 定期的な情報入手が求められており、年1回のまとめての入手では不足する。","× 他部門の情報も、リスク・マネジメントの対象として入手することが例示されている。","○ 機能横断的なサイバーセキュリティチームやITステアリング・コミッティの活用が例示されている（ユーザーガイド p.6）。"]},{"id":"ippfcyber-45","type":"mc","chapterIndex":2,"stem":"サイバーリスクの伝達に関する要求事項Eと考慮事項について、正しいものはどれか。","options":["経営管理者と従業員に認識を伝え、問題を定期的に確認し、是正する仕組み","リスクの伝達は、取締役会に限り、従業員や経営管理者には行わない","伝達は、サイバーリスクが顕在化した後にのみ行う","伝達の仕組みは、個々の部署の裁量で決め、組織としての仕組みは不要とする"],"correctIndex":0,"explanations":["○ 要求事項Eは、経営管理者と従業員への認識の伝達と、経営管理者による確認・報告・是正の仕組みを求める（本文 p.3）。","× 経営管理者と従業員が対象であり、取締役会だけに限られない。","× 顕在化の前からの伝達が求められており、事後だけでは不足する。","× 組織としての仕組みが必要であり、部署任せは要求事項を満たさない。"]},{"id":"ippfcyber-46","type":"mc","chapterIndex":3,"stem":"コントロール・プロセスの要求事項Aの内容として、最も適切なものはどれか。","options":["ベンダーに基づくコントロールは対象外とし、社内の統制だけを評価する","内部統制とベンダー統制を定期的に評価する","統制の評価は、導入時に一度行えば足りる","システムとデータの保護は、個人情報に限って評価する"],"correctIndex":1,"explanations":["× ベンダーに基づくコントロールも要求の対象に含まれる。","○ システムとデータの機密性・完全性・可用性を保護するため、内部統制とベンダーに基づくコントロールの両方を実施するプロセスを確立し、定期的に評価する（本文 p.3-4）。","× 定期的な評価が求められており、導入時の一度だけでは不足する。","× 保護の対象は、機密性・完全性・可用性を持つシステムとデータ全般である。"]},{"id":"ippfcyber-47","type":"mc","chapterIndex":3,"stem":"ベンダーに基づくコントロールの考慮事項として、ユーザーガイドで例示されているものはどれか。","options":["ベンダーの統制は、契約締結後の確認を省略してもよい","ベンダーの統制は、自社の統制ではないため評価の対象から外す","取引前と取引中にSOC報告書を確認する","保証報告書は、ベンダーが自ら作成したものだけを確認する"],"correctIndex":2,"explanations":["× 契約締結後の確認も含まれる。確認を打ち切る規定はない。","× ベンダーに基づくコントロールは、統制環境の一部として考慮する対象である。","○ 取引開始前と取引期間中に、ベンダーの受託会社の統制に係る保証報告書（SOC）をレビューすることが例示されている（ユーザーガイド p.7）。","× 保証報告書の確認対象は、ベンダーの受託会社の統制である。ベンダー自身の作成物に限定されない。"]},{"id":"ippfcyber-48","type":"mc","chapterIndex":3,"stem":"統制の不備への対処について、考慮事項で例示されているものとして、最も適切なものはどれか。","options":["統制の不備を改善するプロセスを持ち、内部監査や他の保証提供者（侵入テストなど）の発見事項にも対処する","不備は、内部監査が指摘した場合にのみ対処し、他の評価による発見事項は対象外とする","不備の改善は、次年度の計画に先送りする","侵入テストの結果は、経営に報告せず保管だけする"],"correctIndex":0,"explanations":["○ 統制の不備を改善するプロセスと、内部監査や他の保証提供者（侵入テストなど）の発見事項への対処が例示されている（ユーザーガイド p.7）。","× 内部監査以外の発見事項も、対処の対象として例示されている。","× 次年度への先送りは、適時の対処の考え方に合わない。","× 侵入テストの結果は、経営への報告が必要な発見事項として扱う。"]},{"id":"ippfcyber-49","type":"mc","chapterIndex":3,"stem":"コントロールの定期的な評価について、要求事項Aと考慮事項が示す内容として、正しいものはどれか。","options":["テストは、コントロールの設計文書の作成時だけに行い、以後の運用評価は不要とする","統制が目標達成を支える方法で機能するかを定期的にテストする","テストは、重要性の低いコントロールは対象外とする","評価は、コントロールが失敗した後にのみ行う"],"correctIndex":1,"explanations":["× 設計文書の作成時だけでは不足する。定期的なテストが必要である。","○ コントロールがリスクを軽減し、目標達成を支援する方法で機能しているかを定期的にテストすることが例示されている（ユーザーガイド p.7）。","× 重要性の低いコントロールを対象外とする規定はない。","× 失敗後だけの評価では、定期的な評価の要求を満たさない。"]},{"id":"ippfcyber-50","type":"mc","chapterIndex":3,"stem":"サイバーセキュリティの人材管理プロセス（要求事項B）について、考慮事項で例示されている取組として、最も適切なものはどれか。","options":["人材の育成は、外部からの採用だけで行い、既存の人材には教育を行わない","研修は、業務の負担にならないよう、年に一度の一時間だけとする","研修、知識共有グループ、サイバー関連資格などを継続的に特定する","人材管理プロセスは、サイバーの専門家の採用に限り、教育は対象外とする。"],"correctIndex":2,"explanations":["× 既存の人材の育成も対象に含まれる。採用だけに限る規定はない。","× 年1回一時間という規定はない。継続的な教育の機会を特定することが例示されている。","○ 研修への参加、知識共有グループ、サイバー関連資格の取得を含む継続的専門教育の機会の特定が例示されている（ユーザーガイド p.7）。","× 教育は、要求事項Bの人材管理プロセスの中核であり、対象外ではない。"]},{"id":"ippfcyber-51","type":"mc","chapterIndex":3,"stem":"新たなサイバーセキュリティの脅威と脆弱性への対応（要求事項C）について、考慮事項で例示されている内容として、正しいものはどれか。","options":["新技術に関する脅威は、技術が普及してから評価する","AIの活用は、リスクとして評価の対象に含めない","脅威の評価は、年に一度の計画時点だけで足りる","AIなど新技術の脅威を評価する"],"correctIndex":3,"explanations":["× 普及後の評価に限る規定はない。新技術の脅威の評価が例示されている。","× AIの活用は、評価の対象として例示されている。","× 継続的にモニタリングし、報告する要求であり、年1回では不足する。","○ 新しい技術や出現しつつある技術（AIの活用を含む）に関連する脅威と脆弱性を評価するプロセスを含めてもよいとされている（ユーザーガイド p.8）。"]},{"id":"ippfcyber-52","type":"mc","chapterIndex":3,"stem":"IT資産のライフサイクル管理（要求事項D）について、正しく説明したものはどれか。","options":["ライフサイクル管理は、導入時の段階だけを対象とする","ハードウェア、ソフトウェア、ベンダー・サービスを含むすべてのIT資産の導入、使用、メンテナンス、廃棄の各段階にサイバーセキュリティが含まれている","ハードウェアは対象に含まれず、ソフトウェアとベンダー・サービスだけが対象となる","廃棄の段階は、サイバーセキュリティの対象外とする"],"correctIndex":1,"explanations":["× 導入時だけでは、使用・メンテナンス・廃棄を含むライフサイクル管理の要求を満たさない。","○ 導入、使用、メンテナンス、廃棄の全段階で、すべてのIT資産（ハードウェア、ソフトウェア、ベンダー・サービス）にサイバーセキュリティが含まれる（本文 p.4）。","× ハードウェアも対象に含まれる。","× 廃棄の段階も、サイバーセキュリティの対象に含まれる。"]},{"id":"ippfcyber-53","type":"mc","chapterIndex":3,"stem":"会社から支給されたハードウェアの管理について、考慮事項で例示されているものとして、正しいものはどれか。","options":["セキュリティ構成は、利用者が自由に設定するため、組織では保証しない","廃棄した資産の情報は、確認せず処分する","発行時の構成を保証し、廃棄時に適切に処分する資産管理プロセス","支給したハードウェアは、ライフサイクル管理の対象外とする"],"correctIndex":2,"explanations":["× 組織が発行時に構成を保証することが例示されている。利用者任せは誤り。","× 廃棄時の処分を、適切に行う必要がある。確認を省く規定はない。","○ 発行時の適切なセキュリティ構成の保証と、廃棄時の適切な処分を含む資産管理プロセスが例示されている（ユーザーガイド p.8）。","× 会社支給のハードウェアは、ライフサイクル管理の対象に含まれる。"]},{"id":"ippfcyber-54","type":"mc","chapterIndex":3,"stem":"エンドユーザーデバイスとユーザーアクセスの管理に関して、要求事項Eが例示する対策として、正しいものはどれか。","options":["ユーザーIDは部署ごとに共通のものを使い、認証は行わない","パスワードは有効期限を設けず、長期間同じものを使用する","端末は、リモートでの管理の対象にしない","多要素認証、固有のID、期限のある複雑なパスワード"],"correctIndex":3,"explanations":["× 共通IDは、固有のユーザーIDの例示に反する。","× 有効期限の設定が例示されており、期限なしは例示に反する。","× モバイル機器はリモートで管理できるように構成することが例示されている。","○ 多要素認証、固有のユーザーID、定期的に期限切れになる複雑なパスワードの利用が、ユーザーアクセス管理の例として挙げられている（ユーザーガイド p.8）。"]},{"id":"ippfcyber-55","type":"mc","chapterIndex":3,"stem":"暗号化とパッチ適用について、要求事項Eおよび考慮事項が示す内容として、最も適切なものはどれか。","options":["暗号化と最新の更新の適用","暗号化は、外部に公開するデータだけに用い、内部のデータには用いない","パッチは、重大な障害が発生した場合にのみ適用する","パッチ適用は、本番稼働後の運用では行わない"],"correctIndex":0,"explanations":["○ 静止状態と転送中の暗号化、最新のセキュリティ更新の適用が例示されている（ユーザーガイド p.8）。","× 内部データにも暗号化を用いることが例示されている。","× 障害時だけに限る規定はなく、最新のセキュリティ更新の適用が例示されている。","× 本番稼働後も、最新の更新を適用することが求められる。"]},{"id":"ippfcyber-56","type":"mc","chapterIndex":3,"stem":"ネットワーク関連のコントロール（要求事項F）について、考慮事項で例示されているものはどれか。","options":["ネットワークは、社内のみで利用されるため、外部接続の制限は不要とする","ファイアウォールは、重要なサーバーだけに設置する","ネットワークのセグメンテーション、ファイアウォール、ユーザーアクセス制御、外部・内部接続の制限、IDS/IPS","侵入検知・防止システムは、導入せずに運用で補う"],"correctIndex":2,"explanations":["× 外部接続の制限は、考慮事項で例示されている。","× ファイアウォールの設置範囲は、例示で限定されていない。","○ ネットワークのセグメンテーション、ファイアウォール、ユーザーアクセス制御、外部・内部接続の制限、IoTの統制、IDS/IPSが例示されている（ユーザーガイド p.9）。","× 侵入検知・防止システムは、考慮事項で例示されている。"]},{"id":"ippfcyber-57","type":"mc","chapterIndex":3,"stem":"エンドポイントの通信（要求事項G）について、考慮事項で例示されている対策として、最も適切なものはどれか。","options":["ファイル共有は、制限なしに自由に行えるようにする","電子メールやブラウザは、セキュリティ統制の対象外として扱う","ビデオ会議は、サイバーセキュリティ統制の対象に含めない","特定の拡張子（.exe）を制限し、共有に多要素認証を使う"],"correctIndex":3,"explanations":["× 自由な共有は、例示された統制の趣旨に反する。","× 電子メールやブラウザは、統制の対象として例示されている。","× ビデオ会議は、統制の対象として例示されている。","○ 特定のファイル拡張子の利用制限や、ファイル共有のための多要素認証などが例示されている（ユーザーガイド p.9）。"]},{"id":"ippfcyber-58","type":"mc","chapterIndex":3,"stem":"コントロールの改善に関する要求事項Cの内容として、正しいものはどれか。","options":["新たな脅威を監視し、優先順位付けして実施","改善は、監査で指摘を受けた後にのみ検討すればよく、先送りしてもよい","新たな脅威は、既知のものに限り対応すればよい","改善は、コストの低いものだけ選ぶ"],"correctIndex":0,"explanations":["○ 新たな脅威と脆弱性の継続的なモニタリングと報告、改善機会の識別・優先順位付け・実施のプロセスが求められている（本文 p.4）。","× 監査指摘を待つ必要はなく、継続的な改善のプロセスが求められている。","× 新たな脅威への対応が求められており、既知のものだけでは不足する。","× 優先順位付けは、リスクに基づいて行うものであり、コストだけで選ぶ規定はない。"]},{"id":"ippfcyber-59","type":"mc","chapterIndex":3,"stem":"セキュリティ強化のためのソフトウェア開発（DevSecOps）について、要求事項Eおよび考慮事項の内容として、正しいものはどれか。","options":["ソフトウェア開発では、サイバーセキュリティを本番稼働後に検討する","開発段階から組み込み、脆弱性を積極的に識別","セキュリティ担当者は、開発の最終段階にだけ関与する","脆弱性は、利用者から報告があったものに限って対応する"],"correctIndex":1,"explanations":["× 本番稼働後の検討では、要求事項の趣旨に合わない。開発段階から組み込む。","○ DevSecOpsは、開発プロセスにサイバーリスクへの対応を組み込み、脆弱性を積極的に識別することを目的とする（ユーザーガイド p.8）。","× 開発の最終段階だけの関与では、組み込みの趣旨を満たさない。","× 積極的な識別が求められており、利用者の報告を待つだけでは不足する。"]},{"id":"ippfcyber-60","type":"mc","chapterIndex":3,"stem":"コントロール・プロセスの評価を通じて、内部監査人が判断する内容として、最も適切なものはどれか。","options":["コントロールの数が多いほど有効と判断する","コントロールの導入費用が高いほど有効と判断する","コントロールが一度も障害を起こしていないことだけで有効と判断する","コントロールがサイバーリスクへの対応目標の達成を促進する方法で機能しているか、また問題の迅速な解決が行われているか"],"correctIndex":3,"explanations":["× 数の多さは、有効性の判断基準ではない。","× 費用は、有効性の判断基準ではない。","× 障害がないことだけでは、機能の評価として不十分である。","○ 要求事項Aは、コントロールが目標達成を促進して機能しているか、問題の迅速な解決がなされているかを判断するよう求める（本文 p.3-4）。"]},{"id":"ippfcyber-61","type":"mc","chapterIndex":4,"stem":"ユーザーガイドの付録Cに示された文書作成ツールの位置づけとして、最も適切なものはどれか。","options":["任意の文書作成ツールであり、業務を文書化する際の参考資料として使える","必ず使用しなければならない標準様式であり、独自の様式で代えることはできない","品質評価を受けるために、外部の提供者から購入することが求められる","付録Cは適用対象外の業務でのみ使用する"],"correctIndex":0,"explanations":["○ 付録Cの文書作成ツールは任意で、業務を文書化する参考資料として使える（ユーザーガイド p.3-4）。","× 必須の標準様式という規定はない。任意の参考資料である。","× 外部からの購入は求められていない。","× 適用対象の業務で使う参考資料であり、対象外の業務に限るものではない。"]},{"id":"ippfcyber-62","type":"mc","chapterIndex":4,"stem":"ユーザーガイドの付録Bに示されたフレームワークへのマッピングの扱いとして、正しいものはどれか。","options":["NIST CSF 2.0の適用が要求されており、組織はこれを採用しなければ適合しない","IIAは適用を要求せず、対応表は参考である","COBITの適用が要求されており、NIST CSF 2.0は対象外となる","マッピングは、品質評価でのみ使う"],"correctIndex":1,"explanations":["× NIST CSF 2.0の採用は要求されていない。対応表は参考である。","○ 付録Bの対応表は参考であり、IIAはこれらのフレームワークの適用を要求していない（ユーザーガイド p.12、S3）。","× COBITの適用は要求されていない。どのフレームワークも必須ではない。","× マッピングは業務の検討で参照することが想定された参考資料である。"]},{"id":"ippfcyber-63","type":"mc","chapterIndex":4,"stem":"内部監査部門が、サイバーセキュリティの業務を外部に委託（アウトソーシング）した場合の適合の責任として、正しいものはどれか。","options":["委託先が適合の責任を負うため、内部監査部門長の責任は消滅する","委託した業務は、トピック別要求事項の適用対象外となる","委託しても、最終責任は内部監査部門長が保持する","委託先の報告書があれば、適合の文書化は不要となる"],"correctIndex":2,"explanations":["× 委託先に責任が移るわけではない。最終的な責任は内部監査部門長が保持する。","× 委託業務も、トピック別要求事項の適用対象である。","○ アウトソーシングによって適合の責任は免れない。内部監査部門長が最終的な責任を保持する（ユーザーガイド p.2）。","× 委託の場合も、適用可能性の評価と文書化は必要である。"]},{"id":"ippfcyber-64","type":"mc","chapterIndex":4,"stem":"内部監査部門長が監査資源が不足していると判断した場合の対応として、基準に沿うものはどれか。","options":["監査資源の不足の影響と対応方法について、取締役会に報告しなければならない","不足を内部で解決できるため、取締役会への報告は不要である","不足は、監査の範囲を狭めることで自動的に解決するため、報告は要らない","不足の判断は、最高経営者が行うため、部門長からの報告は不要である"],"correctIndex":0,"explanations":["○ 内部監査部門長は、監査資源の不足の影響と対応方法を取締役会に報告しなければならない（基準8.2、ユーザーガイド p.2）。","× 内部での解決で報告が不要になる規定はない。取締役会への報告が求められている。","× 範囲の縮小で報告が不要になる規定はない。","× 不足の判断と報告は、内部監査部門長の責任である。"]},{"id":"ippfcyber-65","type":"mc","chapterIndex":4,"stem":"内部監査部門が、トピック別要求事項に関する業務を実施するための知識を有していないと部門長が判断した場合の対応として、正しいものはどれか。","options":["知識がないため、サイバーに関する業務は実施しない","業務を委託できるが、責任は部門長が最後まで保持する","知識がないことは、要求事項の適用対象外になる根拠となる","知識の不足は、品質評価の対象外となる"],"correctIndex":1,"explanations":["× 業務を実施しないことは、適用の要求に反する。外部委託が例示されている。","○ 部門長は業務をアウトソーシングすることがある。ただし適合の最終責任は部門長が保持する（基準3.1、7.2、10.2、ユーザーガイド p.2）。","× 知識不足は、適用対象外となる根拠ではない。","× 品質評価では、適合が評価される。対象外とはならない。"]},{"id":"ippfcyber-66","type":"mc","chapterIndex":4,"stem":"内部監査部門の品質のアシュアランスと、トピック別要求事項への適合の関係として、正しいものはどれか。","options":["トピック別要求事項への適合性は、品質評価の対象外であり、内部監査部門の内部で確認すればよい","品質評価の結果は、取締役会には報告せず、部門内で保管すればよい","品質評価で適合性を評価し、結果を報告する","部門内で保管すれば足りる"],"correctIndex":2,"explanations":["× 品質評価の対象である。部門内の確認だけでは不足する。","× 取締役会と最高経営者への報告が求められている。","○ 適合性は品質評価で評価される。品質評価の結果は取締役会及び最高経営者に報告しなければならない（基準8.3、ユーザーガイド p.3）。","× 付録Cのツールは、品質評価の準備として使用できる。"]},{"id":"ippfcyber-67","type":"mc","chapterIndex":4,"stem":"適用可能性の評価の文書化について、ユーザーガイドが示す方法として、最も適切なものはどれか。","options":["適用可能性の評価は、個々の業務の監査調書にのみ記録でき、計画には記録できない","適用可能性の評価は、口頭の報告で代えることができる","評価は、文書化せず、最終の報告書の結論部分にだけ記載する","文書化は、計画または監査調書で行える"],"correctIndex":3,"explanations":["× 計画への文書化も認められている。監査調書だけに限らない。","× 口頭の報告では、文書化の要件を満たさない。","× 結論部分だけでは、適用可能性の評価と除外の根拠を文書化したことにならない。","○ 文書化は内部監査の計画または個々の監査調書で行える。1つまたは複数の業務で要求事項をカバーすることもある（ユーザーガイド p.3-4）。"]},{"id":"ippfcyber-68","type":"mc","chapterIndex":4,"stem":"トピック別要求事項の業務の実施に関して、ユーザーガイドが参照を求めているドメインVの内容として、最も適切なものはどれか。","options":["内部監査部門の組織体制と人員の配置（ドメインIIIの基準）","内部監査業務の計画（基準13）、実施（基準14）、結論のコミュニケーションと改善措置のモニタリング（基準15）","内部監査部門長の選任と評価（基準7）","内部監査人の倫理と誠実性（基準1）"],"correctIndex":1,"explanations":["× 組織体制と人員配置は、ドメインVの内容ではない。","○ ドメインV（内部監査業務の実施）は、業務の計画（13）、実施（14）、結論の伝達と改善措置のモニタリング（15）を規定する（ユーザーガイド p.3）。","× 部門長の選任と評価は、ドメインVの内容ではない。","× 倫理と誠実性は、ドメインVの内容ではない。"]},{"id":"ippfcyber-69","type":"mc","chapterIndex":4,"stem":"サイバーリスクを非常に高いと評価する組織体に対する、トピック別要求事項の扱いとして、正しいものはどれか。","options":["最低基準を満たせば、追加の評価は不要である","リスクが高い場合は、トピック別要求事項の適用を免除される","最低基準に加えて、追加の側面を評価する必要がある場合もある","追加の評価は、品質評価の結果を踏まえて、次の年度に行えばよい"],"correctIndex":2,"explanations":["× 最低基準は下限であり、リスクが高い場合は追加の評価が必要になりうる。","× リスクが高いことは、適用の免除の根拠とはならない。","○ サイバーリスクを非常に高いと評価する組織体は、追加的な側面を評価しなければならない場合もある（ユーザーガイド p.4）。","× 追加の評価は、業務のリスクに応じて行うものであり、次年度に先送りするものではない。"]},{"id":"ippfcyber-70","type":"mc","chapterIndex":4,"stem":"トピック別要求事項の位置づけに関して、ユーザーガイドが示す考え方として、最も適切なものはどれか。","options":["要求事項は、すべての側面を網羅しており、ほかの評価を加える必要はない","要求事項は、特定の業務の範囲を決めるため、追加の検討は不要である","要求事項は、任意の目安にすぎない","網羅を意図せず、最低限の要求事項を提供する"],"correctIndex":3,"explanations":["× 網羅を意図したものではないため、追加の検討が必要な場合がある。","× 業務の範囲の検討は、専門職としての判断で行う。","× 要求事項は評価の基準（評価規準）を提供する。任意の目安ではない。","○ 要求事項は、すべての潜在的な側面を網羅することを意図しておらず、最低限の要求事項を提供する（ユーザーガイド p.1）。"]},{"id":"ippfcyber-71","type":"mc","chapterIndex":4,"stem":"内部監査部門が年次の内部監査計画を策定する際の、戦略と目的の評価について、基準9.4が求める内容として、正しいものはどれか。","options":["少なくとも年1回、戦略と目標を評価する","3年に一度、組織の戦略を評価して策定すればよい","経営からの依頼は、計画の唯一の根拠とする","監査計画の策定では、リスクの評価を行わない"],"correctIndex":0,"explanations":["○ 少なくとも年1回、組織体の戦略・目的・リスクを評価し、監査計画に含める業務を決める（基準9.4、ユーザーガイド p.2）。","× 3年に一度では、少なくとも年1回の評価を満たさない。","× 経営からの依頼は、計画に含める要素の一つであり、唯一の根拠ではない。","× リスク評価は、計画策定の重要な要素である。"]},{"id":"ippfcyber-72","type":"mc","chapterIndex":4,"stem":"個々の内部監査業務を計画する際の、リスク評価に関する基準13.2の内容として、正しいものはどれか。","options":["業務のリスク評価は、業務の完了後に行えばよい","業務のリスクは、監査計画の時点で評価したものをそのまま用いる","個々の業務を計画する際に、その業務に関連するリスクを評価しなければならない","業務のリスクは、担当者の経験で判断し、評価は記録しない"],"correctIndex":2,"explanations":["× 業務完了後の評価では、計画時のリスク評価の要求を満たさない。","× 計画時の評価を、業務ごとの評価に代えることはできない。","○ 個々の業務の計画時に、その業務に関連するリスクを評価する（基準13.2、ユーザーガイド p.2）。","× 評価の記録は、文書化の要件に含まれる。"]},{"id":"ippfcyber-73","type":"mc","chapterIndex":4,"stem":"トピック別要求事項が、個々のアシュアランス業務において提供するものとして、正しいものはどれか。","options":["業務の報酬の基準と、監査人の人数の上限を定めた規程の一覧表","内部監査部門の年度予算の上限","外部の監査人との契約条件","要求事項の対象に関連する業務の基礎と評価規準"],"correctIndex":3,"explanations":["× 報酬の基準は、要求事項が提供するものではない。","× 予算の上限は、要求事項が提供するものではない。","× 外部監査人との契約条件は、要求事項が提供するものではない。","○ 要求事項は、業務を実施するための基礎と、関連する評価規準（基準13.4）を提供する（ユーザーガイド p.1）。"]},{"id":"ippfcyber-74","type":"mc","chapterIndex":4,"stem":"組織がNIST CSF 2.0などの独自のフレームワークを使ってサイバーセキュリティに取り組んでいる場合の、内部監査人の進め方として、最も適切なものはどれか。","options":["既存の監査プログラムとテスト手続を要求事項と照合し、不足を補う","既存のフレームワークに基づく監査は、トピック別要求事項の適用を免除する根拠になるため、照合は不要である","トピック別要求事項の要求事項をすべて新たに作り直し、既存のプログラムは破棄する","フレームワークの項目数の多寡で、要求事項の充足を判断する"],"correctIndex":0,"explanations":["○ 既存のプログラムやテストを要求事項と照合し、カバレッジを確保する（S3 Q&A、ユーザーガイド p.12）。","× 既存のフレームワークは、適用の免除の根拠にはならない。照合が必要である。","× 既存のプログラムを破棄する必要はなく、照合によってカバレッジを確保する。","× 項目数の多寡は、要求事項の充足の判断基準ではない。"]},{"id":"ippfcyber-75","type":"mc","chapterIndex":4,"stem":"業務の中で、トピック別要求事項の一部の要求事項を除外する場合の根拠の例として、ユーザーガイドが挙げているものはどれか。","options":["要求事項の評価に時間がかかるため、除外する","ローテーションとリスクの低さ","担当者が要求事項を理解していないため、除外する","予算の制約があり、文書化を省略する"],"correctIndex":1,"explanations":["× 評価に時間がかかることは、除外の根拠として例示されていない。","○ 業務のローテーションや、当該業務でのリスクの重要性が低いと判断した場合が、除外の根拠の例として挙げられている（ユーザーガイド p.11、付録A 例1）。","× 理解不足は、除外の根拠ではない。研修などで対応すべきである。","× 予算の制約は、文書化を省略する根拠にはならない。"]},{"id":"ippfcyber-76","type":"mc","chapterIndex":5,"stem":"監査計画にサイバーセキュリティ業務が含まれ、内部監査人がガバナンスの要求事項を対象から外した。適切な対応はどれか。","options":["計画に含まれているため、個別の要求事項の除外は不要である","ガバナンスは経営の責任なので、報告書には記載しない","除外は、口頭で部門長に説明すればよい","ガバナンスを除外する根拠を文書化し、除外の理由とともに保管する"],"correctIndex":3,"explanations":["× 計画に含まれていても、個別の要求事項の除外には根拠の文書化が必要である。","× 除外した事実と根拠の文書化が必要である。報告書から省くことは適切でない。","× 口頭の説明では、文書化の要件を満たさない。","○ 要求事項を除外する場合は、その根拠を文書化して保管しなければならない（本文 p.1）。"]},{"id":"ippfcyber-77","type":"mc","chapterIndex":5,"stem":"内部監査部門が、インシデント対応計画のテストを卓上演習で行った。ユーザーガイドの例示に沿う対応として、最も適切なものはどれか。","options":["テストの結果を最高経営者へ報告し、アクションプランを管理する","テストは実施したことのみを記録し、結果は報告せず、保管だけする","テストの結果は、インシデントが発生した場合にのみ参照する","テストは年に一度、外部の業者に任せて内部では確認しない"],"correctIndex":0,"explanations":["○ テストの結果は最高経営者及び関係ステークホルダーに報告し、テストからアクションプランが生まれることもある（ユーザーガイド p.7）。","× 結果を報告しない対応は、考慮事項の例示に反する。","× テスト結果は、事前の確認に用いる。インシデント時だけに参照するものではない。","× 外部任せで内部の確認を省く対応は、例示に沿わない。"]},{"id":"ippfcyber-78","type":"mc","chapterIndex":5,"stem":"監査人がクラウドサービスのベンダーの統制を評価する際、ユーザーガイドの例示に沿う確認として、最も適切なものはどれか。","options":["契約を締結した後は、ベンダーの統制を確認しない","取引前と取引期間中に、SOC報告書をレビューする","ベンダーの統制は、自社の統制ではないため評価の対象外とする","ベンダーの説明書の内容のみを確認し、保証報告書は求めない"],"correctIndex":1,"explanations":["× 契約後の確認も含まれる。締結後の確認を省く対応は、例示に沿わない。","○ 取引開始前と取引期間中に、受託会社の内部統制に係る保証報告書（SOC）をレビューすることが例示されている（ユーザーガイド p.7）。","× ベンダーに基づくコントロールは、統制環境の一部として考慮する。","× 保証報告書のレビューが例示されており、説明書の確認だけでは不足する。"]},{"id":"ippfcyber-79","type":"mc","chapterIndex":5,"stem":"組織が従業員の意識を確認するため、模擬的なフィッシングを実施している。ユーザーガイドの例示に沿う取組として、最も適切なものはどれか。","options":["事前に日時を全員に通知してから、模擬フィッシングを実施する","模擬フィッシングは、役員のみを対象とする","抜き打ちで意識を確認し追跡する","結果は、本人への通知のみとし、組織としての追跡は行わない"],"correctIndex":2,"explanations":["× 事前通知は、抜き打ちで意識を試す例示の趣旨に合わない。","× 対象を役員に限る規定はない。経営管理者と従業員が対象である。","○ 抜き打ちの模擬フィッシングなどで意識をテストし、追跡することが例示されている（ユーザーガイド p.6）。","× 組織としての追跡が例示されている。本人への通知のみでは不足する。"]},{"id":"ippfcyber-80","type":"mc","chapterIndex":5,"stem":"品質評価において、内部監査部門が、トピック別要求事項の適用可能性の評価を行っていないことを指摘された。最も適切な説明はどれか。","options":["要求事項の評価の証拠が保管されていないと、基準への不適合のギャップとなり、不適合の評価につながりうる","品質評価では、適用可能性の評価は対象外であるため、指摘は当たらない","評価を行っていなくても、業務の結論が正しければ不適合とはならない","評価の証拠は、品質評価の後に作成すればよい"],"correctIndex":0,"explanations":["○ 評価を行わず、除外の根拠も示さない場合は、ギャップとなり基準への不適合の評価につながりうる（S3 Q&A）。","× 適用可能性の評価は、品質評価で確認される対象である。","× 業務の結論の正しさは、評価の証拠の代わりにはならない。","× 評価の証拠は、業務の実施時点で文書化しなければならない。"]},{"id":"ippfcyber-81","type":"mc","chapterIndex":5,"stem":"内部監査人が、サイバーセキュリティ業務の中でガバナンスとコントロールの要求事項を評価し、リスク・マネジメントの要求事項を除外した。除外の扱いとして、最も適切なものはどれか。","options":["除外は、理由を口頭で説明すれば十分とする","除外の根拠を業務の文書に記載し、必要に応じて保管する","リスク・マネジメントは、組織が別に行っているため、記載は不要である","他部門で行っているため、業務の文書化は省略してよい"],"correctIndex":1,"explanations":["× 事実だけでは、除外の根拠として不十分である。理由の説明が必要である。","○ 除外する要求事項は、根拠を文書化して保管する必要がある（本文 p.1）。","× 他で行われていることは、業務内での除外の根拠の文書化を免除しない。","× 除外の根拠は業務の時点で文書化する必要がある。"]},{"id":"ippfcyber-82","type":"mc","chapterIndex":5,"stem":"サイバーリスクのエスカレーションを担当する組織内の部門が、各機能から定期的に情報を得る方法として、ユーザーガイドが例示するものはどれか。","options":["各部門の担当者に、年に一度だけ口頭で報告を求める","情報は、IT部門の責任者だけから入手する","機能横断チームやITステアリングを活用する","他部門の情報は、サイバーに関係がないと判断し入手しない"],"correctIndex":2,"explanations":["× 年1回の口頭の報告は、定期的な情報入手の例示を満たさない。","× IT部門だけでは、機能領域からの情報の入手の例示を満たさない。","○ 機能横断的なサイバーセキュリティチームやITステアリング・コミッティの活用が例示されている（ユーザーガイド p.6）。","× 他部門の情報も入手対象として例示されている。"]},{"id":"ippfcyber-83","type":"mc","chapterIndex":5,"stem":"組織が新しい生成AI技術を導入した。トピック別要求事項の考慮事項に沿う、内部監査人の確認として、最も適切なものはどれか。","options":["AIは新技術であるため、要求事項の対象外として扱う","AIの脅威は、普及した後にのみ評価する","AIの導入は、IT部門の責任であり、評価は不要とする","AIの脅威を評価する仕組みを確認する"],"correctIndex":3,"explanations":["× 新技術であっても要求事項の対象外にはならない。","× 普及後の評価に限る規定はない。導入時から評価の対象である。","× IT部門だけの責任とする規定はない。評価は必要である。","○ 新しい技術（AIの活用を含む）に関連する脅威や脆弱性を評価するプロセスの確立が例示されている（ユーザーガイド p.8）。"]},{"id":"ippfcyber-84","type":"mc","chapterIndex":5,"stem":"内部監査人が、当初の計画になかったサイバーセキュリティの評価を取締役会から依頼された。トピック別要求事項への対応として、最も適切なものはどれか。","options":["依頼は計画外なので、トピック別要求事項は適用されないと判断する","要求事項を評価し、除外がある場合はその根拠を業務の文書として記録して保管する","取締役会の依頼には、適用可能性の評価を省略してよい","依頼された評価の結論のみを報告し、要求事項の評価は記録しない"],"correctIndex":1,"explanations":["× 計画外の依頼も適用の場面に含まれている（本文 p.1）。","○ 計画外の依頼でも要求事項は適用される。評価し、除外は根拠を文書化する（付録A 例3）。","× 適用可能性の評価を省略することはできない。","× 評価の記録は、文書化の要件に含まれる。"]},{"id":"ippfcyber-85","type":"mc","chapterIndex":5,"stem":"会社が保有するサーバーとノートパソコンを廃棄することになった。トピック別要求事項の要求事項Dに沿う対応として、最も適切なものはどれか。","options":["廃棄は、サイバーセキュリティの対象外として扱う","ハードウェアは対象外で、ソフトウェアだけ確認する","廃棄の段階を含むライフサイクル全体で、処分を確認する","資産の価値が低い場合は、廃棄の段階の確認を省略してよい"],"correctIndex":2,"explanations":["× 廃棄の段階は、サイバーセキュリティの対象に含まれる。","× ハードウェアも、ライフサイクル管理の対象に含まれる。","○ ライフサイクル（導入、使用、メンテナンス、廃棄）の全段階にサイバーセキュリティが含まれる（本文 p.4、ユーザーガイド p.8）。","× 価値に関係なく、廃棄の段階の確認が必要である。"]},{"id":"ippfcyber-86","type":"mc","chapterIndex":5,"stem":"アドバイザリー業務でサイバーセキュリティの要素を評価する場合の、トピック別要求事項への適合の扱いとして、正しいものはどれか。","options":["適合は必須事項であり、アシュアランス業務と同様に扱う","適合は任意であり、評価を行う必要はない。","業務では適合の評価は行わない","適合は推奨事項であり、評価が推奨される"],"correctIndex":3,"explanations":["× アドバイザリー業務の適合は、アシュアランス業務と異なり推奨事項である。","× 任意とは規定されていない。評価が推奨されている。","× 禁止されている規定はない。","○ アドバイザリー業務では適合は推奨事項であり、評価が推奨される（本文 p.1、ユーザーガイド p.1）。"]},{"id":"ippfcyber-87","type":"mc","chapterIndex":5,"stem":"サイバーセキュリティの強化として、ネットワーク上のサーバーとOSに最新のセキュリティ更新を適用する対策について、要求事項Eの例示に沿うものはどれか。","options":["最新のリリースのパッチを適用する","パッチは、重大な障害が発生した後にのみ適用する","パッチは、システムの運用を止めるため、適用しない","OSの更新は、年に一度の一括の作業で足りる"],"correctIndex":0,"explanations":["○ サーバーやOSに最新のセキュリティ・リリースのパッチを適用することが例示されている（ユーザーガイド p.8）。","× 障害後にのみ適用するのは、例示の趣旨に反する。","× 適用しない対応は、例示に沿わない。","× 年1回の一括では、最新のリリースへの対応として不十分である。"]},{"id":"ippfcyber-88","type":"mc","chapterIndex":5,"stem":"内部監査人が、経営管理者による問題の確認と報告が行われていないことを確認した。内部監査人の評価として、最も適切なものはどれか。","options":["是正は内部監査部門の責任であるため、経営管理者の不備は評価の対象外とする","問題の報告は、取締役会だけに行えばよく、経営管理者の確認は不要とする","経営管理者が問題を定期的に確認し、適時に報告・是正するプロセスが確立されていないことを、要求事項Eに照らして評価する","問題は、年度末に一括して報告されれば足りるとする"],"correctIndex":2,"explanations":["× 是正の責任は経営管理者にある。内部監査部門はプロセスを評価する。","× 経営管理者による確認は、要求事項Eで求められている。","○ 要求事項Eは、経営管理者が問題・ギャップ・不備を定期的に確認し、適時に報告・是正するプロセスを求める（本文 p.3）。","× 年度末の一括報告では、適時の報告の要求を満たさない。"]},{"id":"ippfcyber-89","type":"mc","chapterIndex":5,"stem":"内部監査部門が年次計画に含めたサイバーセキュリティの業務で、一部の要求事項を除外した。ユーザーガイドと要求事項に照らして、最も適切な対応はどれか。","options":["計画に含めたことで、要求事項の除外は自動的に認められるため、文書化は不要である","口頭で部門長に説明すれば、文書化は要らない","除外は、品質評価の後に検討し、業務の時点では決めない","除外した要求事項ごとに、適用可能性の評価と除外の根拠を文書化して保管する"],"correctIndex":3,"explanations":["× 計画に含めても、除外の根拠の文書化は免除されない。","× 口頭の説明では、文書化の要件を満たさない。","× 除外の判断と根拠の文書化は、業務の時点で行う必要がある。","○ 要求事項の除外には、その根拠を文書化して保管する必要がある（本文 p.1、ユーザーガイド p.3）。"]},{"id":"ippfcyber-90","type":"mc","chapterIndex":5,"stem":"内部監査人が、サイバーセキュリティのガバナンス、リスク・マネジメント、コントロールの各領域を評価した。全体の結論に関する記述として、最も適切なものはどれか。","options":["要求事項の評価と除外の根拠を踏まえ、組織の評価を適合の範囲に限って結論づける","全領域の要求事項を満たさなくても、主要な領域が満たされていれば、適合と結論づけてよい","評価の結論は、要求事項に基づくものではなく、内部監査部門長の印象で決める","評価の範囲は、結論の対象に含めた領域のみを要求事項として扱い、残りは評価の対象から外す"],"correctIndex":0,"explanations":["○ 適合の範囲と除外の根拠を踏まえて結論を導く。適合性は、適用可能性の評価と文書化により裏付けられる（本文 p.1、ユーザーガイド p.3）。","× 主要な領域のみで適合と結論することは、要求事項の除外の根拠なしには認められない。","× 結論は要求事項と評価の証拠に基づく必要がある。部門長の印象では不十分である。","× 対象外とする場合は、根拠の文書化が必要であり、単に対象から外すことは認められない。"]}];
+  const CHAPTERS = ["位置づけと適用範囲","ガバナンス","リスク・マネジメント","コントロール・プロセス","監査の計画と実施での使い方（ユーザーガイド）","場面問題（総合）"];
+  const BASE_CHAPTER_COUNT = 6;   // これ以降の章は新シラバス仮問題集（deck:'extra3'）用
+// GAS_WEBAPP_URL / EXAM_ID / EXAM_SHORT_TITLE / TRACKING_EXAM_ID / QUESTIONS / CHAPTERS は build_html.js が
+// ビルド時にこのファイルの直前へ注入する。QUESTIONS は {id, type:'mc'|'tf'|'mc-multi', chapterIndex, stem, ...}
+// の配列。TRACKING_EXAM_ID は成績記録シート名（<TRACKING_EXAM_ID>_<mode>）専用のIDで、
+// 同じexam.id配下に複数の問題集（quiz/quiz2）がある場合に成績を分離するため EXAM_ID とは別に持つ
+// （EXAM_ID はチャットへ戻る遷移先ページなので exam.id のまま変えない）。
+// 'mc-multi' は「すべて選びなさい」形式（正解が複数）。見た目は 'mc' と同じ選択肢ボタンだが、
+// クリックのたびにトグル選択（複数選択可）になり、正解は correctIndexes（配列）で持つ。
+
+const MODE_LABEL = { mc: '模擬試験', tf: '一問一答', extra: '追加問題', extra2: '追加問題2', extra3: '新シラバス仮問題', review: '復習' };
+// 成績記録（QuizTracking.js）のシートを分けるための mode 変換。
+// 'extra'（追加問題、別ソースの問題集）は既存の 模擬試験(seiseiai_mc) と混在しないよう
+// 'mc2' という別モード名で記録する。'extra2'（3つ目の問題集）は同様に'mc3'。
+// 'review'（復習モード）は章別推移表には記録せず、専用の復習ログへ書く（recordResults参照）。
+const TRACKING_MODE = { mc: 'mc', tf: 'tf', extra: 'mc2', extra2: 'mc3', extra3: 'mc4', review: 'review' };
+
+// 復習モードの「卒業」条件。復習でこの回数だけ連続正解したら、既定の出題対象から外す
+// （「記録にある全部」を選べば卒業ぶんも出題できる）。バックエンド QuizReview.js は
+// 生の連続正解数(streak)だけを返し、閾値の判断はこの画面側で持つ。
+const GRADUATE_STREAK = 2;
+// 復習の範囲「最近間違えた問題」が遡る日数。
+const RECENT_MISS_DAYS = 14;
+
+let mode = null;             // 'mc' | 'tf' | 'extra' | 'extra2' | 'extra3' | 'review'
+let modePool = [];           // モードごとの出題プール（下記参照）
+let scopeChapterIndex = null; // null = 全部、それ以外は対象chapterIndex
+let scopeGroup = null;        // null = 章全体、それ以外は章の中のテーマ別グループ名
+let questions = [];          // 範囲確定時に modePool を全部 or 該当章でfilterしたもの
+let idx = 0;
+let selectedOption = null;   // mc: 0-3 の数値、tf: true/false、mc-multi: 選択中indexの配列、未選択は null（mc-multiは[]）
+let revealed = false;
+let sessionResults = [];     // [{id, chapterIndex, correct, selectedOption}]
+let skippedCount = 0;        // 回答せずに飛ばした問題数（正答率の母数には入れない）
+
+// 復習モード用の状態。reviewEntries はバックエンド apiGetReviewPool の戻り
+// [{id, mode, missCount, lastMissAt, reviewCount, streak, lastReviewAt}]。
+let reviewEntries = [];
+let reviewEntryById = {};
+let reviewScopeKey = null;   // 'active' | 'repeat' | 'recent' | 'all' | chapterIndex(数値)
+let reviewMissingCount = 0;  // 記録にあるが今の問題集に見つからない問題数（ID未記録の旧データなど）
+
+(function initCounts() {
+  document.getElementById('mcCount').textContent = QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).length;
+  document.getElementById('tfCount').textContent = QUESTIONS.filter((q) => q.type === 'tf' && !q.deck).length;
+  document.getElementById('extraCount').textContent = QUESTIONS.filter((q) => q.deck === 'extra').length;
+  document.getElementById('extra2Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra2').length;
+  document.getElementById('extra3Count').textContent = QUESTIONS.filter((q) => q.deck === 'extra3').length;
+  // 問題が1問も無いモードのカードは出さない（FP3のように問題集が1本だけの資格向け）。
+  [['tfCard', 'tfCount'], ['extraCard', 'extraCount'], ['extra2Card', 'extra2Count'], ['extra3Card', 'extra3Count']].forEach(([card, count]) => {
+    if (!Number(document.getElementById(count).textContent)) document.getElementById(card).style.display = 'none';
+  });
+  // 模擬試験カードの選択肢数表記（FP3は3択）。選択肢数が混在するときは「3〜4択」のように範囲で出す。
+  const sizes = Array.from(new Set(QUESTIONS.filter((q) => q.type === 'mc' && !q.deck).map((q) => q.options.length)));
+  if (sizes.length) {
+    const lo = Math.min.apply(null, sizes), hi = Math.max.apply(null, sizes);
+    document.getElementById('mcKind').textContent = (lo === hi ? lo : lo + '〜' + hi) + '択';
+  }
+  // 問題集1本だけの資格は「模擬試験」ではなく exams.js の quiz.mcTitle で呼び替える。
+  if (typeof MC_TITLE === 'string' && MC_TITLE) {
+    MODE_LABEL.mc = MC_TITLE;
+    document.getElementById('mcTitle').textContent = MC_TITLE;
+  }
+})();
+
+function showScreen(id) {
+  ['screenMode', 'screenScope', 'screenQuestion', 'screenSummary'].forEach((s) => {
+    document.getElementById(s).style.display = s === id ? '' : 'none';
+  });
+}
+
+function chooseMode(m) {
+  if (m === 'review') { startReview(); return; }
+  const pool = m === 'extra' || m === 'extra2' || m === 'extra3'
+    ? QUESTIONS.filter((q) => q.deck === m)
+    : QUESTIONS.filter((q) => q.type === m && !q.deck);
+  if (!pool.length) { alert('このモードの問題がまだ登録されていません。'); return; }
+  mode = m;
+  modePool = pool;
+  renderScopeScreen();
+}
+
+// ── 復習モード（間違えた問題だけの再学習） ────────────────────────────────
+// 出題プールはスプレッドシートの記録（<examId>_<mode>_ミス、全モードぶん）から作る。
+// 端末のlocalStorageは使わない: このページはGASのサンドボックスiframe（*.googleusercontent.com）
+// で配信されるため保存先が端末・ブラウザごとにバラバラになり、スマホとPCで復習状況が
+// 食い違ってしまう。記録は既にスプレッドシートにあるのでそれを唯一の正とする。
+async function startReview() {
+  const card = document.getElementById('reviewCard');
+  const desc = document.getElementById('reviewCount');
+  const prevDesc = desc.textContent;
+  card.disabled = true;
+  desc.textContent = '記録を読み込み中...';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+    });
+    if (!data.ok) {
+      alert('復習リストを取得できませんでした: ' + (data.error || ''));
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    reviewEntries = data.entries || [];
+    reviewEntryById = {};
+    reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+
+    const pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+    reviewMissingCount = reviewEntries.length - pool.length;
+    if (!pool.length) {
+      alert(reviewEntries.length
+        ? '記録にある問題が今の問題集に見つかりませんでした（問題IDの無い古い記録のみです）。'
+        : 'まだ間違えた問題の記録がありません。\n各モードを解いたあとサマリー画面で「この回の結果を記録」を押すと、ここに溜まっていきます。');
+      desc.textContent = prevDesc;
+      return;
+    }
+
+    mode = 'review';
+    modePool = pool;
+    desc.textContent = pool.filter((q) => !isGraduated(q)).length + '問が未克服';
+    renderScopeScreen();
+  } catch (err) {
+    alert('通信エラー: ' + (err && err.message ? err.message : err));
+    desc.textContent = prevDesc;
+  } finally {
+    card.disabled = false;
+  }
+}
+
+// 復習プールの1問あたりの状態を引く小物。記録に無い問題（通常は起きない）は0扱い。
+function isGraduated(q) {
+  const e = reviewEntryById[q.id];
+  return !!e && e.streak >= GRADUATE_STREAK;
+}
+function missCountOf(q) {
+  const e = reviewEntryById[q.id];
+  return e ? e.missCount : 0;
+}
+function lastMissTimeOf(q) {
+  const e = reviewEntryById[q.id];
+  return e && e.lastMissAt ? new Date(e.lastMissAt).getTime() : 0;
+}
+
+// 復習の範囲キー → 出題対象の絞り込み条件。
+function reviewFilter(key) {
+  if (key === 'all') return function () { return true; };
+  if (key === 'repeat') return function (q) { return !isGraduated(q) && missCountOf(q) >= 2; };
+  if (key === 'recent') {
+    const since = Date.now() - RECENT_MISS_DAYS * 24 * 60 * 60 * 1000;
+    return function (q) { return !isGraduated(q) && lastMissTimeOf(q) >= since; };
+  }
+  if (typeof key === 'number') return function (q) { return !isGraduated(q) && q.chapterIndex === key; };
+  return function (q) { return !isGraduated(q); }; // 'active'（既定）
+}
+
+function reviewScopeLabel(key) {
+  if (key === 'all') return '記録にある全部';
+  if (key === 'repeat') return '2回以上間違えた問題';
+  if (key === 'recent') return '最近' + RECENT_MISS_DAYS + '日で間違えた問題';
+  if (typeof key === 'number') return chapterLabelText(key);
+  return '未克服の問題';
+}
+
+// 復習モードでは色々なデッキの問題が混ざるので、その問題がどの問題集のものかを示す。
+function deckLabelOf(q) {
+  if (q.deck === 'extra') return '追加問題';
+  if (q.deck === 'extra2') return '追加問題2';
+  if (q.deck === 'extra3') return '新シラバス仮問題';
+  return q.type === 'tf' ? '一問一答' : '模擬試験';
+}
+
+// モード確定後、「全部」か「章ごとにチャレンジ」かを選ぶ画面を組み立てる。
+function renderScopeScreen() {
+  if (mode === 'review') { renderReviewScopeScreen(); return; }
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">📚 全部</div><div class="scope-all-desc">' + modePool.length + '問すべて出題</div>';
+  allBtn.onclick = () => chooseScope(null);
+  el.appendChild(allBtn);
+
+  const chapterIndexes = Array.from(new Set(modePool.map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとにチャレンジ';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const count = modePool.filter((q) => q.chapterIndex === ci).length;
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + count + '問</span>';
+      btn.onclick = () => chooseScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+
+    // 章の下のテーマ別グループ（問題に group が付いているときだけ）。
+    if (modePool.some((q) => q.group)) {
+      const gHeading = document.createElement('div');
+      gHeading.className = 'scope-chapter-heading';
+      gHeading.textContent = 'テーマ別にチャレンジ';
+      el.appendChild(gHeading);
+      chapterIndexes.forEach((ci) => {
+        const inChapter = modePool.filter((q) => q.chapterIndex === ci && q.group);
+        const names = [];
+        inChapter.slice().sort((a, b) => (a.groupIndex || 0) - (b.groupIndex || 0)).forEach((q) => { if (names.indexOf(q.group) < 0) names.push(q.group); });
+        if (!names.length) return;
+        const sub = document.createElement('div');
+        sub.className = 'scope-note';
+        sub.textContent = chapterLabelText(ci);
+        el.appendChild(sub);
+        const gList = document.createElement('div');
+        gList.className = 'scope-chapter-list';
+        names.forEach((name) => {
+          const n = inChapter.filter((q) => q.group === name).length;
+          const btn = document.createElement('button');
+          btn.className = 'scope-chapter-btn';
+          btn.innerHTML = '<span class="name">' + escapeHtml(name) + '</span><span class="count">' + n + '問</span>';
+          btn.onclick = () => chooseScope(ci, name);
+          gList.appendChild(btn);
+        });
+        el.appendChild(gList);
+      });
+    }
+  }
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲選択画面。章ではなく「未克服／繰り返しミス／最近／全部」で切る。
+function renderReviewScopeScreen() {
+  document.getElementById('headerSub').textContent = '復習　範囲を選んでください';
+
+  const el = document.getElementById('scopeSelect');
+  el.innerHTML = '';
+
+  const countOf = (key) => modePool.filter(reviewFilter(key)).length;
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'scope-all-btn';
+  allBtn.innerHTML = '<div class="scope-all-title">🔁 未克服の問題</div><div class="scope-all-desc">'
+    + countOf('active') + '問・間違えたまま克服できていない問題</div>';
+  allBtn.onclick = () => chooseReviewScope('active');
+  el.appendChild(allBtn);
+
+  const presets = [
+    { key: 'repeat', name: '🔥 2回以上間違えた問題' },
+    { key: 'recent', name: '📅 最近' + RECENT_MISS_DAYS + '日で間違えた問題' },
+    { key: 'all', name: '📚 記録にある全部（克服済みも含む）' },
+  ];
+  const presetList = document.createElement('div');
+  presetList.className = 'scope-chapter-list';
+  presets.forEach((p) => {
+    const n = countOf(p.key);
+    const btn = document.createElement('button');
+    btn.className = 'scope-chapter-btn';
+    btn.disabled = n === 0;
+    btn.innerHTML = '<span class="name">' + escapeHtml(p.name) + '</span><span class="count">' + n + '問</span>';
+    btn.onclick = () => chooseReviewScope(p.key);
+    presetList.appendChild(btn);
+  });
+  el.appendChild(presetList);
+
+  // 章ごと（未克服のぶんだけ）。0問の章はボタン自体を出さない。
+  const chapterIndexes = Array.from(new Set(modePool.filter(reviewFilter('active')).map((q) => q.chapterIndex))).sort((a, b) => a - b);
+  if (chapterIndexes.length > 1) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-chapter-heading';
+    heading.textContent = '章ごとに復習（未克服ぶん）';
+    el.appendChild(heading);
+
+    const list = document.createElement('div');
+    list.className = 'scope-chapter-list';
+    chapterIndexes.forEach((ci) => {
+      const n = countOf(ci);
+      const btn = document.createElement('button');
+      btn.className = 'scope-chapter-btn';
+      btn.innerHTML = '<span class="name">' + escapeHtml(chapterLabelText(ci)) + '</span><span class="count">' + n + '問</span>';
+      btn.onclick = () => chooseReviewScope(ci);
+      list.appendChild(btn);
+    });
+    el.appendChild(list);
+  }
+
+  const note = document.createElement('div');
+  note.className = 'scope-note';
+  note.textContent = '復習で' + GRADUATE_STREAK + '回連続で正解した問題は「克服」として既定の出題から外れます。'
+    + (reviewMissingCount > 0 ? '（記録のうち' + reviewMissingCount + '問は今の問題集に無いため対象外）' : '');
+  el.appendChild(note);
+
+  showScreen('screenScope');
+}
+
+// 復習モードの範囲確定。ミスが多い問題・最近間違えた問題から先に出す。
+function chooseReviewScope(key) {
+  const pool = modePool.filter(reviewFilter(key));
+  if (!pool.length) { alert('この条件に当てはまる問題がありません。'); return; }
+  reviewScopeKey = key;
+  scopeChapterIndex = typeof key === 'number' ? key : null;
+  scopeGroup = null;
+  questions = pool.slice().sort((a, b) => (missCountOf(b) - missCountOf(a)) || (lastMissTimeOf(b) - lastMissTimeOf(a)));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = '復習　' + reviewScopeLabel(key) + '（' + questions.length + '問）';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function chooseScope(chapterIndex, group) {
+  scopeChapterIndex = chapterIndex;
+  scopeGroup = group || null;
+  questions = chapterIndex == null ? modePool : modePool.filter((q) => q.chapterIndex === chapterIndex && (!scopeGroup || q.group === scopeGroup));
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent = MODE_LABEL[mode] + '　' + (chapterIndex == null ? '全部' : chapterLabelText(chapterIndex) + (scopeGroup ? '／' + scopeGroup : ''));
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function restartMode() {
+  if (mode === 'review') { chooseReviewScope(reviewScopeKey); return; }
+  chooseScope(scopeChapterIndex, scopeGroup);
+}
+
+// 今のセッションで間違えた問題だけを、その場でもう一度出題する（記録を待たない簡易復習）。
+// 記録ベースの本格的な復習はモード選択の「🔁 復習」。
+function retryWrongInSession() {
+  const wrong = sessionResults.filter((r) => !r.correct)
+    .map((r) => questions.find((q) => q.id === r.id))
+    .filter(Boolean);
+  if (!wrong.length) return;
+  questions = wrong;
+  idx = 0;
+  sessionResults = [];
+  skippedCount = 0;
+  document.getElementById('headerSub').textContent =
+    (mode === 'review' ? '復習' : MODE_LABEL[mode]) + '　間違えた' + wrong.length + '問をもう一度';
+  showScreen('screenQuestion');
+  renderQuestion();
+}
+
+function backToScopeSelect() {
+  renderScopeScreen();
+}
+
+function backToModeSelect() {
+  mode = null;
+  modePool = [];
+  scopeChapterIndex = null;
+  scopeGroup = null;
+  document.getElementById('headerSub').textContent = 'モードを選んでください';
+  showScreen('screenMode');
+}
+
+function chapterLabelText(chapterIndex) {
+  if (chapterIndex == null || !CHAPTERS[chapterIndex]) return '';
+  // BASE_CHAPTER_COUNT 以降は新シラバス仮問題集の章（旧シラバスの章と名前が重なるので「新」を付ける）
+  if (chapterIndex >= BASE_CHAPTER_COUNT) return '新シラバス第' + (chapterIndex - BASE_CHAPTER_COUNT + 1) + '章：' + CHAPTERS[chapterIndex];
+  return '第' + (chapterIndex + 1) + '章：' + CHAPTERS[chapterIndex];
+}
+
+function renderQuestion() {
+  const q = questions[idx];
+  selectedOption = q.type === 'mc-multi' ? [] : null;
+  revealed = false;
+
+  // 復習モードは色々なデッキが混ざるので、どの問題集の何問目かと通算ミス回数も出す。
+  const progressLabel = mode === 'review'
+    ? '復習（' + deckLabelOf(q) + '）　' + (idx + 1) + ' / ' + questions.length + '　通算' + missCountOf(q) + '回ミス'
+    : MODE_LABEL[mode] + '　' + (idx + 1) + ' / ' + questions.length;
+  document.getElementById('progress').textContent = progressLabel;
+  document.getElementById('chapterLabel').textContent = chapterLabelText(q.chapterIndex) + (q.group ? '／' + q.group : '');
+  document.getElementById('stem').textContent = q.stem + (q.type === 'mc-multi' ? '（複数選択可）' : '');
+
+  const optionsEl = document.getElementById('options');
+  optionsEl.innerHTML = '';
+
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    q.options.forEach((text, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = '(' + (i + 1) + ') ' + text;
+      btn.onclick = () => selectOption(i);
+      optionsEl.appendChild(btn);
+    });
+  } else {
+    const trueBtn = document.createElement('button');
+    trueBtn.className = 'option-btn tf-btn';
+    trueBtn.textContent = '○ 正しい';
+    trueBtn.onclick = () => selectOption(true);
+    const falseBtn = document.createElement('button');
+    falseBtn.className = 'option-btn tf-btn';
+    falseBtn.textContent = '× 誤り';
+    falseBtn.onclick = () => selectOption(false);
+    optionsEl.appendChild(trueBtn);
+    optionsEl.appendChild(falseBtn);
+  }
+
+  // 「回答」ボタンは複数選択（mc-multi）専用。mc / tf は選択した時点で即判定するため出さない。
+  const answerBtn = document.getElementById('answerBtn');
+  answerBtn.disabled = true;
+  answerBtn.style.display = q.type === 'mc-multi' ? '' : 'none';
+  document.getElementById('questionActions').style.display = '';
+  document.getElementById('revealArea').style.display = 'none';
+}
+
+// 回答せずに次の問題へ飛ばす。スキップした問題は sessionResults に入れないので
+// 正答率の母数にも、間違えた問題の記録にも入らない（＝ミス扱いにはしない）。
+function skipQuestion() {
+  if (revealed) return;
+  skippedCount++;
+  saveProgress(idx + 1);
+  nextQuestion();
+}
+
+// mc / tf は「選択＝回答」で、選択肢を押した時点でそのまま正誤を表示する（回答ボタンは出さない）。
+// mc-multi（すべて選びなさい）は複数選んでから確定する必要があるため、従来どおり
+// トグル選択 →「回答」ボタンで reveal() する。
+function selectOption(v) {
+  if (revealed) return;
+  const q = questions[idx];
+
+  if (q.type !== 'mc-multi') {
+    selectedOption = v;
+    reveal();
+    return;
+  }
+
+  const i = selectedOption.indexOf(v);
+  if (i === -1) selectedOption.push(v);
+  else selectedOption.splice(i, 1);
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, j) => {
+    btn.classList.toggle('selected', selectedOption.includes(j));
+  });
+  document.getElementById('answerBtn').disabled = selectedOption.length === 0;
+}
+
+function sameIndexSet(a, b) {
+  if (a.length !== b.length) return false;
+  const sortedA = a.slice().sort();
+  const sortedB = b.slice().sort();
+  return sortedA.every((v, i) => v === sortedB[i]);
+}
+
+// ── 効果音（正解＝ピンポン／不正解＝ブブー） ─────────────────────────────────────
+// 音声ファイルは使わず Web Audio で合成する。鳴らすのは回答の瞬間（利用者のクリック直後）なので
+// ブラウザの自動再生制限にかからない。失敗しても回答の処理は止めない。ON/OFFは端末ごとの好みなので
+// localStorage に覚える（読めない環境ではONのまま）。
+let soundOn = true;
+let audioCtx = null;
+try { soundOn = localStorage.getItem('quizSound') !== 'off'; } catch (e) { /* 読めなければON */ }
+
+function getAudioCtx() {
+  if (audioCtx) return audioCtx;
+  const AC = typeof AudioContext !== 'undefined' ? AudioContext
+    : (typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null);
+  if (!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+
+// 1音: 立ち上がりを素早く、あとは指数的に減衰させる（ぷつっというノイズを避ける）。
+function playTone(ctx, start, freq, dur, type, peak) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
+function playResultSound(correct) {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+    const t = ctx.currentTime;
+    // 音量: 同時に鳴る音の合計が 1.0 を超えない範囲（超えると割れる）。
+    if (correct) {
+      // ピン（高）→ポーン（低）。倍音を足してベルらしくする。
+      playTone(ctx, t, 1175, 0.3, 'sine', 0.65);
+      playTone(ctx, t, 2350, 0.2, 'sine', 0.18);
+      playTone(ctx, t + 0.18, 880, 0.6, 'sine', 0.65);
+      playTone(ctx, t + 0.18, 1760, 0.35, 'sine', 0.18);
+    } else {
+      // ブッ、ブー。少しずらした低いのこぎり波2本でブザーらしいざらつきを出す。
+      [150, 157].forEach((f) => {
+        playTone(ctx, t, f, 0.16, 'sawtooth', 0.31);
+        playTone(ctx, t + 0.22, f, 0.5, 'sawtooth', 0.31);
+      });
+    }
+  } catch (e) { /* 音が鳴らなくても学習の邪魔をしない */ }
+}
+
+function updateSoundBtn() {
+  const btn = document.getElementById('soundBtn');
+  if (!btn) return;
+  btn.textContent = soundOn ? '🔊 音' : '🔇 音';
+  btn.title = soundOn ? '効果音ON（押すとOFF）' : '効果音OFF（押すとON）';
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('quizSound', soundOn ? 'on' : 'off'); } catch (e) { /* 保存できなくても今回は有効 */ }
+  updateSoundBtn();
+  if (soundOn) playResultSound(true);   // ONにしたときに音を確かめられるよう、ピンポンを鳴らす
+}
+updateSoundBtn();
+
+function reveal() {
+  if (selectedOption === null || revealed) return;
+  if (Array.isArray(selectedOption) && selectedOption.length === 0) return;
+  revealed = true;
+
+  const q = questions[idx];
+  const correct = q.type === 'mc' ? selectedOption === q.correctIndex
+    : q.type === 'mc-multi' ? sameIndexSet(selectedOption, q.correctIndexes)
+    : selectedOption === q.correct;
+  sessionResults.push({ id: q.id, chapterIndex: q.chapterIndex, correct, selectedOption });
+  saveProgress(idx + 1);   // 回答した時点で保存（次へを押す前に閉じても、次の問題から再開できる）
+  playResultSound(correct);
+
+  const optionsEl = document.getElementById('options');
+  Array.from(optionsEl.children).forEach((btn, i) => {
+    btn.disabled = true;
+    btn.classList.remove('selected');
+    const isCorrectChoice = q.type === 'mc' ? i === q.correctIndex
+      : q.type === 'mc-multi' ? q.correctIndexes.includes(i)
+      : (i === 0) === q.correct;
+    const isSelectedChoice = q.type === 'mc' ? i === selectedOption
+      : q.type === 'mc-multi' ? selectedOption.includes(i)
+      : (i === 0) === selectedOption;
+    if (isCorrectChoice) btn.classList.add('correct');
+    else if (isSelectedChoice) btn.classList.add('incorrect');
+  });
+
+  const revealOptions = document.getElementById('revealOptions');
+  revealOptions.innerHTML = '';
+  if (q.type === 'mc' || q.type === 'mc-multi') {
+    // バッジは「選択肢として選ぶべきか(correctIndex/correctIndexes)」ではなく、解説文が本来持つ○/×
+    // （その文が事実として正しいか）をそのまま使う。「最も不適切なものはどれか」形式の設問では
+    // 正解の選択肢が「事実として誤り（×）」であるため、correctIndexだけで○/×を決めると意味が逆転する。
+    q.explanations.forEach((text, i) => {
+      const row = document.createElement('div');
+      row.className = 'option-explain';
+      const m = text.match(/^([○×])\s*/);
+      const fallbackCorrect = q.type === 'mc-multi' ? q.correctIndexes.includes(i) : i === q.correctIndex;
+      const badge = m ? m[1] : (fallbackCorrect ? '○' : '×');
+      row.innerHTML = '<span class="option-badge">' + badge + '</span>' + escapeHtml(text.replace(/^[○×]\s*/, ''));
+      revealOptions.appendChild(row);
+    });
+  } else {
+    const row = document.createElement('div');
+    row.className = 'option-explain';
+    row.innerHTML = '<span class="option-badge">' + (q.correct ? '○ 正しい' : '× 誤り') + '</span><br>' + escapeHtml(q.explanation.replace(/^[○×]\s*/, ''));
+    revealOptions.appendChild(row);
+  }
+
+  document.getElementById('questionActions').style.display = 'none';
+  document.getElementById('revealArea').style.display = '';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 選択肢のindex（mc/mc-multi）やbool（tf）を、スプレッドシート出力・アドバイス用に
+// 人が読めるテキストへ変換する。
+function answerText(q, val) {
+  if (q.type === 'mc') return val == null ? '（未回答）' : q.options[val];
+  if (q.type === 'mc-multi') return (val || []).map((i) => q.options[i]).join(' / ');
+  return val ? '正しい' : '誤り';
+}
+
+function buildAskPrompt(q, selected) {
+  // ラベルは問題タイプではなく、現在解いているモード（MODE_LABEL）から決める。
+  // mc3（追加問題2）もtype:'mc'なので、type起点だと「模擬試験」と誤表示されてしまうため。
+  // 復習モードは複数デッキが混ざるので、その問題自身の出自（deckLabelOf）を使う。
+  const deckLabel = mode === 'review' ? deckLabelOf(q) : (MODE_LABEL[mode] || '問題集');
+  if (q.type === 'mc') {
+    const selfAnswerLine = selected != null && selected !== q.correctIndex
+      ? '\n自分は(' + (selected + 1) + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + (q.correctIndex + 1) + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  if (q.type === 'mc-multi') {
+    const selectedList = (selected || []).map((i) => i + 1).join(', ');
+    const correctList = q.correctIndexes.map((i) => i + 1).join(', ');
+    const selfAnswerLine = selected != null && !sameIndexSet(selected, q.correctIndexes)
+      ? '\n自分は(' + selectedList + ')を選んで間違えました。なぜそれが誤りかも教えてください。'
+      : '';
+    return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の問題（複数選択）について教えてください。\n\n' +
+      '問題：' + q.stem + '\n' +
+      q.options.map((o, i) => '(' + (i + 1) + ') ' + o).join('\n') + '\n\n' +
+      '正解は(' + correctList + ')です。' + selfAnswerLine +
+      '\nこの問題の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+  }
+  const selfAnswerLine = selected != null && selected !== q.correct
+    ? '\n自分は「' + (selected ? '正しい' : '誤り') + '」と回答して間違えました。なぜそれが誤りかも教えてください。'
+    : '';
+  return EXAM_SHORT_TITLE + 'の問題集（' + deckLabel + '）より、以下の文の正誤について教えてください。\n\n' +
+    '問題文：' + q.stem + '\n' +
+    '正解：' + (q.correct ? '正しい' : '誤り') + selfAnswerLine +
+    '\nこの論点の考え方や関連する周辺知識を要点だけ簡潔に解説してください。';
+}
+
+function askInChat() {
+  const q = questions[idx];
+  // GASのHtmlServiceはページをiframe（サンドボックス）内に読み込むため、
+  // location.href だとiframe内だけが遷移してしまう（top.location.hrefが必要）。
+  // さらに相対URLはiframeの内部配信元（googleusercontent.com）を基準に解決
+  // されてしまうため、GAS_WEBAPP_URLを前置した絶対URLにする必要がある。
+  // チャットの「元の問題に戻る」ボタン用に、戻り先（この問題を開き直すURL）を一緒に渡す。
+  // 復習モードは記録の読み込みが要るので、その問題が属する通常モード（出自のデッキ）へ戻す。
+  const backMode = mode === 'review' ? (q.deck || q.type) : mode;
+  let backUrl = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '-quiz&resume=' + encodeURIComponent(q.id) + '&m=' + encodeURIComponent(backMode);
+  if (mode !== 'review' && scopeChapterIndex != null) backUrl += '&c=' + scopeChapterIndex;
+  if (mode !== 'review' && scopeGroup) backUrl += '&g=' + encodeURIComponent(scopeGroup);
+  top.location.href = GAS_WEBAPP_URL + '?page=' + EXAM_ID + '&ask=' + encodeURIComponent(buildAskPrompt(q, selectedOption))
+    + '&back=' + encodeURIComponent(backUrl);
+}
+
+// チャットの「元の問題に戻る」から開かれたとき、?resume=<問題ID>&m=<モード>[&c=<章>][&g=<グループ>] の問題を開き直す。
+// 出題順は固定（シャッフルなし）なので、同じ範囲を作り直して該当の位置へ移れば続きから解ける。
+function initResumeParam() {
+  if (typeof google === 'undefined' || !google.script || !google.script.url || !google.script.url.getLocation) return;
+  google.script.url.getLocation(function (loc) {
+    const p = (loc && loc.parameter) || {};
+    if (!p.resume || !p.m) return;
+    const target = QUESTIONS.find((q) => q.id === p.resume);
+    if (!target) return;
+    chooseMode(p.m);
+    if (mode !== p.m) return;
+    const c = p.c != null && p.c !== '' ? Number(p.c) : null;
+    chooseScope(Number.isInteger(c) ? c : null, p.g || null);
+    let at = questions.findIndex((q) => q.id === target.id);
+    if (at < 0) { chooseScope(null, null); at = questions.findIndex((q) => q.id === target.id); }
+    if (at < 0) return;
+    idx = at;
+    renderQuestion();
+  });
+}
+initResumeParam();
+
+// ── 中断→再開 ─────────────────────────────────────────────────────────
+// 1問回答／スキップするたびに、いまの出題セッションの途中経過をバックエンド（UserProperties）へ送る。
+// 次に開いたとき、モード選択画面の先頭に「続きから再開」を出し、中断した次の問題から続けられる。
+// 1資格につき1枠（最後に解いていたセッション）。端末をまたいで再開できる。最後まで解くと消える。
+// 状態は小さく詰める（UserProperties は1値約9KB上限）: q=出題順のID列、a=[[ID, 正誤(1/0), 選んだ答え]…]、i=次に解く位置。
+let pendingProgress = null;
+
+function hasGoogleRun() {
+  return typeof google !== 'undefined' && google && google.script && google.script.run;
+}
+
+function saveProgress(nextIdx) {
+  if (!hasGoogleRun() || !mode || !questions.length) return;
+  const state = {
+    v: 1, t: Date.now(), mode: mode, c: scopeChapterIndex, g: scopeGroup, r: reviewScopeKey,
+    h: document.getElementById('headerSub').textContent,
+    q: questions.map((q) => q.id).join(','), i: nextIdx,
+    a: sessionResults.map((r) => [r.id, r.correct ? 1 : 0, r.selectedOption]), sk: skippedCount,
+  };
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiSaveQuizProgress({ examId: TRACKING_EXAM_ID, state: state });
+  } catch (e) { /* 保存に失敗しても出題は続ける */ }
+}
+
+function clearProgress() {
+  pendingProgress = null;
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run.withSuccessHandler(function () {}).withFailureHandler(function () {})
+      .apiClearQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 無視 */ }
+}
+
+// 保存された途中経過が、今の問題集でそのまま復元できるか（問題が差し替わっていたら諦める）。
+function isResumableProgress(s) {
+  if (!s || s.v !== 1 || typeof s.q !== 'string' || !Array.isArray(s.a) || !Number.isInteger(s.i)) return false;
+  const ids = s.q.split(',');
+  if (s.i < 0 || s.i >= ids.length) return false;
+  const known = {};
+  QUESTIONS.forEach((q) => { known[q.id] = true; });
+  return ids.every((id) => known[id]) && s.a.every((r) => Array.isArray(r) && known[r[0]]);
+}
+
+function offerResume(s) {
+  if (!isResumableProgress(s)) return;
+  pendingProgress = s;
+  const total = s.q.split(',').length;
+  document.getElementById('resumeText').textContent =
+    '📌 途中の問題集があります：' + (s.h || '') + '　' + (s.i + 1) + '問目から（全' + total + '問・回答済み' + s.a.length + '問）';
+  document.getElementById('resumeBanner').style.display = '';
+}
+
+(function initProgress() {
+  if (!hasGoogleRun()) return;
+  try {
+    google.script.run
+      .withSuccessHandler(function (res) { if (res && res.ok && res.state) offerResume(res.state); })
+      .withFailureHandler(function () {})
+      .apiLoadQuizProgress({ examId: TRACKING_EXAM_ID });
+  } catch (e) { /* 再開バナーが出ないだけ */ }
+})();
+
+function discardProgress() {
+  document.getElementById('resumeBanner').style.display = 'none';
+  clearProgress();
+}
+
+async function resumeProgress() {
+  const s = pendingProgress;
+  if (!s || !isResumableProgress(s)) { discardProgress(); return; }
+  const btn = document.getElementById('resumeBtn');
+  btn.disabled = true;
+  try {
+    let pool;
+    if (s.mode === 'review') {
+      // 復習は問題ごとの通算ミス回数・卒業判定が画面に出るので、記録を読み直してから復元する。
+      const data = await new Promise(function (resolve, reject) {
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).apiGetReviewPool({ examId: TRACKING_EXAM_ID });
+      });
+      if (!data.ok) { alert('復習の記録を取得できませんでした: ' + (data.error || '')); return; }
+      reviewEntries = data.entries || [];
+      reviewEntryById = {};
+      reviewEntries.forEach(function (e) { reviewEntryById[e.id] = e; });
+      pool = QUESTIONS.filter((q) => !!reviewEntryById[q.id]);
+      reviewMissingCount = reviewEntries.length - pool.length;
+    } else {
+      pool = s.mode === 'extra' || s.mode === 'extra2' || s.mode === 'extra3'
+        ? QUESTIONS.filter((q) => q.deck === s.mode)
+        : QUESTIONS.filter((q) => q.type === s.mode && !q.deck);
+    }
+    const byId = {};
+    QUESTIONS.forEach((q) => { byId[q.id] = q; });
+    mode = s.mode;
+    modePool = pool;
+    scopeChapterIndex = s.c == null ? null : s.c;
+    scopeGroup = s.g || null;
+    reviewScopeKey = s.r == null ? null : s.r;
+    questions = s.q.split(',').map((id) => byId[id]);
+    idx = s.i;
+    sessionResults = s.a.map((r) => ({ id: r[0], chapterIndex: byId[r[0]].chapterIndex, correct: !!r[1], selectedOption: r[2] }));
+    skippedCount = s.sk || 0;
+    pendingProgress = null;
+    document.getElementById('resumeBanner').style.display = 'none';
+    document.getElementById('headerSub').textContent = s.h || MODE_LABEL[mode] || '';
+    showScreen('screenQuestion');
+    renderQuestion();
+  } catch (err) {
+    alert('再開できませんでした: ' + (err && err.message ? err.message : err));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function nextQuestion() {
+  idx++;
+  if (idx >= questions.length) showSummary();
+  else renderQuestion();
+}
+
+// CHAPTERS の全章を常に含めて返す（今回未出題の章は total:0）。
+// スプレッドシート側は最初の記録時に受け取った章名で行を確定するため、
+// 章の集合が回によってブレると2回目以降の記録で行が見つからなくなる。
+// 常に全章を送ることでこれを防ぐ。
+function aggregateByChapter(results) {
+  const byIndex = {};
+  results.forEach((r) => {
+    if (!byIndex[r.chapterIndex]) byIndex[r.chapterIndex] = { correct: 0, total: 0 };
+    byIndex[r.chapterIndex].total++;
+    if (r.correct) byIndex[r.chapterIndex].correct++;
+  });
+  // 新シラバス仮問題集（extra3）は新シラバスの章だけ、それ以外の問題集は旧シラバスの章だけを送る
+  // （新しい成績シートに旧章の行が並んだり、既存シートの章の集合が変わって行が見つからなくなるのを防ぐ）。復習は全章。
+  const inScope = (i) => mode === 'review' || (mode === 'extra3' ? i >= BASE_CHAPTER_COUNT : i < BASE_CHAPTER_COUNT);
+  return CHAPTERS.map((label, i) => ({
+    chapterIndex: i,
+    chapterLabel: i >= BASE_CHAPTER_COUNT ? chapterLabelText(i) : label,
+    correct: (byIndex[i] && byIndex[i].correct) || 0,
+    total: (byIndex[i] && byIndex[i].total) || 0,
+  })).filter((c) => inScope(c.chapterIndex));
+}
+
+function showSummary() {
+  clearProgress();   // 最後まで解いたので、途中経過は不要
+  showScreen('screenSummary');
+  const total = sessionResults.length;
+  const correct = sessionResults.filter((r) => r.correct).length;
+  const wrongCount = total - correct;
+  const pct = total > 0 ? Math.round((correct / total) * 1000) / 10 : 0;
+  document.getElementById('summaryScore').textContent =
+    correct + ' / ' + total + '（' + pct + '%）' + (skippedCount > 0 ? '　スキップ ' + skippedCount + '問' : '');
+
+  const byChapter = aggregateByChapter(sessionResults);
+  const chaptersEl = document.getElementById('summaryChapters');
+  chaptersEl.innerHTML = '';
+  byChapter.forEach((c) => {
+    const row = document.createElement('div');
+    row.className = 'summary-chapter-row';
+    const scoreText = c.total > 0
+      ? c.correct + '/' + c.total + '（' + Math.round((c.correct / c.total) * 1000) / 10 + '%）'
+      : '未出題';
+    row.innerHTML = '<span class="name">' + escapeHtml(c.chapterLabel) + '</span><span class="score">' + scoreText + '</span>';
+    chaptersEl.appendChild(row);
+  });
+
+  document.getElementById('recordStatus').textContent = '';
+  const recordBtn = document.getElementById('recordBtn');
+  // 全問スキップ（回答0問）のときは記録しても中身が無いので押させない。
+  recordBtn.disabled = total === 0;
+  recordBtn.textContent = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+
+  // 間違えた問題があるときだけ、その場で解き直すボタンを出す。
+  const retryBtn = document.getElementById('retryWrongBtn');
+  retryBtn.style.display = wrongCount > 0 ? '' : 'none';
+  retryBtn.textContent = '🔁 間違えた' + wrongCount + '問だけもう一度';
+
+  const note = document.getElementById('summaryNote');
+  if (mode === 'review') {
+    note.textContent = '復習の結果は「' + TRACKING_EXAM_ID + '_復習ログ」に記録され、'
+      + GRADUATE_STREAK + '回連続で正解した問題は次回から「克服」として出題対象から外れます'
+      + '（章別の正答率推移シートには影響しません）。';
+    note.style.display = '';
+  } else {
+    note.style.display = 'none';
+    note.textContent = '';
+  }
+
+  document.getElementById('adviceArea').style.display = 'none';
+  document.getElementById('adviceStatus').textContent = '';
+  document.getElementById('adviceBtn').disabled = false;
+  document.getElementById('adviceBtn').textContent = '🎯 学習アドバイスを見る';
+}
+
+// 今回の結果（章別正答率・間違えた問題）と、過去に蓄積した「ミス」シートの履歴を
+// バックエンドで突き合わせ、Geminiに弱点分野・復習優先度・次のアクションをまとめさせる。
+async function getAdvice() {
+  const btn = document.getElementById('adviceBtn');
+  const status = document.getElementById('adviceStatus');
+  const area = document.getElementById('adviceArea');
+  btn.disabled = true;
+  btn.textContent = 'アドバイスを作成中...';
+  status.textContent = '';
+
+  try {
+    const data = await new Promise(function (resolve, reject) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(reject)
+        .apiQuizAdvice({
+          examId: EXAM_ID,
+          trackingExamId: TRACKING_EXAM_ID,
+          mode: TRACKING_MODE[mode] || mode,
+          chapters: aggregateByChapter(sessionResults),
+          wrongAnswers: buildWrongAnswers(),
+        });
+    });
+    if (data.ok) {
+      area.textContent = data.advice;
+      area.style.display = '';
+      btn.textContent = '🎯 学習アドバイスを見る';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || 'アドバイスの取得に失敗しました');
+      btn.textContent = '🎯 学習アドバイスを見る';
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.textContent = '🎯 学習アドバイスを見る';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// 間違えた問題だけを、問題文・自分の回答・正解を添えたスプレッドシート出力用の形へ整形する。
+function buildWrongAnswers() {
+  return sessionResults.filter((r) => !r.correct).map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+// 復習モードの記録用。正解した問題も含めて全問を送る（連続正解＝克服の判定に必要なため）。
+function buildReviewResults() {
+  return sessionResults.map((r) => {
+    const q = questions.find((qq) => qq.id === r.id);
+    const correctVal = q.type === 'mc' ? q.correctIndex : q.type === 'mc-multi' ? q.correctIndexes : q.correct;
+    return {
+      id: r.id,
+      deckLabel: deckLabelOf(q),
+      chapterLabel: chapterLabelText(r.chapterIndex),
+      stem: q.stem,
+      correct: r.correct,
+      selectedText: answerText(q, r.selectedOption),
+      correctText: answerText(q, correctVal),
+    };
+  });
+}
+
+async function recordResults() {
+  const btn = document.getElementById('recordBtn');
+  const status = document.getElementById('recordStatus');
+  const labelWhenIdle = mode === 'review' ? 'この回の復習結果を記録' : 'この回の結果を記録';
+  btn.disabled = true;
+  btn.textContent = '記録中...';
+  status.textContent = '';
+
+  const byChapter = aggregateByChapter(sessionResults);
+  try {
+    // fetchではなく google.script.run を使う（理由は chat-app.js の callBackend 参照）。
+    // 復習モードは章別の正答率推移シートに混ぜない（出題が間違えた問題に偏っていて
+    // 推移のグラフが本来の実力より低く歪むため）。専用の復習ログへ全問を書く。
+    const data = await new Promise(function (resolve, reject) {
+      const runner = google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);
+      if (mode === 'review') {
+        runner.apiRecordReviewLog({
+          examId: TRACKING_EXAM_ID,
+          results: buildReviewResults(),
+          attemptAt: new Date().toISOString(),
+        });
+        return;
+      }
+      runner.apiRecordQuizResult({
+        examId: TRACKING_EXAM_ID,
+        mode: TRACKING_MODE[mode] || mode,
+        chapters: byChapter,
+        wrongAnswers: buildWrongAnswers(),
+        attemptAt: new Date().toISOString(),
+      });
+    });
+    if (data.ok) {
+      status.textContent = '✅ 記録しました';
+      btn.textContent = '記録済み';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || '記録に失敗しました');
+      btn.disabled = false;
+      btn.textContent = labelWhenIdle;
+    }
+  } catch (err) {
+    status.textContent = '⚠️ 通信エラー: ' + (err && err.message ? err.message : err);
+    btn.disabled = false;
+    btn.textContent = labelWhenIdle;
+  }
+}
+
+</script>
+</body>
+</html>

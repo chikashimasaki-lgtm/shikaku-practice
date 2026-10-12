@@ -20,13 +20,15 @@ const ORG = {
   pmp: 'PMI（PMP）',
   claudecode: 'Anthropic（Claude Code）',
   github: 'GitHub, Inc.（GitHub）',
+  ippfcyber: '内部監査人協会（IIA）',
 };
-const ids = ['aaia', 'isms', 'au', 'pms', 'jsox', 'cisa', 'pmp', 'claudecode', 'github'];
+const ids = ['aaia', 'isms', 'au', 'pms', 'jsox', 'cisa', 'pmp', 'claudecode', 'github', 'ippfcyber'];
 const quizzes = ids.map((id) => exams.find((e) => e.id === id && e.quiz)).filter(Boolean);
 // 注記の「事実関係」の一文を差し替える問題集
 const NOTE = {
   claudecode: '事実関係は公式ドキュメントで確認した内容に基づきますが、Claude Code は頻繁に更新されるため最新の公式ドキュメントで確認してください。',
   github: '事実関係は GitHub の公式ドキュメントで確認した内容に基づきますが、GitHub は頻繁に更新されるため最新の公式ドキュメントで確認してください。',
+  ippfcyber: '事実関係は IIA の公式文書（トピック別要求事項の本文・ユーザーガイド・Q&A）で確認した内容に基づきますが、トピック別要求事項は定期的に見直されるため最新の公式文書で確認してください。',
 };
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
